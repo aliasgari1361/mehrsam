@@ -1,0 +1,22 @@
+CREATE TABLE IF NOT EXISTS mahsul_dasteh (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    onvan VARCHAR(100) NOT NULL,
+    slug VARCHAR(100) NOT NULL UNIQUE,
+    tartib INT DEFAULT 0
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS mahsulat (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    onvan VARCHAR(200) NOT NULL,
+    slug VARCHAR(200) NOT NULL UNIQUE,
+    dasteh_id INT,
+    gheymat DECIMAL(12,0) NOT NULL DEFAULT 0,
+    gheymat_takhfif DECIMAL(12,0) DEFAULT NULL,
+    tozih TEXT,
+    virayesh TEXT,
+    tasvir VARCHAR(500) DEFAULT NULL,
+    mojood INT NOT NULL DEFAULT 0,
+    vaziat TINYINT(1) NOT NULL DEFAULT 1,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (dasteh_id) REFERENCES mahsul_dasteh(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

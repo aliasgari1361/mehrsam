@@ -1,0 +1,9 @@
+RewriteEngine On
+
+# اگر فایل واقعی وجود داشت، درخواست رو همون‌جا متوقف کن
+RewriteCond %{REQUEST_FILENAME} !-f
+# اگر پوشه‌ی واقعی وجود داشت، متوقف کن
+RewriteCond %{REQUEST_FILENAME} !-d
+
+# هرچیز دیگه رو بفرست به index.php و مسیر اصلی رو در پارامتر url قرار بده
+RewriteRule ^(.*)$ index.php?url=$1 [QSA,L]
