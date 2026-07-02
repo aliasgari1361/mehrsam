@@ -7,6 +7,13 @@
     <meta name="description" content="<?= htmlspecialchars($meta_sharh ?? SITE_SLOGAN) ?>">
     <meta name="robots" content="index, follow">
 
+    <?php
+    // توابع سبد خرید برای هدر
+    if (!function_exists('sabad_count')) {
+        require_once __DIR__ . '/../../mohtava/forushgah/sabad-model.php';
+    }
+    ?>
+
     <!-- Open Graph -->
     <meta property="og:title"       content="<?= htmlspecialchars($onvan_safhe ?? SITE_NAME) ?>">
     <meta property="og:description" content="<?= htmlspecialchars($meta_sharh ?? SITE_SLOGAN) ?>">
@@ -372,6 +379,10 @@
                     <li><a href="<?= BASE_URL ?>/"          class="<?= ($safhe_faali??'') === 'khane'    ? 'faali' : '' ?>">خانه</a></li>
                     <li><a href="<?= BASE_URL ?>/khadamat"  class="<?= ($safhe_faali??'') === 'khadamat' ? 'faali' : '' ?>">خدمات</a></li>
                     <li><a href="<?= BASE_URL ?>/tarnegar"  class="<?= ($safhe_faali??'') === 'tarnegar' ? 'faali' : '' ?>">تارنگار</a></li>
+                    <li><a href="<?= BASE_URL ?>/forushgah/sabad" class="cart-link" style="position:relative; padding-left:40px;">
+                        <i class="fa-solid fa-cart-shopping" style="font-size:18px;"></i>
+                        <span class="cart-badge" style="position:absolute; top:-6px; left:-6px; background:var(--rang-asli); color:#fff; font-size:11px; font-weight:700; width:20px; height:20px; border-radius:50%; display:flex; align-items:center; justify-content:center;"><?= sabad_count() ?></span>
+                    </a></li>
                     <li><a href="<?= BASE_URL ?>/tamas" class="dakmeh dakmeh-asli">تماس با ما</a></li>
                 </ul>
             </nav>

@@ -45,7 +45,7 @@
 
                     <h3 style="font-size:0.95rem; margin-bottom:8px; text-align:right;"><?= htmlspecialchars($m['onvan']) ?></h3>
 
-                    <div style="display:flex; align-items:center; gap:8px; justify-content:flex-start;">
+                    <div style="display:flex; align-items:center; gap:8px; justify-content:flex-start; margin-bottom:12px;">
                         <span style="font-size:1.1rem; font-weight:700; color:var(--rang-asli);">
                             <?= number_format($gheymat) ?> تومان
                         </span>
@@ -56,10 +56,65 @@
                         <?php endif; ?>
                     </div>
 
+                    <button class="dakmeh dakmeh-asli add-to-cart" style="width:100%; border:none; cursor:pointer;" data-mahsul="<?= $m['id'] ?>">
+                        <i class="fa-solid fa-cart-plus"></i>
+                        <span>افزودن به سبد</span>
+                    </button>
+
                 </div>
             </a>
             <?php endforeach; ?>
         </div>
+
+        <script>
+        document.querySelectorAll('.add-to-cart').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+
+                const btnEl = this;
+                const mahsulId = btnEl.dataset.mahsul;
+                const originalHTML = btnEl.innerHTML;
+
+                btnEl.disabled = true;
+                btnEl.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> در حال افزودن...';
+
+                const formData = new FormData();
+                formData.append('mahsul_id', mahsulId);
+                formData.append('tedad', 1);
+
+                fetch('<?= BASE_URL ?>/forushgah/sabad/add', {
+                    method: 'POST',
+                    body: formData,
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                })
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.success) {
+                            btnEl.innerHTML = '<i class="fa-solid fa-check"></i> اضافه شد';
+                            btnEl.classList.remove('dakmeh-asli');
+                            btnEl.classList.add('dakmeh-khali');
+                            document.querySelectorAll('.cart-badge').forEach(b => b.textContent = data.count);
+                            setTimeout(() => {
+                                btnEl.innerHTML = originalHTML;
+                                btnEl.classList.add('dakmeh-asli');
+                                btnEl.classList.remove('dakmeh-khali');
+                                btnEl.disabled = false;
+                            }, 1500);
+                        } else {
+                            alert(data.message || 'خطا در افزودن به سبد');
+                            btnEl.innerHTML = originalHTML;
+                            btnEl.disabled = false;
+                        }
+                    })
+                    .catch(() => {
+                        alert('خطای ارتباطی');
+                        btnEl.innerHTML = originalHTML;
+                        btnEl.disabled = false;
+                    });
+            });
+        });
+        </script>
 
         <?php if ($total_pages > 1): ?>
         <div style="text-align:center; margin-top:40px; display:flex; gap:8px; justify-content:center;">

@@ -2,8 +2,42 @@
 
 require_once MASIR_DADE . 'bank.php';
 require_once __DIR__ . '/mahsul-model.php';
+require_once __DIR__ . '/sabad-kontrol.php';
 
 function forushgah_route($amaliat, $paramha) {
+    // سبد خرید routes
+    if ($amaliat === 'sabad') {
+        $sub_action = $paramha[0] ?? '';
+        if ($sub_action === 'add') {
+            // POST: افزودن به سبد
+            $mahsul_id = (int)($_POST['mahsul_id'] ?? 0);
+            $tedad = max(1, (int)($_POST['tedad'] ?? 1));
+            if ($mahsul_id) sabad_add($mahsul_id, $tedad);
+            if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'] === 'XMLHttpRequest') {
+                echo json_encode(['count' => sabad_count(), 'total' => sabad_total()]);
+            } else {
+                redirect('forushgah/sabad');
+            }
+            exit;
+        } elseif ($sub_action === 'update') {
+            // AJAX: آپدیت تعداد
+            sabad_update_ajax((int)($paramha[1] ?? 0));
+            exit;
+        } elseif ($sub_action === 'remove') {
+            // AJAX: حذف از سبد
+            sabad_remove_ajax((int)($paramha[1] ?? 0));
+            exit;
+        } elseif ($sub_action === 'count') {
+            // AJAX: تعداد سبد
+            sabad_count_ajax();
+            exit;
+        } else {
+            // نمایش سبد خرید
+            sabad_namayesh();
+        }
+        return;
+    }
+
     if ($amaliat === 'dasteh') {
         $dasteh_slug = $paramha[0] ?? null;
         $page = max(1, (int)($paramha[1] ?? 1));
