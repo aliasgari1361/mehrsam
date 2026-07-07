@@ -238,7 +238,6 @@ function mod_route($action, $params) {
         <a href="<?= BASE_URL ?>mod/chat"><i class="fa-solid fa-comment-dots"></i> چت</a>
         <a href="<?= BASE_URL ?>mod/theme"><i class="fa-solid fa-palette"></i> مدیریت قالب</a>
         <a href="<?= BASE_URL ?>mod/store"><i class="fa-solid fa-store"></i> مدیریت فروشگاه</a>
-        <a href="<?= BASE_URL ?>mod/gateways"><i class="fa-solid fa-credit-card"></i> درگاه‌ها</a>
         <a href="<?= BASE_URL ?>mod/settings"><i class="fa-solid fa-gear"></i> تنظیمات سایت</a>
     </div>
     </div>

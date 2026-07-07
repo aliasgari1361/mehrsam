@@ -13,8 +13,8 @@ $primary_hover = $theme_settings['primary_hover'] ?? '#E65100';
 $secondary_color = $theme_settings['secondary_color'] ?? '#00B894';
 $font_family = $theme_settings['font_family'] ?? 'Vazirmatn';
 $custom_css = $theme_settings['custom_css'] ?? '';
-$logo_url = !empty($general_settings['logo']) ? $general_settings['logo'] : URL_GHALEB . '/manabe/logo.png';
-$favicon_url = !empty($general_settings['favicon']) ? $general_settings['favicon'] : URL_GHALEB . '/manabe/favicon.png';
+$logo_url = !empty($general_settings['logo']) ? $general_settings['logo'] : BASE_URL . 'ghaleb/manabe/logo.png';
+$favicon_url = !empty($general_settings['favicon']) ? $general_settings['favicon'] : BASE_URL . 'ghaleb/manabe/favicon.png';
 $site_title = $general_settings['site_title'] ?? 'مهراد سام';
 ?>
 <!DOCTYPE html>

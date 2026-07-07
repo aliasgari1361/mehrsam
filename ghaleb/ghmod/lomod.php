@@ -19,7 +19,18 @@ $_SESSION['captcha_time'] = time();
 <head>
     <meta charset="UTF-8">
     <title>ورود به <?php echo htmlspecialchars($siteTitle); ?></title>
-    <link rel="icon" href="<?php echo BASE_URL . get_site_setting('favicon'); ?>" type="image/png">
+    <?php
+// لود تنظیمات سایت برای فاوآیکون
+$favicon_path = BASE_URL . 'ghaleb/manabe/favicon.png';
+$settings_file = dirname(__DIR__, 2) . '/haste/site_settings.json';
+if (file_exists($settings_file)) {
+    $settings = json_decode(file_get_contents($settings_file), true);
+    if (!empty($settings['general']['favicon'])) {
+        $favicon_path = $settings['general']['favicon'];
+    }
+}
+?>
+<link rel="icon" href="<?= htmlspecialchars($favicon_path) ?>" type="image/png">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
