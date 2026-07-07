@@ -3,13 +3,18 @@
 require_once dirname(__DIR__, 2) . '/haste/site_settings.php';
 $theme_settings = get_site_setting('theme') ?? [];
 $general_settings = get_site_setting('general') ?? [];
+// سازگاری با فرمت قدیمی (مسطح)
+if (empty($general_settings)) {
+    global $site_settings;
+    $general_settings = $site_settings ?? [];
+}
 $primary_color = $theme_settings['primary_color'] ?? '#FF6F00';
 $primary_hover = $theme_settings['primary_hover'] ?? '#E65100';
 $secondary_color = $theme_settings['secondary_color'] ?? '#00B894';
 $font_family = $theme_settings['font_family'] ?? 'Vazirmatn';
 $custom_css = $theme_settings['custom_css'] ?? '';
-$logo_url = $general_settings['logo'] ?: URL_GHALEB . '/manabe/logo.png';
-$favicon_url = $general_settings['favicon'] ?: URL_GHALEB . '/manabe/favicon.png';
+$logo_url = !empty($general_settings['logo']) ? $general_settings['logo'] : URL_GHALEB . '/manabe/logo.png';
+$favicon_url = !empty($general_settings['favicon']) ? $general_settings['favicon'] : URL_GHALEB . '/manabe/favicon.png';
 $site_title = $general_settings['site_title'] ?? 'مهراد سام';
 ?>
 <!DOCTYPE html>
