@@ -225,7 +225,7 @@ function mod_route($action, $params) {
         <a href="<?= BASE_URL ?>mod/pages"><i class="fa-solid fa-file"></i> برگه جدید</a>
         <a href="<?= BASE_URL ?>mod/services"><i class="fa-solid fa-headset"></i> خدمات</a>
         <a href="<?= BASE_URL ?>mod/chat"><i class="fa-solid fa-comment-dots"></i> چت</a>
-        <a href="<?= BASE_URL ?>mod/site_settings"><i class="fa-solid fa-gear"></i> تنظیمات سایت</a>
+        <a href="<?= BASE_URL ?>mod/settings"><i class="fa-solid fa-gear"></i> تنظیمات سایت</a>
     </div>
     </div>
 <?php
@@ -428,36 +428,363 @@ function mod_route($action, $params) {
             include __DIR__ . '/../../ghaleb/ghmod/panevis.php';
             break;
 
-        case 'site_settings':
+        case 'settings':
             require_once __DIR__ . '/../site_settings.php';
             global $site_settings;
             $current = $site_settings;
 
+            // مدیریت آپلود فایل
             if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
-                $new_settings = [
-                    'site_title' => $_POST['site_title'] ?? 'سایت من',
-                    'favicon'    => $_POST['favicon'] ?? 'ghaleb/manabe/favicon.png',
-                    'map_embed_url' => $_POST['map_embed_url'] ?? 'https://maps.google.com/maps?q=35.7257,51.3814&z=15&output=embed'
-                ];
-                save_site_settings($new_settings);
-                global $site_settings;
-                $current = $site_settings;
-                $message = "تنظیمات عمومی ذخیره شد.";
+                // آپلود لوگو
+                if (!empty($_FILES['logo']['name'])) {
+                    $logo_result = upload_site_image('logo', 'logo/');
+                    if (is_array($logo_result) && isset($logo_result['error'])) {
+                        $message = "<p style='color:red;'>خطای لوگو: {$logo_result['error']}</p>";
+                    } elseif ($logo_result) {
+                        $_POST['general']['logo'] = $logo_result;
+                    }
+                }
+                // آپلود فاوآیکون
+                if (!empty($_FILES['favicon']['name'])) {
+                    $fav_result = upload_site_image('favicon', 'favicon/');
+                    if (is_array($fav_result) && isset($fav_result['error'])) {
+                        $message = "<p style='color:red;'>خطای فاوآیکون: {$fav_result['error']}</p>";
+                    } elseif ($fav_result) {
+                        $_POST['general']['favicon'] = $fav_result;
+                    }
+                }
+
+                // ذخیره تنظیمات
+                $new_settings = [];
+                foreach (['general', 'social', 'theme', 'store', 'gateways'] as $section) {
+                    if (!empty($_POST[$section]) && is_array($_POST[$section])) {
+                        $new_settings[$section] = $_POST[$section];
+                    }
+                }
+                if (!empty($new_settings)) {
+                    save_site_settings($new_settings);
+                    $current = $site_settings;
+                    $message = "<p style='color:green;'>تنظیمات با موفقیت ذخیره شد.</p>";
+                }
             }
+
+            $active_tab = $_GET['tab'] ?? 'general';
+            $tabs = [
+                'general'   => 'عمومی',
+                'social'    => 'شبکه‌ها',
+                'theme'     => 'قالب',
+                'store'     => 'فروشگاه',
+                'gateways'  => 'درگاه‌ها',
+            ];
 
             include __DIR__ . '/../../ghaleb/ghmod/sarsafhe.php';
             ?>
-            <h3>تنظیمات عمومی سایت</h3>
-            <?php if (isset($message)) echo "<p style='color:green;'>$message</p>"; ?>
-            <form method="post">
-                <label>عنوان سایت: <input type="text" name="site_title" value="<?php echo htmlspecialchars($current['site_title'] ?? ''); ?>"></label><br><br>
-                <label>مسیر Favicon (نسبی): <input type="text" name="favicon" value="<?php echo htmlspecialchars($current['favicon'] ?? ''); ?>" size="50"></label>
-                <small>مثال: ghaleb/manabe/favicon.png</small><br><br>
-                <label>کد Embed نقشه (Google Maps یا OpenStreetMap):</label><br>
-                <textarea name="map_embed_url" rows="3" style="width:100%; direction:ltr; font-family:monospace;"><?php echo htmlspecialchars($current['map_embed_url'] ?? ''); ?></textarea>
-                <small>مثال: https://maps.google.com/maps?q=35.7257,51.3814&z=15&output=embed</small><br><br>
-                <button type="submit">ذخیره</button>
+            <style>
+                .settings-tabs { display:flex; gap:4px; margin-bottom:20px; border-bottom:2px solid var(--rang-border); padding-bottom:4px; }
+                .settings-tabs a { padding:10px 20px; border-radius:8px 8px 0 0; text-decoration:none; font-weight:600; color:var(--rang-gray); background:#f8f9fa; border:1px solid var(--rang-border); border-bottom:none; transition:all .2s; }
+                .settings-tabs a:hover { background:#eef; color:var(--rang-asli); }
+                .settings-tabs a.active { background:#fff; color:var(--rang-asli); border-color:var(--rang-asli); border-bottom:2px solid #fff; margin-bottom:-2px; }
+                .settings-panel { background:#fff; border:1px solid var(--rang-border); border-radius:12px; padding:24px; }
+                .form-group { margin-bottom:20px; }
+                .form-group label { display:block; margin-bottom:6px; font-weight:600; color:var(--rang-matn); }
+                .form-group input[type=text], .form-group input[type=email], .form-group input[type=tel], .form-group input[type=url], .form-group input[type=number], .form-group select, .form-group textarea { width:100%; padding:12px; border:1.5px solid var(--rang-border); border-radius:8px; font-family:inherit; font-size:1rem; box-sizing:border-box; }
+                .form-group textarea { min-height:100px; resize:vertical; direction:rtl; }
+                .form-group input[type=color] { width:60px; height:40px; padding:0; border:none; border-radius:8px; cursor:pointer; }
+                .form-group .color-preview { display:inline-block; width:30px; height:30px; border-radius:6px; border:2px solid var(--rang-border); vertical-align:middle; margin-right:10px; }
+                .form-group .checkbox-label { display:flex; align-items:center; gap:10px; cursor:pointer; font-weight:500; }
+                .form-group .checkbox-label input { width:20px; height:20px; accent-color:var(--rang-asli); }
+                .form-row { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+                .form-row.single { grid-template-columns:1fr; }
+                .gateway-card { border:1px solid var(--rang-border); border-radius:12px; padding:20px; margin-bottom:16px; background:#fafafa; }
+                .gateway-card h4 { margin:0 0 16px; display:flex; align-items:center; gap:10px; }
+                .gateway-card .toggle-switch { position:relative; width:56px; height:28px; }
+                .gateway-card .toggle-switch input { opacity:0; width:0; height:0; }
+                .gateway-card .toggle-slider { position:absolute; inset:0; background:#ccc; border-radius:28px; transition:.3s; cursor:pointer; }
+                .gateway-card .toggle-slider:before { content:''; position:absolute; width:22px; height:22px; left:3px; bottom:3px; background:#fff; border-radius:50%; transition:.3s; box-shadow:0 2px 4px rgba(0,0,0,.2); }
+                .gateway-card .toggle-switch input:checked + .toggle-slider { background:var(--rang-asli); }
+                .gateway-card .toggle-switch input:checked + .toggle-slider:before { transform:translateX(28px); }
+                .btn { padding:12px 24px; border:none; border-radius:8px; font-family:inherit; font-size:1rem; font-weight:700; cursor:pointer; transition:.2s; }
+                .btn-primary { background:var(--rang-asli); color:#fff; }
+                .btn-primary:hover { background:var(--rang-tira); }
+                .section-title { font-size:1.1rem; margin-bottom:8px; color:var(--rang-matn); }
+                .help-text { font-size:.85rem; color:var(--rang-gray); margin-top:4px; display:block; }
+            </style>
+
+            <h3 style="margin-bottom:8px;">تنظیمات سایت</h3>
+            <p style="color:var(--rang-gray); margin-bottom:24px;">مدیریت تنظیمات عمومی، ظاهر، فروشگاه و درگاه‌های پرداخت</p>
+            <?php if (isset($message)) echo $message; ?>
+
+            <div class="settings-tabs">
+                <?php foreach ($tabs as $key => $label): ?>
+                    <a href="?tab=<?= $key ?>" class="<?= $active_tab === $key ? 'active' : '' ?>"><?= $label ?></a>
+                <?php endforeach; ?>
+            </div>
+
+            <form method="post" enctype="multipart/form-data" action="<?= BASE_URL ?>mod/settings">
+                <input type="hidden" name="tab" value="<?= $active_tab ?>">
+
+                <?php if ($active_tab === 'general'): ?>
+                <div class="settings-panel">
+                    <h4 class="section-title"><i class="fa-solid fa-gear"></i> تنظیمات عمومی</h4>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>عنوان سایت</label>
+                            <input type="text" name="general[site_title]" value="<?= htmlspecialchars($current['general']['site_title'] ?? '') ?>" required>
+                        </div>
+                        <div class="form-group">
+                            <label>شعار / توضیح کوتاه</label>
+                            <input type="text" name="general[site_slogan]" value="<?= htmlspecialchars($current['general']['site_slogan'] ?? '') ?>">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>ایمیل</label>
+                            <input type="email" name="general[site_email]" value="<?= htmlspecialchars($current['general']['site_email'] ?? '') ?>">
+                        </div>
+                        <div class="form-group">
+                            <label>تلفن (نمایش)</label>
+                            <input type="tel" name="general[site_tel]" value="<?= htmlspecialchars($current['general']['site_tel'] ?? '') ?>">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>تلفن (انگلیسی برای لینک)</label>
+                            <input type="tel" name="general[site_tel_en]" value="<?= htmlspecialchars($current['general']['site_tel_en'] ?? '') ?>" dir="ltr">
+                        </div>
+                        <div class="form-group">
+                            <label>ساعت کاری</label>
+                            <input type="text" name="general[site_hours]" value="<?= htmlspecialchars($current['general']['site_hours'] ?? '') ?>">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>آدرس کامل</label>
+                        <textarea name="general[site_adres]"><?= htmlspecialchars($current['general']['site_adres'] ?? '') ?></textarea>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>لوگو سایت</label>
+                            <input type="file" name="logo" accept="image/*">
+                            <?php if (!empty($current['general']['logo'])): ?>
+                                <div style="margin-top:8px;">
+                                    <img src="<?= $current['general']['logo'] ?>" alt="Logo" style="max-height:60px; border-radius:8px; border:1px solid var(--rang-border);">
+                                    <br><small>فایل جدید انتخاب کنید تا جایگزین شود</small>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+                        <div class="form-group">
+                            <label>فاوآیکون</label>
+                            <input type="file" name="favicon" accept="image/*">
+                            <?php if (!empty($current['general']['favicon'])): ?>
+                                <div style="margin-top:8px;">
+                                    <img src="<?= $current['general']['favicon'] ?>" alt="Favicon" style="width:32px; height:32px; border-radius:4px;">
+                                    <br><small>فایل جدید انتخاب کنید تا جایگزین شود</small>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>کد Embed نقشه (Google Maps / OpenStreetMap)</label>
+                        <textarea name="general[map_embed_url]" style="min-height:120px; font-family:monospace; direction:ltr;"><?= htmlspecialchars($current['general']['map_embed_url'] ?? '') ?></textarea>
+                        <span class="help-text">مثال: https://maps.google.com/maps?q=35.7257,51.3814&z=15&output=embed</span>
+                    </div>
+                </div>
+
+                <?php elseif ($active_tab === 'social'): ?>
+                <div class="settings-panel">
+                    <h4 class="section-title"><i class="fa-brands fa-telegram"></i> شبکه‌های اجتماعی</h4>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label><i class="fa-brands fa-telegram" style="color:#0088cc;"></i> تلگرام</label>
+                            <input type="url" name="social[telegram]" value="<?= htmlspecialchars($current['social']['telegram'] ?? '') ?>" placeholder="https://t.me/...">
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fa-brands fa-whatsapp" style="color:#25d366;"></i> واتس‌اپ</label>
+                            <input type="url" name="social[whatsapp]" value="<?= htmlspecialchars($current['social']['whatsapp'] ?? '') ?>" placeholder="https://wa.me/...">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label><i class="fa-brands fa-bale" style="color:#0088cc;"></i> بله</label>
+                            <input type="url" name="social[bale]" value="<?= htmlspecialchars($current['social']['bale'] ?? '') ?>" placeholder="https://ble.ir/...">
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fa-brands fa-instagram" style="color:#e4405f;"></i> اینستاگرام</label>
+                            <input type="url" name="social[instagram]" value="<?= htmlspecialchars($current['social']['instagram'] ?? '') ?>" placeholder="https://instagram.com/...">
+                        </div>
+                    </div>
+                </div>
+
+                <?php elseif ($active_tab === 'theme'): ?>
+                <div class="settings-panel">
+                    <h4 class="section-title"><i class="fa-solid fa-palette"></i> تنظیمات قالب</h4>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>قالب فعال</label>
+                            <select name="theme[active]">
+                                <option value="mehrsam" <?= ($current['theme']['active'] ?? 'mehrsam') === 'mehrsam' ? 'selected' : '' ?>>مهرسام (پیش‌فرض)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>فونت</label>
+                            <select name="theme[font_family]">
+                                <option value="Vazirmatn" <?= ($current['theme']['font_family'] ?? 'Vazirmatn') === 'Vazirmatn' ? 'selected' : '' ?>>وزیر متن (پیش‌فرض)</option>
+                                <option value="Tahoma" <?= ($current['theme']['font_family'] ?? '') === 'Tahoma' ? 'selected' : '' ?>>تاهما</option>
+                                <option value="IRANSans" <?= ($current['theme']['font_family'] ?? '') === 'IRANSans' ? 'selected' : '' ?>>ایران‌سنس</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>رنگ اصلی (Primary)</label>
+                            <div style="display:flex; align-items:center; gap:10px;">
+                                <input type="color" name="theme[primary_color]" value="<?= htmlspecialchars($current['theme']['primary_color'] ?? '#FF6F00') ?>" id="primColor">
+                                <span class="color-preview" id="primPreview" style="background:<?= htmlspecialchars($current['theme']['primary_color'] ?? '#FF6F00') ?>"></span>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>رنگ هاور / تیره (Primary Hover)</label>
+                            <div style="display:flex; align-items:center; gap:10px;">
+                                <input type="color" name="theme[primary_hover]" value="<?= htmlspecialchars($current['theme']['primary_hover'] ?? '#E65100') ?>" id="primHoverColor">
+                                <span class="color-preview" id="primHoverPreview" style="background:<?= htmlspecialchars($current['theme']['primary_hover'] ?? '#E65100') ?>"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>رنگ ثانویه (Secondary)</label>
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <input type="color" name="theme[secondary_color]" value="<?= htmlspecialchars($current['theme']['secondary_color'] ?? '#00B894') ?>" id="secColor">
+                            <span class="color-preview" id="secPreview" style="background:<?= htmlspecialchars($current['theme']['secondary_color'] ?? '#00B894') ?>"></span>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>CSS سفارشی</label>
+                        <textarea name="theme[custom_css]" rows="8" placeholder="/* CSS اضافی اینجا */" style="font-family:monospace; direction:ltr;"><?= htmlspecialchars($current['theme']['custom_css'] ?? '') ?></textarea>
+                        <span class="help-text">این کد مستقیماً در <head> قالبInject می‌شود</span>
+                    </div>
+
+                    <script>
+                        document.getElementById('primColor').addEventListener('input', e => document.getElementById('primPreview').style.background = e.target.value);
+                        document.getElementById('primHoverColor').addEventListener('input', e => document.getElementById('primHoverPreview').style.background = e.target.value);
+                        document.getElementById('secColor').addEventListener('input', e => document.getElementById('secPreview').style.background = e.target.value);
+                    </script>
+                </div>
+
+                <?php elseif ($active_tab === 'store'): ?>
+                <div class="settings-panel">
+                    <h4 class="section-title"><i class="fa-solid fa-store"></i> تنظیمات فروشگاه</h4>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>واحد پول (نمایش)</label>
+                            <input type="text" name="store[currency]" value="<?= htmlspecialchars($current['store']['currency'] ?? 'تومان') ?>">
+                        </div>
+                        <div class="form-group">
+                            <label>نماد ارز</label>
+                            <input type="text" name="store[currency_symbol]" value="<?= htmlspecialchars($current['store']['currency_symbol'] ?? 'تومان') ?>">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>آستانه ارسال رایگان (ریال/تومان)</label>
+                            <input type="number" name="store[free_shipping_threshold]" value="<?= (int)($current['store']['free_shipping_threshold'] ?? 0) ?>" min="0" step="10000">
+                        </div>
+                        <div class="form-group">
+                            <label>هزینه ارسال پیش‌فرض</label>
+                            <input type="number" name="store[default_shipping_cost]" value="<?= (int)($current['store']['default_shipping_cost'] ?? 0) ?>" min="0" step="1000">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="store[stock_management]" value="1" <?= !empty($current['store']['stock_management']) ? 'checked' : '' ?>> مدیریت موجودی (کم کردن از موجودی بعد از پرداخت)
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="store[auto_confirm_orders]" value="1" <?= !empty($current['store']['auto_confirm_orders']) ? 'checked' : '' ?>> تایید خودکار سفارش‌ها بعد از پرداخت
+                        </label>
+                    </div>
+                </div>
+
+                <?php elseif ($active_tab === 'gateways'): ?>
+                <div class="settings-panel">
+                    <h4 class="section-title"><i class="fa-solid fa-credit-card"></i> درگاه‌های پرداخت</h4>
+                    <p class="help-text">برای هر درگاه، فعال‌سازی و مشخصات را وارد کنید. درگاه‌های غیرفعال در چک‌اوت نمایش داده نمی‌شوند.</p>
+
+                    <?php
+                    $gateways = $current['gateways'] ?? [
+                        'zarinpal' => ['enabled'=>false,'title'=>'زرین‌پال','merchant'=>'','sandbox'=>true],
+                        'idpay'    => ['enabled'=>false,'title'=>'آی‌دی‌پی','api_key'=>'','sandbox'=>true],
+                        'zibal'    => ['enabled'=>false,'title'=>'زیبال','merchant'=>'','sandbox'=>true],
+                    ];
+                    foreach ($gateways as $key => $gw): ?>
+                    <div class="gateway-card">
+                        <h4>
+                            <label class="toggle-switch">
+                                <input type="checkbox" name="gateways[<?= $key ?>][enabled]" value="1" <?= !empty($gw['enabled']) ? 'checked' : '' ?>> 
+                                <span class="toggle-slider"></span>
+                            </label>
+                            <?= htmlspecialchars($gw['title'] ?? $key) ?>
+                        </h4>
+
+                        <?php if ($key === 'zarinpal'): ?>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>مرچنت کد (Merchant ID)</label>
+                                <input type="text" name="gateways[<?= $key ?>][merchant]" value="<?= htmlspecialchars($gw['merchant'] ?? '') ?>" dir="ltr" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
+                            </div>
+                            <div class="form-group">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" name="gateways[<?= $key ?>][sandbox]" value="1" <?= !empty($gw['sandbox']) ? 'checked' : '' ?>> حالت سندباکس (تست)
+                                </label>
+                            </div>
+                        </div>
+                        <?php elseif ($key === 'idpay'): ?>
+                        <div class="form-group">
+                            <label>API Key</label>
+                            <input type="text" name="gateways[<?= $key ?>][api_key]" value="<?= htmlspecialchars($gw['api_key'] ?? '') ?>" dir="ltr" placeholder="YOUR_API_KEY">
+                        </div>
+                        <div class="form-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="gateways[<?= $key ?>][sandbox]" value="1" <?= !empty($gw['sandbox']) ? 'checked' : '' ?>> حالت سندباکس
+                            </label>
+                        </div>
+                        <?php elseif ($key === 'zibal'): ?>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>مرچنت کد</label>
+                                <input type="text" name="gateways[<?= $key ?>][merchant]" value="<?= htmlspecialchars($gw['merchant'] ?? '') ?>" dir="ltr">
+                            </div>
+                            <div class="form-group">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" name="gateways[<?= $key ?>][sandbox]" value="1" <?= !empty($gw['sandbox']) ? 'checked' : '' ?>> حالت سندباکس
+                                </label>
+                            </div>
+                        </div>
+                        <?php endif; ?>
+                    </div>
+                    <?php endforeach; ?>
+                </div>
+                <?php endif; ?>
+
+                <div style="margin-top:24px;">
+                    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-save"></i> ذخیره تغییرات</button>
+                </div>
             </form>
+
             <?php
             include __DIR__ . '/../../ghaleb/ghmod/panevis.php';
             break;

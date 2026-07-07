@@ -92,9 +92,30 @@
                         <textarea name="tozih" rows="2" style="width:100%; padding:12px; border:1px solid var(--rang-border); border-radius:8px; font-family:inherit; font-size:1rem; resize:vertical;"><?= htmlspecialchars($user_info['tozih'] ?? '') ?></textarea>
                     </div>
 
-                    <button type="submit" id="pay-btn" class="dakmeh dakmeh-asli" style="width:100%; font-size:1.1rem; padding:16px; display:flex; align-items:center; justify-content:center; gap:10px;">
+                    <?php if (!empty($gateways)): ?>
+                    <div style="margin-bottom:24px;">
+                        <label style="display:block; margin-bottom:10px; font-weight:500; color:var(--rang-matn);">درگاه پرداخت</label>
+                        <div style="display:flex; flex-direction:column; gap:10px;">
+                            <?php $first = true; foreach ($gateways as $key => $gw): ?>
+                            <label class="gateway-option" style="display:flex; align-items:center; gap:12px; padding:14px 16px; border:2px solid <?= $first ? 'var(--rang-asli)' : 'var(--rang-border)' ?>; border-radius:10px; cursor:pointer; background:<?= $first ? 'var(--rang-roshan)' : '#fff' ?>; transition:all .2s;">
+                                <input type="radio" name="gateway" value="<?= $key ?>" <?= $first ? 'checked' : '' ?> style="accent-color:var(--rang-asli); width:18px; height:18px;">
+                                <span style="font-weight:600; color:var(--rang-matn);"><?= htmlspecialchars($gw->getTitle()) ?></span>
+                                <?php if ($gw->sandbox): ?>
+                                <span style="font-size:0.75rem; background:#fff3cd; color:#856404; padding:2px 8px; border-radius:10px;">سندباکس</span>
+                                <?php endif; ?>
+                            </label>
+                            <?php $first = false; endforeach; ?>
+                        </div>
+                    </div>
+                    <?php elseif (empty($gateways)): ?>
+                    <div style="margin-bottom:24px; padding:16px; background:#fdecea; border:1px solid #f5c6cb; border-radius:10px; color:#c62828; font-size:0.9rem;">
+                        در حال حاضر هیچ درگاه پرداختی فعال نیست. لطفاً بعداً تلاش کنید یا با پشتیبانی تماس بگیرید.
+                    </div>
+                    <?php endif; ?>
+
+                    <button type="submit" id="pay-btn" class="dakmeh dakmeh-asli" style="width:100%; font-size:1.1rem; padding:16px; display:flex; align-items:center; justify-content:center; gap:10px;" <?= empty($gateways) ? 'disabled' : '' ?>>
                         <i class="fa-solid fa-lock"></i>
-                        پرداخت با زرین‌پال
+                        پرداخت امن
                     </button>
                 </form>
             </div>
@@ -189,35 +210,35 @@ document.addEventListener('DOMContentLoaded', function() {
 
     postType.addEventListener('change', updateTotals);
 
-    form.addEventListener('submit', function(e) {
-        e.preventDefault();
-        
-        payBtn.disabled = true;
-        payBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> در حال اتصال به درگاه...';
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(form);
+            
+            payBtn.disabled = true;
+            payBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> در حال اتصال به درگاه...';
 
-        const formData = new FormData(form);
-        
-        fetch('<?= BASE_URL ?>/forushgah/checkout/zarinpal/request', {
-            method: 'POST',
-            headers: { 'X-Requested-With': 'XMLHttpRequest' },
-            body: formData
-        })
-        .then(r => r.json())
-        .then(data => {
-            if (data.success) {
-                window.location.href = data.redirect_url;
-            } else {
-                alert(data.message || 'خطا در اتصال به درگاه پرداخت');
+            fetch('<?= BASE_URL ?>/forushgah/checkout', {
+                method: 'POST',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                body: formData
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    window.location.href = data.redirect_url;
+                } else {
+                    alert(data.message || 'خطا در اتصال به درگاه پرداخت');
+                    payBtn.disabled = false;
+                    payBtn.innerHTML = '<i class="fa-solid fa-lock"></i> پرداخت امن';
+                }
+            })
+            .catch(() => {
+                alert('خطای شبکه. لطفاً مجدد تلاش کنید.');
                 payBtn.disabled = false;
-                payBtn.innerHTML = '<i class="fa-solid fa-lock"></i> پرداخت با زرین‌پال';
-            }
-        })
-        .catch(() => {
-            alert('خطای شبکه. لطفاً مجدد تلاش کنید.');
-            payBtn.disabled = false;
-            payBtn.innerHTML = '<i class="fa-solid fa-lock"></i> پرداخت با زرین‌پال';
+                payBtn.innerHTML = '<i class="fa-solid fa-lock"></i> پرداخت امن';
+            });
         });
-    });
 });
 </script>
 

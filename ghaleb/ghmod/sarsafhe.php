@@ -36,8 +36,8 @@ $admin_settings = json_decode(file_get_contents(ADMIN_SETTINGS_FILE), true) ?: [
             <a href="<?php echo BASE_URL; ?>mod/pages">برگه‌ها</a> |
             <a href="<?php echo BASE_URL; ?>mod/services">خدمات</a> |
             <a href="<?php echo BASE_URL; ?>mod/chat">چت</a> |
-            <a href="<?php echo BASE_URL; ?>mod/site_settings">تنظیمات سایت</a> |
-            <a href="<?php echo BASE_URL; ?>mod/settings">تنظیمات پنل</a> |
+            <a href="<?php echo BASE_URL; ?>mod/settings">تنظیمات سایت</a> |
+            <a href="<?php echo BASE_URL; ?>mod/settings?tab=gateways">درگاه‌ها</a> |
             <a href="<?php echo BASE_URL; ?>mod/logout">خروج</a>
         </p>
     </div>

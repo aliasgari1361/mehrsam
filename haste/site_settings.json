@@ -1,5 +1,56 @@
 {
-    "site_title": "خدمات کامپیوتر مهراد سام در تهران",
-    "favicon": "",
-    "map_embed_url": "https://maps.google.com/maps?q=35.7257,51.3814&z=15&output=embed"
+    "general": {
+        "site_title": "مهراد سام",
+        "site_slogan": "خدمات کامپیوتر مهراد سام در تهران",
+        "site_email": "ali.asgari.6106@gmail.com",
+        "site_tel": "۰۹۱۰۵۹۲۱۳۵۸",
+        "site_tel_en": "989105921358",
+        "site_adres": "تهران، ضلع شمال غرب تقاطع چمران و جلال آل احمد، گیشا، ابتدای بلوچستان، ساختمان گیشا پلاک ۸ واحد ۴",
+        "site_hours": "شنبه تا پنج‌شنبه: ۹ تا ۲۰",
+        "favicon": "",
+        "logo": "",
+        "map_embed_url": "https:\/\/maps.google.com\/maps?q=35.7257,51.3814&z=15&output=embed"
+    },
+    "social": {
+        "telegram": "https:\/\/t.me\/mehrsys61",
+        "whatsapp": "https:\/\/wa.me\/989105921358",
+        "bale": "https:\/\/ble.ir\/ali2761",
+        "instagram": "#"
+    },
+    "theme": {
+        "active": "mehrsam",
+        "primary_color": "#FF6F00",
+        "primary_hover": "#E65100",
+        "secondary_color": "#00B894",
+        "font_family": "Vazirmatn",
+        "custom_css": ""
+    },
+    "store": {
+        "currency": "تومان",
+        "currency_symbol": "تومان",
+        "free_shipping_threshold": 0,
+        "default_shipping_cost": 0,
+        "auto_confirm_orders": false,
+        "stock_management": true
+    },
+    "gateways": {
+        "zarinpal": {
+            "enabled": false,
+            "title": "زرین‌پال",
+            "merchant": "",
+            "sandbox": true
+        },
+        "idpay": {
+            "enabled": false,
+            "title": "آیدی پی",
+            "api_key": "",
+            "sandbox": true
+        },
+        "nextpay": {
+            "enabled": false,
+            "title": "نکست پی",
+            "api_key": "",
+            "sandbox": true
+        }
+    }
 }

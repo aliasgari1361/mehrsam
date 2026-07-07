@@ -3,7 +3,7 @@
 require_once MASIR_DADE . 'bank.php';
 require_once __DIR__ . '/sefaresh-model.php';
 require_once __DIR__ . '/sabad-model.php';
-require_once MASIR_RISH . 'afzuneh/pardakht-darbe/zarinpal.php';
+require_once MASIR_RISH . 'afzuneh/pardakht-darbe/GatewayManager.php';
 
 function karbar_get($karbar_id) {
     $bank = new Bank();
@@ -21,16 +21,6 @@ function forushgah_checkout($amaliat, $paramha) {
     if (!isLoggedIn()) {
         $_SESSION['redirect_after_login'] = BASE_URL . '/forushgah/checkout';
         redirect('karbar/login');
-        return;
-    }
-
-    if ($amaliat === 'zarinpal') {
-        $sub = $paramha[0] ?? '';
-        if ($sub === 'callback') {
-            checkout_zarinpal_callback();
-        } elseif ($sub === 'verify') {
-            checkout_zarinpal_verify();
-        }
         return;
     }
 
@@ -71,6 +61,7 @@ function checkout_show() {
 
     $total = sabad_total();
     $user_info = karbar_get($_SESSION['user_id']);
+    $gateways = GatewayManager::getEnabled();
     $onvan_safhe = 'تسویه حساب | ' . SITE_NAME;
     $meta_sharh = 'تکمیل خرید در مهراد سام';
     $safhe_faali = 'forushgah';
@@ -86,6 +77,7 @@ function checkout_process() {
     $kode_posty = trim($_POST['kode_posty'] ?? '');
     $post_type = $_POST['post_type'] ?? 'pishaz';
     $tozih = trim($_POST['tozih'] ?? '');
+    $gateway_key = trim($_POST['gateway'] ?? '');
 
     $errors = [];
     if (!$onvan_girande) $errors[] = 'نام گیرنده الزامی است';
@@ -93,6 +85,16 @@ function checkout_process() {
     if (!$ostan) $errors[] = 'استان الزامی است';
     if (!$shahr) $errors[] = 'شهر الزامی است';
     if (!$adres) $errors[] = 'آدرس الزامی است';
+
+    // انتخاب درگاه
+    if ($gateway_key) {
+        $gateway = GatewayManager::get($gateway_key);
+    } else {
+        $gateway = GatewayManager::first();
+    }
+    if (!$gateway || !$gateway->isEnabled()) {
+        $errors[] = 'هیچ درگاه پرداختی فعال نیست';
+    }
 
     if ($errors) {
         $_SESSION['checkout_errors'] = $errors;
@@ -106,7 +108,18 @@ function checkout_process() {
     $items = sabad_get_items($sabad_id);
     $total = sabad_total();
 
-    $post_hazine = $post_type === 'pishaz' ? 45000 : 25000;
+    // هزینه ارسال از تنظیمات فروشگاه
+    require_once MASIR_RISH . 'haste/site_settings.php';
+    $store_settings = get_site_setting('store') ?? [];
+    $free_threshold = (int)($store_settings['free_shipping_threshold'] ?? 0);
+    $default_shipping = (int)($store_settings['default_shipping_cost'] ?? 0);
+
+    // اگر مبلغ محصول از آستانه بیشتر باشد ارسال رایگان
+    if ($free_threshold > 0 && $total >= $free_threshold) {
+        $post_hazine = 0;
+    } else {
+        $post_hazine = $post_type === 'pishaz' ? max(45000, $default_shipping) : max(25000, $default_shipping);
+    }
     $majmoo = $total + $post_hazine;
 
     $sefaresh_id = sefaresh_create([
@@ -121,12 +134,18 @@ function checkout_process() {
         'post_hazine' => $post_hazine,
         'tozih' => $tozih,
         'majmoo_gheymat' => $majmoo,
+        'pardakht_rah' => $gateway_key ?: $gateway->getKey(),
     ]);
 
     if ($sefaresh_id) {
         require_once MASIR_RISH . 'afzuneh/notification/Notifier.php';
         Notifier::newOrder($sefaresh_id, $majmoo, $onvan_girande);
     } else {
+        if (isAjax()) {
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'message' => 'خطا در ثبت سفارش']);
+            exit;
+        }
         $_SESSION['checkout_errors'] = ['خطا در ثبت سفارش'];
         redirect('forushgah/checkout');
         return;
@@ -135,28 +154,58 @@ function checkout_process() {
     sefaresh_add_mahsulat($sefaresh_id, $items);
     sabad_clear();
 
-    $zarinpal = new ZarinPal();
-    $result = $zarinpal->request($majmoo, $sefaresh_id);
+    $result = $gateway->request($majmoo, $sefaresh_id);
 
     if ($result['success']) {
         sefaresh_update_pardakht_ref($sefaresh_id, $result['authority']);
+        if (isAjax()) {
+            header('Content-Type: application/json');
+            echo json_encode(['success' => true, 'redirect_url' => $result['redirect_url']]);
+            exit;
+        }
         header('Location: ' . $result['redirect_url']);
         exit;
     } else {
+        if (isAjax()) {
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'message' => $result['message']]);
+            exit;
+        }
         $_SESSION['checkout_errors'] = [$result['message']];
         redirect('forushgah/checkout');
     }
 }
 
-function checkout_zarinpal_callback() {
-    $authority = $_GET['Authority'] ?? '';
+/**
+ * پردازش بازگشت از درگاه پرداخت
+ */
+function checkout_gateway_callback($gateway_key) {
+    require_once MASIR_RISH . 'haste/site_settings.php';
+    $gateway = GatewayManager::get($gateway_key);
+
+    if (!$gateway) {
+        $_SESSION['payment_error'] = 'درگاه پرداخت نامعتبر است';
+        redirect('forushgah/checkout/result/failed');
+        return;
+    }
+
+    // پارامترهای متفاوت درگاه‌ها
+    $authority = $_GET['Authority'] ?? ($_GET['trackId'] ?? ($_GET['id'] ?? ''));
     $status = $_GET['Status'] ?? '';
 
-    if ($status !== 'OK' || !$authority) {
+    // زرین‌پال: Status=OK و Authority دارد
+    if ($gateway_key === 'zarinpal' && ($status !== 'OK' || !$authority)) {
         $sefaresh_id = sefaresh_get_by_authority($authority);
-        if ($sefaresh_id) {
-            sefaresh_update_vaziat($sefaresh_id, 'cancelled', 'failed');
-        }
+        if ($sefaresh_id) sefaresh_update_vaziat($sefaresh_id, 'cancelled', 'failed');
+        $_SESSION['payment_error'] = 'پرداخت لغو یا ناموفق بود';
+        redirect('forushgah/checkout/result/failed');
+        return;
+    }
+
+    // آی‌دی‌پی و زیبال: trackId/id در GET می‌آید
+    if (!$authority) {
+        $sefaresh_id = sefaresh_get_by_authority($_POST['trackId'] ?? $_POST['id'] ?? '');
+        if ($sefaresh_id) sefaresh_update_vaziat($sefaresh_id, 'cancelled', 'failed');
         $_SESSION['payment_error'] = 'پرداخت لغو یا ناموفق بود';
         redirect('forushgah/checkout/result/failed');
         return;
@@ -170,8 +219,7 @@ function checkout_zarinpal_callback() {
     }
 
     $sefaresh = sefaresh_get($sefaresh_id);
-    $zarinpal = new ZarinPal();
-    $result = $zarinpal->verify($sefaresh['majmoo_gheymat'], $authority);
+    $result = $gateway->verify($sefaresh['majmoo_gheymat'], $authority);
 
     if ($result['success']) {
         sefaresh_update_vaziat($sefaresh_id, 'processing', 'paid', $result['ref_id']);
@@ -183,10 +231,4 @@ function checkout_zarinpal_callback() {
         $_SESSION['payment_error'] = $result['message'];
         redirect('forushgah/checkout/result/failed');
     }
-}
-
-function checkout_zarinpal_verify() {
-    // برای AJAX verify اگر لازم باشد
-    header('Content-Type: application/json');
-    echo json_encode(['success' => false, 'message' => 'Method not allowed']);
 }

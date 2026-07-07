@@ -1,8 +1,16 @@
 <?php
 // لود تنظیمات سایت
-$site_settings_file = dirname(__DIR__, 2) . '/haste/site_settings.json';
-$dynamic_settings = file_exists($site_settings_file) ? json_decode(file_get_contents($site_settings_file), true) : [];
-$site_title = $dynamic_settings['site_title'] ?? SITE_NAME;
+require_once dirname(__DIR__, 2) . '/haste/site_settings.php';
+$theme_settings = get_site_setting('theme') ?? [];
+$general_settings = get_site_setting('general') ?? [];
+$primary_color = $theme_settings['primary_color'] ?? '#FF6F00';
+$primary_hover = $theme_settings['primary_hover'] ?? '#E65100';
+$secondary_color = $theme_settings['secondary_color'] ?? '#00B894';
+$font_family = $theme_settings['font_family'] ?? 'Vazirmatn';
+$custom_css = $theme_settings['custom_css'] ?? '';
+$logo_url = $general_settings['logo'] ?: URL_GHALEB . '/manabe/logo.png';
+$favicon_url = $general_settings['favicon'] ?: URL_GHALEB . '/manabe/favicon.png';
+$site_title = $general_settings['site_title'] ?? 'مهراد سام';
 ?>
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
@@ -12,6 +20,10 @@ $site_title = $dynamic_settings['site_title'] ?? SITE_NAME;
     <title><?= htmlspecialchars($onvan_safhe ?? $site_title) ?></title>
     <meta name="description" content="<?= htmlspecialchars($meta_sharh ?? SITE_SLOGAN) ?>">
     <meta name="robots" content="index, follow">
+    <link rel="icon" href="<?= htmlspecialchars($favicon_url) ?>" type="image/x-icon">
+    <?php if (!empty($custom_css)): ?>
+    <style><?= $custom_css ?></style>
+    <?php endif; ?>
 
     <?php
     // توابع سبد خرید برای هدر
@@ -50,16 +62,16 @@ $site_title = $dynamic_settings['site_title'] ?? SITE_NAME;
            متغیرها و ریست
         ==================================================== */
         :root {
-            --rang-asli:     #FF6F00;
-            --rang-tira:     #E65100;
-            --rang-roshan:   #FFF3E0;
+            --rang-asli:     <?= $primary_color ?>;
+            --rang-tira:     <?= $primary_hover ?>;
+            --rang-roshan:   <?= shade_color($primary_color, 92) ?>;
             --rang-matn:     #1a1a1a;
             --rang-zamin:    #ffffff;
             --rang-sabz:     #f8f9fa;
             --rang-border:   #e9ecef;
             --rang-gray:     #6c757d;
             --rang-makm1:    #2D3436;
-            --rang-makm2:    #00B894;
+            --rang-makm2:    <?= $secondary_color ?>;
             --rang-makm3:    #6C5CE7;
             --rang-makm4:    #FDCB6E;
             --rang-makm5:    #E17055;
@@ -73,7 +85,7 @@ $site_title = $dynamic_settings['site_title'] ?? SITE_NAME;
         html { scroll-behavior: smooth; }
 
         body {
-            font-family: 'Vazirmatn', Tahoma, sans-serif;
+            font-family: '<?= $font_family ?>', Tahoma, sans-serif;
             font-size: 15px;
             line-height: 1.8;
             color: var(--rang-matn);
@@ -372,7 +384,11 @@ $site_title = $dynamic_settings['site_title'] ?? SITE_NAME;
 
             <!-- لوگو -->
             <a href="<?= BASE_URL ?>/" class="logo">
-                <div class="logo-icon"><i class="fa-solid fa-laptop"></i></div>
+                <?php if (!empty($general_settings['logo'])): ?>
+                    <img src="<?= htmlspecialchars($logo_url) ?>" alt="<?= htmlspecialchars($site_title) ?>" style="height:42px; border-radius:8px;">
+                <?php else: ?>
+                    <div class="logo-icon"><i class="fa-solid fa-laptop"></i></div>
+                <?php endif; ?>
                 <div>
                     <?= htmlspecialchars($site_title) ?>
                     <span class="logo-zir">MHSi.ir</span>

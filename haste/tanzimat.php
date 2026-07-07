@@ -32,26 +32,36 @@ define('URL_GHALEB',   BASE_URL . '/ghaleb/' . GHALEB_FAAAL);
 define('MASIR_DADE',   MASIR_RISH . 'dade' . DIRECTORY_SEPARATOR);
 
 // ====================================================
-// تنظیمات سایت
+// تنظیمات سایت (از فایل site_settings.json بارگذاری می‌شود)
 // ====================================================
-define('SITE_NAME',    'مهراد سام');
-define('SITE_SLOGAN',  'خدمات کامپیوتر مهراد سام در تهران');
-define('SITE_EMAIL',   'ali.asgari.6106@gmail.com');
-define('SITE_TEL',     '۰۹۱۰۵۹۲۱۳۵۸');
-define('SITE_ADRES',   'تهران، ضلع شمال غرب تقاطع چمران و جلال آل احمد، گیشا، ابتدای بلوچستان، ساختمان گیشا پلاک ۸ واحد ۴');
+$_settings_file = __DIR__ . '/site_settings.json';
+$_dynamic_settings = file_exists($_settings_file) ? json_decode(file_get_contents($_settings_file), true) : [];
+$_general = $_dynamic_settings['general'] ?? [];
+$_social = $_dynamic_settings['social'] ?? [];
 
-define('SITE_TEL_EN',    '989105921358');
-define('SITE_TELEGRAM',  'https://t.me/mehrsys61');
-define('SITE_WHATSAPP',  'https://wa.me/989105921358');
-define('SITE_BALE',      'https://ble.ir/ali2761');
-define('SITE_INSTAGRAM', '#');
-define('SITE_HOURS',     'شنبه تا پنج‌شنبه: ۹ تا ۲۰');
+define('SITE_NAME',    $_general['site_title']       ?? 'مهراد سام');
+define('SITE_SLOGAN',  $_general['site_slogan']      ?? 'خدمات کامپیوتر مهراد سام در تهران');
+define('SITE_EMAIL',   $_general['site_email']       ?? 'ali.asgari.6106@gmail.com');
+define('SITE_TEL',     $_general['site_tel']         ?? '۰۹۱۰۵۹۲۱۳۵۸');
+define('SITE_ADRES',   $_general['site_adres']       ?? 'تهران، ضلع شمال غرب تقاطع چمران و جلال آل احمد، گیشا، ابتدای بلوچستان، ساختمان گیشا پلاک ۸ واحد ۴');
+define('SITE_HOURS',   $_general['site_hours']       ?? 'شنبه تا پنج‌شنبه: ۹ تا ۲۰');
+
+define('SITE_TEL_EN',    $_general['site_tel_en']    ?? '989105921358');
+define('SITE_TELEGRAM',  $_social['telegram']        ?? 'https://t.me/mehrsys61');
+define('SITE_WHATSAPP',  $_social['whatsapp']        ?? 'https://wa.me/989105921358');
+define('SITE_BALE',      $_social['bale']            ?? 'https://ble.ir/ali2761');
+define('SITE_INSTAGRAM', $_social['instagram']       ?? '#');
+unset($_settings_file, $_dynamic_settings, $_general, $_social);
 
 // ====================================================
-// درگاه پرداخت زرین‌پال
+// درگاه پرداخت زرین‌پال (از فایل site_settings.json بارگذاری می‌شود)
 // ====================================================
-define('ZARINPAL_MERCHANT', '');  // مرچنت کد را اینجا بگذار
-define('ZARINPAL_SANDBOX',  true); // true = سندباکس، false = عملیاتی
+$_gw_file = __DIR__ . '/site_settings.json';
+$_gw_settings = file_exists($_gw_file) ? json_decode(file_get_contents($_gw_file), true) : [];
+$_zarin = $_gw_settings['gateways']['zarinpal'] ?? [];
+define('ZARINPAL_MERCHANT', $_zarin['merchant'] ?? '');
+define('ZARINPAL_SANDBOX',  $_zarin['sandbox'] ?? true);
+unset($_gw_file, $_gw_settings, $_zarin);
 
 // ====================================================
 // نشست (Session)

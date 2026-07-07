@@ -37,14 +37,14 @@ function masiryab_kon($url) {
             mohtava_route($amaliat, $paramha);
             break;
 
-// ---- فروشگاه ----
+        // ---- فروشگاه ----
         case 'forushgah':
             if ($amaliat === 'checkout') {
                 require_once MASIR_RISH . 'mohtava/forushgah/sefaresh-kontrol.php';
                 forushgah_checkout($amaliat, $paramha);
-            } elseif ($amaliat === 'zarinpal') {
+            } elseif (in_array($amaliat, ['zarinpal', 'idpay', 'zibal'])) {
                 require_once MASIR_RISH . 'mohtava/forushgah/sefaresh-kontrol.php';
-                checkout_zarinpal_callback();
+                checkout_gateway_callback($amaliat);
             } elseif ($amaliat === 'sabad') {
                 require_once MASIR_RISH . 'mohtava/forushgah/sabad-kontrol.php';
                 sabad_route($paramha);
