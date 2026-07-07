@@ -16,10 +16,10 @@ define('DB_NAME', 'mehrsamdb');
 // آدرس پایه - خودکار تشخیص می‌دهد (لوکال یا هاست)
 // ====================================================
 $_prot = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ? 'https' : 'http';
-$_host = $_SERVER['HTTP_HOST'];
-$_dir  = dirname($_SERVER['SCRIPT_NAME']);
+$_host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+$_dir  = dirname($_SERVER['SCRIPT_NAME'] ?? '/');
 $_base = ($_dir === '/' || $_dir === '\\') ? '' : rtrim(str_replace('\\', '/', $_dir), '/');
-define('BASE_URL', $_prot . '://' . $_host . $_base);
+define('BASE_URL', $_prot . '://' . $_host . $_base . '/');
 unset($_prot, $_host, $_dir, $_base);
 
 // ====================================================
@@ -39,6 +39,12 @@ define('SITE_SLOGAN',  'پشتیبانی کامپیوتر در ملارد و م�
 define('SITE_EMAIL',   'info@mhsi.ir');
 define('SITE_TEL',     '۰۹۱۲-۰۰۰-۰۰۰۰');   // شماره واقعی را بذار
 define('SITE_ADRES',   'ملارد – مارلیک – پاساژ ارغوان شمالی');
+
+// ====================================================
+// درگاه پرداخت زرین‌پال
+// ====================================================
+define('ZARINPAL_MERCHANT', '');  // مرچنت کد را اینجا بگذار
+define('ZARINPAL_SANDBOX',  true); // true = سندباکس، false = عملیاتی
 
 // ====================================================
 // نشست (Session)

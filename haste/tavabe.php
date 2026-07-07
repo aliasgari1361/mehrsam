@@ -4,7 +4,7 @@
  */
 
 function redirect($url) {
-    // $url باید نسبت به BASE_URL باشد، مثلاً 'haste/mod/lomod'
+    $url = ltrim($url, '/');
     header("Location: " . BASE_URL . $url);
     exit;
 }

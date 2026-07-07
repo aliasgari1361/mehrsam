@@ -30,11 +30,21 @@ function mahsul_get_list($dasteh_id = null, $page = 1, $limit = 12) {
     $stmt->close();
 
     $count_sql = "SELECT COUNT(*) AS cnt FROM mahsulat WHERE vaziat = 1";
+    $count_params = [];
+    $count_types = '';
     if ($dasteh_id) {
-        $count_sql .= " AND dasteh_id = $dasteh_id";
+        $count_sql .= " AND dasteh_id = ?";
+        $count_params[] = $dasteh_id;
+        $count_types .= 'i';
     }
-    $count_result = $conn->query($count_sql);
+    $stmt = $conn->prepare($count_sql);
+    if ($count_params) {
+        $stmt->bind_param($count_types, ...$count_params);
+    }
+    $stmt->execute();
+    $count_result = $stmt->get_result();
     $total = $count_result->fetch_assoc()['cnt'] ?? 0;
+    $stmt->close();
     $conn->close();
 
     return ['mahsulat' => $mahsulat, 'total' => $total, 'pages' => ceil($total / $limit)];

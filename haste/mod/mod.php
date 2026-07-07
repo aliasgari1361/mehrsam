@@ -5,39 +5,52 @@
  */
 
 function mod_route($action, $params) {
-    require_once __DIR__ . '/../settings.php';
+    // CAPTCHA route - must be at the top before any output (no auth required)
+    if ($action === 'captcha') {
+        require_once __DIR__ . '/../captcha.php';
+        display_captcha_image();
+        return;
+    }
 
     if (!isLoggedIn() || !isAdmin()) {
         if ($action === 'lomod') {
             $error = '';
-            if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
                 $username = $_POST['username'] ?? '';
                 $password = $_POST['password'] ?? '';
+                $captcha_input = $_POST['captcha'] ?? '';
 
-                require_once __DIR__ . '/../../dade/bank.php';
-                $bank = new Bank();
-                $conn = $bank->getConnection();
+                // Verify CAPTCHA
+                require_once __DIR__ . '/../captcha.php';
+                if (!verify_captcha($captcha_input)) {
+                    $error = "کد امنیتی اشتباه است.";
+                } else {
+                    require_once __DIR__ . '/../../dade/bank.php';
+                    $bank = new Bank();
+                    $conn = $bank->getConnection();
 
-                $stmt = $conn->prepare("SELECT id, password, role FROM users WHERE username = ? AND role = 'admin'");
-                $stmt->bind_param("s", $username);
-                $stmt->execute();
-                $result = $stmt->get_result();
+                    $stmt = $conn->prepare("SELECT id, password, role FROM users WHERE username = ? AND role = 'admin'");
+                    $stmt->bind_param("s", $username);
+                    $stmt->execute();
+                    $result = $stmt->get_result();
 
-                if ($result->num_rows === 1) {
-                    $user = $result->fetch_assoc();
-                    if (password_verify($password, $user['password'])) {
-                        $_SESSION['user_id'] = $user['id'];
-                        $_SESSION['role'] = $user['role'];
-                        redirect('mod/dashmod');
-                        exit;
+                    if ($result->num_rows === 1) {
+                        $user = $result->fetch_assoc();
+                        if (password_verify($password, $user['password'])) {
+                            $_SESSION['user_id'] = $user['id'];
+                            $_SESSION['role'] = $user['role'];
+                            redirect('mod/dashmod');
+                            exit;
+                        } else {
+                            $error = "نام کاربری یا رمز عبور اشتباه است.";
+                        }
                     } else {
                         $error = "نام کاربری یا رمز عبور اشتباه است.";
                     }
-                } else {
-                    $error = "نام کاربری یا رمز عبور اشتباه است.";
+                    $stmt->close();
+                    $conn->close();
                 }
-                $stmt->close();
-                $conn->close();
+
             }
 
             include __DIR__ . '/../../ghaleb/ghmod/lomod.php';
@@ -49,6 +62,8 @@ function mod_route($action, $params) {
     switch ($action) {
 
         case 'dashmod':
+    $onvan_safhe = 'داشبورد مدیریت';
+    $meta_sharh = 'پنل مدیریت سایت';
     // دریافت آمار از دیتابیس برای ویجت‌ها
     require_once __DIR__ . '/../../dade/bank.php';
     $bank = new Bank();
@@ -132,42 +147,166 @@ function mod_route($action, $params) {
         <a href="<?php echo BASE_URL; ?>mod/settings">تنظیمات پنل</a>
         <a href="<?php echo BASE_URL; ?>mod/site_settings">تنظیمات سایت</a>
     </div>
-    <?php
+<?php
     include __DIR__ . '/../../ghaleb/ghmod/panevis.php';
     break;
+
+        case 'pages':
+            require_once __DIR__ . '/../../dade/bank.php';
+            $bank = new Bank();
+            $conn = $bank->getConnection();
+            $result = $conn->query("SELECT id, title, slug, type, status, page_section, template, created_at FROM posts WHERE type='page' OR type='safhe' ORDER BY display_order ASC, id ASC");
+            $pages = [];
+            if ($result) while ($row = $result->fetch_assoc()) $pages[] = $row;
+            $conn->close();
+
+            include __DIR__ . '/../../ghaleb/ghmod/sarsafhe.php';
+            ?>
+            <h3>مدیریت صفحات</h3>
+            <p><a href="<?php echo BASE_URL; ?>mod/edit_page">+ صفحه جدید</a></p>
+            <table border="1" cellpadding="5" cellspacing="0" width="100%">
+                <tr><th>عنوان</th><th>slug</th><th>قالب</th><th>وضعیت</th><th>عملیات</th></tr>
+                <?php foreach ($pages as $p): ?>
+                <tr>
+                    <td><?php echo htmlspecialchars($p['title']); ?></td>
+                    <td><?php echo htmlspecialchars($p['slug']); ?></td>
+                    <td><?php echo htmlspecialchars($p['template'] ?? 'default'); ?></td>
+                    <td><?php echo $p['status']; ?></td>
+                    <td>
+                        <a href="<?php echo BASE_URL; ?>mod/edit_page/<?php echo $p['id']; ?>">ویرایش</a> |
+                        <a href="<?php echo BASE_URL; ?>mod/delete_page/<?php echo $p['id']; ?>" onclick="return confirm('مطمئنی؟')">حذف</a>
+                    </td>
+                </tr>
+                <?php endforeach; ?>
+            </table>
+            <?php
+            include __DIR__ . '/../../ghaleb/ghmod/panevis.php';
+            break;
+
+        case 'edit_page':
+            require_once __DIR__ . '/../../dade/bank.php';
+            $bank = new Bank();
+            $conn = $bank->getConnection();
+            $id = $params[0] ?? null;
+            $is_edit = false;
+            $post = ['title' => '', 'slug' => '', 'content' => '', 'type' => 'page', 'template' => 'default', 'status' => 'publish'];
+
+            if ($id) {
+                $stmt = $conn->prepare("SELECT * FROM posts WHERE id = ?");
+                $stmt->bind_param("i", $id);
+                $stmt->execute();
+                $result = $stmt->get_result();
+                if ($result->num_rows === 1) {
+                    $post = $result->fetch_assoc();
+                    $is_edit = true;
+                } else {
+                    echo "صفحه پیدا نشد.";
+                    $conn->close();
+                    break;
+                }
+                $stmt->close();
+            }
+
+            if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+                $title   = $_POST['title'] ?? '';
+                $slug    = $_POST['slug'] ?? '';
+                $content = $_POST['content'] ?? '';
+                $template = $_POST['template'] ?? 'default';
+                $status  = $_POST['status'] ?? 'publish';
+                if (empty($slug)) $slug = trim(preg_replace('/[^a-zA-Z0-9\-]/', '-', $title), '-');
+
+                if ($is_edit) {
+                    $stmt = $conn->prepare("UPDATE posts SET title=?, slug=?, content=?, template=?, status=? WHERE id=?");
+                    $stmt->bind_param("sssssi", $title, $slug, $content, $template, $status, $id);
+                } else {
+                    $stmt = $conn->prepare("INSERT INTO posts (title, slug, content, type, template, status) VALUES (?, ?, ?, 'page', ?, ?)");
+                    $stmt->bind_param("sssss", $title, $slug, $content, $template, $status);
+                }
+                $stmt->execute();
+                $stmt->close();
+                $conn->close();
+                redirect('mod/pages');
+                exit;
+            }
+            $conn->close();
+
+            include __DIR__ . '/../../ghaleb/ghmod/sarsafhe.php';
+            ?>
+            <h3><?php echo $is_edit ? 'ویرایش صفحه' : 'صفحه جدید'; ?></h3>
+            <form method="post">
+                <label>عنوان: <input type="text" name="title" value="<?php echo htmlspecialchars($post['title']); ?>" required></label><br><br>
+                <label>slug: <input type="text" name="slug" value="<?php echo htmlspecialchars($post['slug']); ?>"></label><br><br>
+                <label>قالب: <select name="template">
+                    <option value="home" <?php echo $post['template']=='home' ? 'selected' : ''; ?>>خانه</option>
+                    <option value="services" <?php echo $post['template']=='services' ? 'selected' : ''; ?>>خدمات</option>
+                    <option value="blog" <?php echo $post['template']=='blog' ? 'selected' : ''; ?>>بلاگ</option>
+                    <option value="contact" <?php echo $post['template']=='contact' ? 'selected' : ''; ?>>تماس</option>
+                    <option value="default" <?php echo $post['template']=='default' ? 'selected' : ''; ?>>پیش‌فرض</option>
+                </select></label><br><br>
+                <label>وضعیت: <select name="status">
+                    <option value="publish" <?php echo $post['status']=='publish' ? 'selected' : ''; ?>>منتشر</option>
+                    <option value="draft" <?php echo $post['status']=='draft' ? 'selected' : ''; ?>>پیش‌نویس</option>
+                </select></label><br><br>
+                <label>محتوا:</label><br>
+                <textarea name="content" rows="15" style="width:100%; height:400px; font-family:monospace;"><?php echo htmlspecialchars($post['content']); ?></textarea><br>
+                <button type="submit">ذخیره</button>
+            </form>
+            <?php
+            include __DIR__ . '/../../ghaleb/ghmod/panevis.php';
+            break;
+
+        case 'delete_page':
+            $id = $params[0] ?? null;
+            if ($id) {
+                require_once __DIR__ . '/../../dade/bank.php';
+                $bank = new Bank();
+                $conn = $bank->getConnection();
+                $stmt = $conn->prepare("DELETE FROM posts WHERE id = ?");
+                $stmt->bind_param("i", $id);
+                $stmt->execute();
+                $stmt->close();
+                $conn->close();
+            }
+            redirect('mod/pages');
+            break;
+
+        case 'services':
+            require_once __DIR__ . '/../mod/services.php';
+            admin_services_route($params[0] ?? 'list', $params);
+            break;
 
         case 'settings':
-    $admin_settings = get_admin_settings();
-    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        $new_settings = [
-            'bg_color' => $_POST['bg_color'] ?? '#f0f2f5',
-            'font'     => $_POST['font'] ?? 'Tahoma',
-            'favicon'  => $_POST['favicon'] ?? ''
-        ];
-        save_admin_settings($new_settings);
-        $admin_settings = get_admin_settings();
-        $message = "تنظیمات پنل ذخیره شد.";
-    }
-    include __DIR__ . '/../../ghaleb/ghmod/sarsafhe.php';
-    ?>
-    <h3>تنظیمات پنل مدیریت</h3>
-    <?php if (isset($message)) echo "<p style='color:green;'>$message</p>"; ?>
-    <form method="post">
-        <label>رنگ پس‌زمینه:</label>
-        <input type="color" name="bg_color" value="<?php echo $admin_settings['bg_color']; ?>"><br><br>
+            $admin_settings = json_decode(file_get_contents(ADMIN_SETTINGS_FILE), true) ?: ['bg_color' => '#f0f2f5', 'font' => 'Tahoma', 'favicon' => ''];
+            if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+                $new_settings = [
+                    'bg_color' => $_POST['bg_color'] ?? '#f0f2f5',
+                    'font'     => $_POST['font'] ?? 'Tahoma',
+                    'favicon'  => $_POST['favicon'] ?? ''
+                ];
+                save_admin_settings($new_settings);
+                $admin_settings = json_decode(file_get_contents(ADMIN_SETTINGS_FILE), true) ?: $new_settings;
+                $message = "تنظیمات پنل ذخیره شد.";
+            }
+            include __DIR__ . '/../../ghaleb/ghmod/sarsafhe.php';
+            ?>
+            <h3>تنظیمات پنل مدیریت</h3>
+            <?php if (isset($message)) echo "<p style='color:green;'>$message</p>"; ?>
+            <form method="post">
+                <label>رنگ پس‌زمینه:</label>
+                <input type="color" name="bg_color" value="<?php echo $admin_settings['bg_color']; ?>"><br><br>
 
-        <label>فونت:</label>
-<select name="font">
-    <option value="Tahoma" <?php if($admin_settings['font']=='Tahoma') echo 'selected'; ?>>Tahoma</option>
-    <option value="Arial" <?php if($admin_settings['font']=='Arial') echo 'selected'; ?>>Arial</option>
-    <option value="Vazir" <?php if($admin_settings['font']=='Vazir') echo 'selected'; ?>>وزیر</option>
-</select><br><br>
+                <label>فونت:</label>
+                <select name="font">
+                    <option value="Tahoma" <?php if($admin_settings['font']=='Tahoma') echo 'selected'; ?>>Tahoma</option>
+                    <option value="Arial" <?php if($admin_settings['font']=='Arial') echo 'selected'; ?>>Arial</option>
+                    <option value="Vazir" <?php if($admin_settings['font']=='Vazir') echo 'selected'; ?>>وزیر</option>
+                </select><br><br>
 
-        <button type="submit">ذخیره</button>
-    </form>
-    <?php
-    include __DIR__ . '/../../ghaleb/ghmod/panevis.php';
-    break;
+                <button type="submit">ذخیره</button>
+            </form>
+            <?php
+            include __DIR__ . '/../../ghaleb/ghmod/panevis.php';
+            break;
 
         case 'site_settings':
             require_once __DIR__ . '/../site_settings.php';
@@ -199,34 +338,34 @@ function mod_route($action, $params) {
             include __DIR__ . '/../../ghaleb/ghmod/panevis.php';
             break;
 
-        case 'content':
+        case 'pages':
             require_once __DIR__ . '/../../dade/bank.php';
             $bank = new Bank();
             $conn = $bank->getConnection();
-            $result = $conn->query("SELECT id, title, slug, type, status, created_at FROM posts ORDER BY created_at DESC");
-            $posts = [];
-            if ($result) while ($row = $result->fetch_assoc()) $posts[] = $row;
+
+            $result = $conn->query("SELECT * FROM posts WHERE type='page' OR type='safhe' ORDER BY id ASC");
+            $pages = [];
+            if ($result) while ($row = $result->fetch_assoc()) $pages[] = $row;
             $conn->close();
 
             include __DIR__ . '/../../ghaleb/ghmod/sarsafhe.php';
             ?>
-            <h3>مدیریت محتوا</h3>
-            <p><a href="<?php echo BASE_URL; ?>mod/edit_content">+ ایجاد مطلب جدید</a></p>
+            <h3>مدیریت صفحات</h3>
+            <p><a href="<?php echo BASE_URL; ?>mod/edit_page">+ صفحه جدید</a></p>
             <table border="1" cellpadding="5" cellspacing="0" width="100%">
-                <tr><th>عنوان</th><th>نوع</th><th>وضعیت</th><th>تاریخ</th><th>عملیات</th></tr>
-                <?php foreach ($posts as $p): ?>
+                <tr><th>عنوان</th><th>slug</th><th>قالب</th><th>وضعیت</th><th>عملیات</th></tr>
+                <?php foreach ($pages as $p): ?>
                 <tr>
                     <td><?php echo htmlspecialchars($p['title']); ?></td>
-                    <td><?php echo $p['type']; ?></td>
+                    <td><?php echo htmlspecialchars($p['slug']); ?></td>
+                    <td><?php echo htmlspecialchars($p['template'] ?? 'default'); ?></td>
                     <td><?php echo $p['status']; ?></td>
-                    <td><?php echo $p['created_at']; ?></td>
                     <td>
-                        <a href="<?php echo BASE_URL; ?>mod/edit_content/<?php echo $p['id']; ?>">ویرایش</a> |
-                        <a href="<?php echo BASE_URL; ?>mod/delete_content/<?php echo $p['id']; ?>" onclick="return confirm('مطمئنی؟')">حذف</a>
+                        <a href="<?php echo BASE_URL; ?>mod/edit_page/<?php echo $p['id']; ?>">ویرایش</a> |
+                        <a href="<?php echo BASE_URL; ?>mod/delete_page/<?php echo $p['id']; ?>" onclick="return confirm('مطمئنی؟')">حذف</a>
                     </td>
                 </tr>
                 <?php endforeach; ?>
-                <?php if (empty($posts)) echo "<tr><td colspan='5'>هیچ مطلبی یافت نشد.</td></tr>"; ?>
             </table>
             <?php
             include __DIR__ . '/../../ghaleb/ghmod/panevis.php';

@@ -31,28 +31,27 @@ function masiryab_kon($url) {
             khadamat_route($amaliat, $paramha);
             break;
 
-        // ---- تارنگار (وبلاگ) ----
-        case 'tarnegar':
-            require_once MASIR_RISH . 'mohtava/tarnegar/tarnegar-kontrol.php';
-            tarnegar_route($amaliat, $paramha);
-            break;
-
-        // ---- تماس با ما ----
-        case 'tamas':
-            require_once MASIR_RISH . 'mohtava/tamas/tamas-kontrol.php';
-            tamas_route($amaliat, $paramha);
-            break;
-
         // ---- محتوای عمومی (صفحات داینامیک) ----
         case 'mohtava':
             require_once MASIR_RISH . 'mohtava/mohtava-kontrol.php';
             mohtava_route($amaliat, $paramha);
             break;
 
-        // ---- فروشگاه ----
-        case 'foroshgah':
-            require_once MASIR_RISH . 'mohtava/forushgah/mahsul-kontrol.php';
-            forushgah_route($amaliat, $paramha);
+// ---- فروشگاه ----
+        case 'forushgah':
+            if ($amaliat === 'checkout') {
+                require_once MASIR_RISH . 'mohtava/forushgah/sefaresh-kontrol.php';
+                forushgah_checkout($amaliat, $paramha);
+            } elseif ($amaliat === 'zarinpal') {
+                require_once MASIR_RISH . 'mohtava/forushgah/sefaresh-kontrol.php';
+                checkout_zarinpal_callback();
+            } elseif ($amaliat === 'sabad') {
+                require_once MASIR_RISH . 'mohtava/forushgah/sabad-kontrol.php';
+                sabad_route($paramha);
+            } else {
+                require_once MASIR_RISH . 'mohtava/forushgah/mahsul-kontrol.php';
+                mahsul_route($amaliat, $paramha);
+            }
             break;
 
         // ---- صفحه اصلی یا ۴۰۴ ----

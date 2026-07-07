@@ -1,14 +1,14 @@
 <?php
 // بارگذاری تنظیمات پنل مدیریت
 require_once __DIR__ . '/../../haste/settings.php';
-$admin_settings = get_admin_settings();
+$admin_settings = json_decode(file_get_contents(ADMIN_SETTINGS_FILE), true) ?: ['bg_color' => '#f0f2f5', 'font' => 'Tahoma'];
 ?>
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>پنل مدیریت</title>
-    <link rel="icon" href="<?php echo BASE_URL . get_site_setting('favicon'); ?>" type="image/png">
+    <title><?php echo $onvan_safhe ?? 'پنل مدیریت'; ?></title>
+    <link rel="icon" href="<?php echo BASE_URL . 'ghaleb/manabe/favicon.png'; ?>" type="image/png">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>ghaleb/manabe/fonts.css">
     <style>
         body {

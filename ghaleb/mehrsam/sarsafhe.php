@@ -1,9 +1,15 @@
+<?php
+// لود تنظیمات سایت
+$site_settings_file = dirname(__DIR__, 2) . '/haste/site_settings.json';
+$dynamic_settings = file_exists($site_settings_file) ? json_decode(file_get_contents($site_settings_file), true) : [];
+$site_title = $dynamic_settings['site_title'] ?? SITE_NAME;
+?>
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= htmlspecialchars($onvan_safhe ?? SITE_NAME) ?></title>
+    <title><?= htmlspecialchars($onvan_safhe ?? $site_title) ?></title>
     <meta name="description" content="<?= htmlspecialchars($meta_sharh ?? SITE_SLOGAN) ?>">
     <meta name="robots" content="index, follow">
 
@@ -363,7 +369,7 @@
             <a href="<?= BASE_URL ?>/" class="logo">
                 <div class="logo-icon"><i class="fa-solid fa-laptop"></i></div>
                 <div>
-                    <?= SITE_NAME ?>
+                    <?= htmlspecialchars($site_title) ?>
                     <span class="logo-zir">MHSi.ir</span>
                 </div>
             </a>

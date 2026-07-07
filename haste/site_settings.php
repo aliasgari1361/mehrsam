@@ -5,17 +5,21 @@
  * بعداً با صفحه‌ای در پنل مدیریت می‌توان آن را ویرایش کرد.
  */
 
-// مسیر فایل ذخیره‌سازی (اختیاری - فعلاً از آرایه استفاده می‌کنیم)
-$site_settings_file = __DIR__ . '/site_settings.json';
+// مسیر فایل ذخیره‌سازی را یک ثابت می‌کنیم تا همه جا در دسترس باشد
+if (!defined('SITE_SETTINGS_FILE')) {
+    define('SITE_SETTINGS_FILE', __DIR__ . '/site_settings.json');
+}
 
 // اگر فایل ذخیره وجود داشت، آن را بارگذاری کن
-if (file_exists($site_settings_file)) {
-    $site_settings = json_decode(file_get_contents($site_settings_file), true);
+if (file_exists(SITE_SETTINGS_FILE)) {
+    $json = file_get_contents(SITE_SETTINGS_FILE);
+    $decoded = json_decode($json, true);
+    $site_settings = is_array($decoded) ? $decoded : [];
 } else {
     // تنظیمات پیش‌فرض
     $site_settings = [
         'site_title' => 'سایت من',
-        'favicon'    => 'ghaleb/manabe/favicon.png'   // مسیر نسبی از BASE_URL
+        'favicon'    => 'ghaleb/manabe/favicon.png'
     ];
 }
 
@@ -31,7 +35,11 @@ function get_site_setting($key) {
  * ذخیره‌ی تنظیمات جدید
  */
 function save_site_settings($new_settings) {
-    global $site_settings, $site_settings_file;
+    global $site_settings;
+    if (!is_array($site_settings)) {
+        $site_settings = [];
+    }
     $site_settings = array_merge($site_settings, $new_settings);
-    file_put_contents($site_settings_file, json_encode($site_settings, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+    file_put_contents(SITE_SETTINGS_FILE, json_encode($site_settings, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+    clearstatcache();
 }
