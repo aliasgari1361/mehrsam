@@ -59,6 +59,17 @@ function mod_route($action, $params) {
         redirect('mod/lomod');
     }
 
+    // نگاشت روت‌های میانبر به تب‌های تنظیمات سایت
+    $tab_routes = [
+        'theme'    => 'theme',
+        'store'    => 'store',
+        'gateways' => 'gateways',
+    ];
+    if (isset($tab_routes[$action])) {
+        $_GET['tab'] = $tab_routes[$action];
+        $action = 'settings';
+    }
+
     switch ($action) {
 
         case 'dashmod':
@@ -225,6 +236,9 @@ function mod_route($action, $params) {
         <a href="<?= BASE_URL ?>mod/pages"><i class="fa-solid fa-file"></i> برگه جدید</a>
         <a href="<?= BASE_URL ?>mod/services"><i class="fa-solid fa-headset"></i> خدمات</a>
         <a href="<?= BASE_URL ?>mod/chat"><i class="fa-solid fa-comment-dots"></i> چت</a>
+        <a href="<?= BASE_URL ?>mod/theme"><i class="fa-solid fa-palette"></i> مدیریت قالب</a>
+        <a href="<?= BASE_URL ?>mod/store"><i class="fa-solid fa-store"></i> مدیریت فروشگاه</a>
+        <a href="<?= BASE_URL ?>mod/gateways"><i class="fa-solid fa-credit-card"></i> درگاه‌ها</a>
         <a href="<?= BASE_URL ?>mod/settings"><i class="fa-solid fa-gear"></i> تنظیمات سایت</a>
     </div>
     </div>
@@ -394,7 +408,7 @@ function mod_route($action, $params) {
             admin_services_route($params[0] ?? 'list', $params);
             break;
 
-        case 'settings':
+        case 'panel_settings':
             require_once __DIR__ . '/../settings.php';
             $admin_settings = json_decode(file_get_contents(ADMIN_SETTINGS_FILE), true) ?: ['bg_color' => '#f0f2f5', 'font' => 'Tahoma', 'favicon' => ''];
             if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
@@ -681,7 +695,9 @@ function mod_route($action, $params) {
                     </script>
                 </div>
 
-                <?php elseif ($active_tab === 'store'): ?>
+                <?php elseif ($active_tab === 'store' || $active_tab === 'gateways'): ?>
+
+                <?php if ($active_tab === 'store'): ?>
                 <div class="settings-panel">
                     <h4 class="section-title"><i class="fa-solid fa-store"></i> تنظیمات فروشگاه</h4>
 
@@ -718,9 +734,9 @@ function mod_route($action, $params) {
                         </label>
                     </div>
                 </div>
+                <?php endif; ?>
 
-                <?php elseif ($active_tab === 'gateways'): ?>
-                <div class="settings-panel">
+                <div class="settings-panel" style="margin-top:24px;">
                     <h4 class="section-title"><i class="fa-solid fa-credit-card"></i> درگاه‌های پرداخت</h4>
                     <p class="help-text">برای هر درگاه، فعال‌سازی و مشخصات را وارد کنید. درگاه‌های غیرفعال در چک‌اوت نمایش داده نمی‌شوند.</p>
 
