@@ -54,6 +54,25 @@ function masiryab_kon($url) {
             }
             break;
 
+        // ---- چت ----
+        case 'chat':
+            require_once MASIR_DADE . 'bank.php';
+            require_once MASIR_RISH . 'mohtava/chat/chat-kontrol.php';
+            chat_route($amaliat, $paramha);
+            break;
+
+        // ---- تارنگار (وبلاگ) ----
+        case 'tarnegar':
+            require_once MASIR_RISH . 'mohtava/tarnegar/tarnegar-kontrol.php';
+            tarnegar_route($amaliat, $paramha);
+            break;
+
+        // ---- تماس با ما ----
+        case 'tamas':
+            require_once MASIR_RISH . 'mohtava/tamas/tamas-kontrol.php';
+            tamas_route($amaliat, $paramha);
+            break;
+
         // ---- صفحه اصلی یا ۴۰۴ ----
         default:
             if ($bakhsh === '' || $bakhsh === 'home') {

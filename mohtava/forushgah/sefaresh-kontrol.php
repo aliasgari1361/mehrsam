@@ -123,7 +123,10 @@ function checkout_process() {
         'majmoo_gheymat' => $majmoo,
     ]);
 
-    if (!$sefaresh_id) {
+    if ($sefaresh_id) {
+        require_once MASIR_RISH . 'afzuneh/notification/Notifier.php';
+        Notifier::newOrder($sefaresh_id, $majmoo, $onvan_girande);
+    } else {
         $_SESSION['checkout_errors'] = ['خطا در ثبت سفارش'];
         redirect('forushgah/checkout');
         return;

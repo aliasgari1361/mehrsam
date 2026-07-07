@@ -19,7 +19,8 @@ if (file_exists(SITE_SETTINGS_FILE)) {
     // تنظیمات پیش‌فرض
     $site_settings = [
         'site_title' => 'سایت من',
-        'favicon'    => 'ghaleb/manabe/favicon.png'
+        'favicon'    => 'ghaleb/manabe/favicon.png',
+        'map_embed_url' => 'https://maps.google.com/maps?q=35.7257,51.3814&z=15&output=embed'
     ];
 }
 

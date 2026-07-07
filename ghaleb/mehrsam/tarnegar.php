@@ -2,8 +2,8 @@
 
 <div class="sarsafhe-safhe">
     <div class="mohtava-container">
-        <h1>تارنگار</h1>
-        <p>تازه‌ترین مطالب آموزشی و خبری کامپیوتر و فناوری</p>
+        <h1><?= htmlspecialchars($page_data['title'] ?? 'تارنگار') ?></h1>
+        <?php if (!empty($page_data['content'])): ?><p><?= strip_tags($page_data['content']) ?></p><?php endif; ?>
         <div class="masir-nabz">
             <a href="<?= BASE_URL ?>/">خانه</a>
             <span><i class="fa-solid fa-chevron-left" style="font-size:10px;"></i></span>

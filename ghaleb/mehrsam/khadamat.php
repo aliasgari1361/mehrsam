@@ -3,8 +3,8 @@
 <!-- سرصفحه صفحه -->
 <div class="sarsafhe-safhe">
     <div class="mohtava-container">
-        <h1>خدمات مهراد سام</h1>
-        <p>پشتیبانی تخصصی کامپیوتر در ملارد و مارلیک</p>
+        <h1><?= htmlspecialchars($page_data['title'] ?? 'خدمات مهراد سام') ?></h1>
+        <?php if (!empty($page_data['content'])): ?><p><?= strip_tags($page_data['content']) ?></p><?php endif; ?>
         <div class="masir-nabz">
             <a href="<?= BASE_URL ?>/">خانه</a>
             <span><i class="fa-solid fa-chevron-left" style="font-size:10px;"></i></span>

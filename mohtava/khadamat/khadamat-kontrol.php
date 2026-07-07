@@ -19,14 +19,15 @@ function safhe_khane() {
     $bank     = new Bank();
     $conn     = $bank->getConnection();
 
-    // ۶ خدمت اول برای نمایش در صفحه اصلی
     $natije   = $conn->query(
         "SELECT * FROM khadamat WHERE vaziat = 1 ORDER BY tartib ASC LIMIT 6"
     );
     $khadamat = $natije ? $natije->fetch_all(MYSQLI_ASSOC) : [];
 
-    $onvan_safhe  = SITE_NAME . ' | ' . SITE_SLOGAN;
-    $meta_sharh   = 'خدمات پشتیبانی کامپیوتر از راه دور و حضوری در ملارد، مارلیک. رفع کندی، نصب نرم‌افزار، طراحی سایت و دوربین مدار بسته.';
+    $page_data = $conn->query("SELECT * FROM posts WHERE template='home' AND status='publish' LIMIT 1")->fetch_assoc();
+
+    $onvan_safhe  = $page_data['title'] ?? (SITE_NAME . ' | ' . SITE_SLOGAN);
+    $meta_sharh   = strip_tags($page_data['content'] ?? 'خدمات پشتیبانی کامپیوتر');
     $safhe_faali  = 'khane';
 
     include MASIR_GHALEB . 'khane.php';
@@ -42,8 +43,10 @@ function khadamat_fehrest() {
     );
     $khadamat = $natije ? $natije->fetch_all(MYSQLI_ASSOC) : [];
 
-    $onvan_safhe  = 'خدمات | ' . SITE_NAME;
-    $meta_sharh   = 'مشاهده تمام خدمات پشتیبانی کامپیوتری مهراد سام در ملارد و مارلیک';
+    $page_data = $conn->query("SELECT * FROM posts WHERE template='services' AND status='publish' LIMIT 1")->fetch_assoc();
+
+    $onvan_safhe  = $page_data['title'] ?? ('خدمات | ' . SITE_NAME);
+    $meta_sharh   = strip_tags($page_data['content'] ?? 'خدمات پشتیبانی کامپیوتر');
     $safhe_faali  = 'khadamat';
 
     include MASIR_GHALEB . 'khadamat.php';

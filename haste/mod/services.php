@@ -3,6 +3,7 @@
  * کنترلر مدیریت خدمات
  */
 require_once __DIR__ . '/../../dade/bank.php';
+require_once __DIR__ . '/../settings.php';
 
 function admin_services_route($action, $params) {
     global $admin_settings;

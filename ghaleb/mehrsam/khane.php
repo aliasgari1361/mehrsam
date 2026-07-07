@@ -16,16 +16,15 @@
             <div>
                 <div style="display:inline-block; background:rgba(255,111,0,0.12); color:var(--rang-asli); font-size:13px; font-weight:700; padding:6px 18px; border-radius:20px; margin-bottom:20px;">
                     <i class="fa-solid fa-circle-check" style="margin-left:6px;"></i>
-                    خدمات حرفه‌ای کامپیوتر در ملارد
+                    خدمات حرفه‌ای کامپیوتر
                 </div>
                 <h1 style="font-size:2.4rem; line-height:1.5; color:#1a1a1a; margin-bottom:20px; font-weight:700;">
                     مشکل کامپیوترت رو<br>
                     <span style="color:var(--rang-asli);">سریع حل می‌کنیم</span>
                 </h1>
-                <p style="font-size:1rem; color:#555; line-height:2; margin-bottom:32px; max-width:480px;">
-                    پشتیبانی از راه دور و حضوری در ملارد و مارلیک. رفع کندی، نصب نرم‌افزار،
-                    طراحی سایت، دوربین مدار بسته و بیشتر.
-                </p>
+                <div style="font-size:1rem; color:#555; line-height:2; margin-bottom:32px; max-width:480px;">
+                    <?= ($page_data['content'] ?? '<p>پشتیبانی از راه دور و حضوری در تهران.</p>') ?>
+                </div>
                 <div style="display:flex; gap:14px; flex-wrap:wrap;">
                     <a href="<?= BASE_URL ?>/tamas" class="dakmeh dakmeh-asli">
                         <i class="fa-solid fa-phone-volume"></i>

@@ -3,8 +3,8 @@
 <!-- سرصفحه -->
 <div class="sarsafhe-safhe">
     <div class="mohtava-container">
-        <h1>تماس با ما</h1>
-        <p>آماده پاسخگویی به سوالات و درخواست‌های شما هستیم</p>
+        <h1><?= htmlspecialchars($page_data['title'] ?? 'تماس با ما') ?></h1>
+        <?php if (!empty($page_data['content'])): ?><p><?= strip_tags($page_data['content']) ?></p><?php endif; ?>
         <div class="masir-nabz">
             <a href="<?= BASE_URL ?>/">خانه</a>
             <span><i class="fa-solid fa-chevron-left" style="font-size:10px;"></i></span>
@@ -31,7 +31,7 @@
                     ['fa-location-dot', '#FF6F00', 'آدرس',       SITE_ADRES],
                     ['fa-phone',        '#E65100', 'تلفن',        SITE_TEL],
                     ['fa-envelope',     '#BF360C', 'ایمیل',       SITE_EMAIL],
-                    ['fa-clock',        '#FF6F00', 'ساعت کاری',   'شنبه تا پنج‌شنبه: ۹ تا ۲۰'],
+                    ['fa-clock',        '#00B894', 'ساعت کاری',   SITE_HOURS],
                 ];
                 foreach ($etela as $e): ?>
                 <div style="display:flex; gap:16px; align-items:flex-start; margin-bottom:24px; padding:20px; background:#fff; border-radius:12px; box-shadow:0 2px 12px rgba(0,0,0,0.06); border:1px solid #f0f0f0;">
@@ -51,17 +51,22 @@
                     <div style="display:flex; gap:10px;">
                         <?php
                         $shabake = [
-                            ['fa-instagram', '#E1306C', '#'],
-                            ['fa-telegram',  '#0088cc', '#'],
-                            ['fa-whatsapp',  '#25D366', '#'],
+                            ['fa-telegram',  '#0088cc', SITE_TELEGRAM],
+                            ['fa-whatsapp',  '#25D366', SITE_WHATSAPP],
+                            ['fa-instagram', '#E1306C', SITE_INSTAGRAM],
                         ];
                         foreach ($shabake as $s): ?>
-                        <a href="<?= $s[2] ?>" style="width:42px; height:42px; background:<?= $s[1] ?>; border-radius:10px; display:flex; align-items:center; justify-content:center; color:#fff; font-size:16px; transition:transform 0.2s;"
+                        <a href="<?= $s[2] ?>" target="_blank" style="width:42px; height:42px; background:<?= $s[1] ?>; border-radius:10px; display:flex; align-items:center; justify-content:center; color:#fff; font-size:16px; transition:transform 0.2s;"
                            onmouseover="this.style.transform='translateY(-3px)'"
                            onmouseout="this.style.transform='translateY(0)'">
                             <i class="fa-brands <?= $s[0] ?>"></i>
                         </a>
                         <?php endforeach; ?>
+                        <a href="<?= SITE_BALE ?>" target="_blank" title="بله" style="width:42px; height:42px; background:#22a13e; border-radius:10px; display:flex; align-items:center; justify-content:center; color:#fff; font-size:16px; transition:transform 0.2s;"
+                           onmouseover="this.style.transform='translateY(-3px)'"
+                           onmouseout="this.style.transform='translateY(0)'">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-1 14H5.17L4 17.17V4h15v12z"/><circle cx="8" cy="10" r="1.5"/><circle cx="12" cy="10" r="1.5"/><circle cx="16" cy="10" r="1.5"/></svg>
+                        </a>
                     </div>
                 </div>
             </div>
@@ -172,13 +177,18 @@
             <div style="background:var(--rang-roshan); padding:16px 24px; display:flex; align-items:center; gap:10px; border-bottom:1px solid #ffe0b2;">
                 <i class="fa-solid fa-map-location-dot" style="color:var(--rang-asli); font-size:18px;"></i>
                 <span style="font-weight:700; font-size:15px;">موقعیت ما روی نقشه</span>
-                <span style="font-size:13px; color:#888; margin-right:8px;">ملارد – مارلیک – پاساژ ارغوان شمالی</span>
+                <span style="font-size:13px; color:#888; margin-right:8px;">تهران، گیشا</span>
             </div>
+            <?php
+            $map_url = get_site_setting('map_embed_url') ?? 'https://maps.google.com/maps?q=35.7257,51.3814&z=15&output=embed';
+            ?>
             <iframe
-                src="https://www.openstreetmap.org/export/embed.html?bbox=50.9461%2C35.6497%2C51.0061%2C35.6897&layer=mapnik&marker=35.6697%2C50.9761"
-                style="width:100%; height:380px; border:none; display:block;"
+                src="<?= htmlspecialchars($map_url) ?>"
+                style="width:100%; height:400px; border:none; display:block;"
                 loading="lazy"
-                title="موقعیت مهراد سام در ملارد">
+                allowfullscreen
+                referrerpolicy="no-referrer-when-downgrade"
+                title="موقعیت مهراد سام در تهران">
             </iframe>
         </div>
 

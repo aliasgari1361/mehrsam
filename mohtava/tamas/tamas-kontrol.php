@@ -4,9 +4,10 @@
  */
 
 require_once MASIR_DADE . 'bank.php';
+require_once MASIR_RISH . 'haste/site_settings.php';
 
 function tamas_route($amaliat, $paramha) {
-    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
         tamas_zakhire();
     } else {
         tamas_namayesh();
@@ -15,8 +16,13 @@ function tamas_route($amaliat, $paramha) {
 
 // ---- نمایش فرم ----
 function tamas_namayesh($payam = null, $khata = null) {
-    $onvan_safhe = 'تماس با ما | ' . SITE_NAME;
-    $meta_sharh  = 'با ' . SITE_NAME . ' در ملارد تماس بگیرید. پشتیبانی کامپیوتر از راه دور و حضوری.';
+    $bank = new Bank();
+    $conn = $bank->getConnection();
+    $page_data = $conn->query("SELECT * FROM posts WHERE template='contact' AND status='publish' LIMIT 1")->fetch_assoc();
+    $conn->close();
+
+    $onvan_safhe = $page_data['title'] ?? ('تماس با ما | ' . SITE_NAME);
+    $meta_sharh  = strip_tags($page_data['content'] ?? ('با ' . SITE_NAME . ' تماس بگیرید'));
     $safhe_faali = 'tamas';
     include MASIR_GHALEB . 'tamas.php';
 }
@@ -56,6 +62,9 @@ function tamas_zakhire() {
         $stmt->execute();
         $stmt->close();
         $conn->close();
+
+        require_once MASIR_RISH . 'afzuneh/notification/Notifier.php';
+        Notifier::newContactMessage($nam, $telefon, $mozoo);
 
         $mofagh = 'پیام شما با موفقیت ارسال شد. به‌زودی با شما تماس می‌گیریم.';
         tamas_namayesh($mofagh, null);

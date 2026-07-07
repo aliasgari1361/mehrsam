@@ -64,92 +64,205 @@ function mod_route($action, $params) {
         case 'dashmod':
     $onvan_safhe = 'داشبورد مدیریت';
     $meta_sharh = 'پنل مدیریت سایت';
-    // دریافت آمار از دیتابیس برای ویجت‌ها
     require_once __DIR__ . '/../../dade/bank.php';
     $bank = new Bank();
     $conn = $bank->getConnection();
-    // تعداد کل مطالب
-    $posts_count = $conn->query("SELECT COUNT(*) AS cnt FROM posts")->fetch_assoc()['cnt'] ?? 0;
-    // تعداد کاربران
-    $users_count = $conn->query("SELECT COUNT(*) AS cnt FROM users")->fetch_assoc()['cnt'] ?? 0;
-    // تعداد برگه‌ها
-    $pages_count = $conn->query("SELECT COUNT(*) AS cnt FROM posts WHERE type='safhe'")->fetch_assoc()['cnt'] ?? 0;
-    // تعداد مقالات
-    $articles_count = $conn->query("SELECT COUNT(*) AS cnt FROM posts WHERE type='maghaleh'")->fetch_assoc()['cnt'] ?? 0;
-    $conn->close();
 
-    include __DIR__ . '/../../ghaleb/ghmod/sarsafhe.php';
+    $posts_count    = $conn->query("SELECT COUNT(*) AS cnt FROM posts")->fetch_assoc()['cnt'] ?? 0;
+    $pages_count    = $conn->query("SELECT COUNT(*) AS cnt FROM posts WHERE type='safhe'")->fetch_assoc()['cnt'] ?? 0;
+    $articles_count = $conn->query("SELECT COUNT(*) AS cnt FROM posts WHERE type='maghaleh'")->fetch_assoc()['cnt'] ?? 0;
+    $users_count    = $conn->query("SELECT COUNT(*) AS cnt FROM users")->fetch_assoc()['cnt'] ?? 0;
+    $services_count = $conn->query("SELECT COUNT(*) AS cnt FROM khadamat WHERE vaziat=1")->fetch_assoc()['cnt'] ?? 0;
+
+    $orders_count     = $conn->query("SELECT COUNT(*) AS cnt FROM sefaresh")->fetch_assoc()['cnt'] ?? 0;
+    $orders_pending   = $conn->query("SELECT COUNT(*) AS cnt FROM sefaresh WHERE vaziat='pending'")->fetch_assoc()['cnt'] ?? 0;
+    $orders_processing = $conn->query("SELECT COUNT(*) AS cnt FROM sefaresh WHERE vaziat='processing'")->fetch_assoc()['cnt'] ?? 0;
+    $orders_revenue   = $conn->query("SELECT COALESCE(SUM(majmoo_gheymat), 0) AS total FROM sefaresh WHERE pardakht_vaziat='paid'")->fetch_assoc()['total'] ?? 0;
+
+    $messages_count   = $conn->query("SELECT COUNT(*) AS cnt FROM payam_tamas")->fetch_assoc()['cnt'] ?? 0;
+
+    $chat_active = 0;
+    $chat_unread = 0;
+    if ($conn->query("SHOW TABLES LIKE 'chat_sessions'")->num_rows > 0) {
+        $chat_active = $conn->query("SELECT COUNT(*) AS cnt FROM chat_sessions WHERE status IN ('waiting','active')")->fetch_assoc()['cnt'] ?? 0;
+        $chat_unread = $conn->query("SELECT COUNT(*) AS cnt FROM chat_messages cm JOIN chat_sessions cs ON cm.session_id = cs.id WHERE cs.status IN ('waiting','active') AND cm.sender_type='user' AND cm.created_at > DATE_SUB(NOW(), INTERVAL 1 HOUR)")->fetch_assoc()['cnt'] ?? 0;
+    }
+
+    $products_count = $conn->query("SELECT COUNT(*) AS cnt FROM mahsulat WHERE vaziat=1")->fetch_assoc()['cnt'] ?? 0;
+    $categories_count = $conn->query("SELECT COUNT(*) AS cnt FROM mahsul_dasteh")->fetch_assoc()['cnt'] ?? 0;
+
+    $recent_orders = $conn->query("SELECT id, onvan_girande, majmoo_gheymat, vaziat, created_at FROM sefaresh ORDER BY id DESC LIMIT 5");
+    $recent_messages = $conn->query("SELECT id, nam, telefon, mozoo, created_at FROM payam_tamas ORDER BY id DESC LIMIT 5");
+    $recent_posts = $conn->query("SELECT id, title, type, status, created_at FROM posts ORDER BY id DESC LIMIT 5");
+
+    $recent_chats = [];
+    if ($conn->query("SHOW TABLES LIKE 'chat_sessions'")->num_rows > 0) {
+        $chat_result = $conn->query("SELECT cs.id, cs.user_name, cs.user_phone, cs.status, cs.last_activity, (SELECT message FROM chat_messages WHERE session_id = cs.id ORDER BY id DESC LIMIT 1) AS last_msg FROM chat_sessions cs WHERE cs.status IN ('waiting','active') ORDER BY cs.last_activity DESC LIMIT 5");
+        if ($chat_result) while ($row = $chat_result->fetch_assoc()) $recent_chats[] = $row;
+    }
+
+    $conn->close();
     ?>
-    <h3>داشبورد مدیریت</h3>
-    <p>خوش آمدید! خلاصه‌ای از وضعیت سایت:</p>
+
+    <?php include __DIR__ . '/../../ghaleb/ghmod/sarsafhe.php'; ?>
     <style>
-        .dashboard-cards {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 20px;
-            margin-top: 20px;
-        }
-        .card {
-            flex: 1;
-            min-width: 150px;
-            background: #f8f9fa;
-            border-radius: 8px;
-            padding: 20px;
-            text-align: center;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .card .number {
-            font-size: 32px;
-            font-weight: bold;
-            color: #343a40;
-        }
-        .card .label {
-            color: #6c757d;
-            margin-top: 5px;
-        }
-        .quick-links {
-            margin-top: 30px;
-        }
-        .quick-links a {
-            display: inline-block;
-            margin: 5px 10px;
-            padding: 8px 15px;
-            background: #343a40;
-            color: #fff;
-            border-radius: 4px;
-            text-decoration: none;
-        }
-        .quick-links a:hover { background: #495057; }
+    .dash { font-family:system-ui,sans-serif; direction:rtl; }
+    .dash h3 { font-size:1.4rem; margin-bottom:4px; color:#1a1a1a; }
+    .dash .sub { color:#666; font-size:13px; margin-bottom:24px; }
+    .dash-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:16px; margin-bottom:32px; }
+    .dash-card { background:#fff; border-radius:12px; padding:20px; box-shadow:0 1px 4px rgba(0,0,0,0.06); border:1px solid #eef0f4; display:flex; align-items:center; gap:16px; transition:all 0.2s; }
+    .dash-card:hover { box-shadow:0 4px 16px rgba(0,0,0,0.08); transform:translateY(-2px); }
+    .dash-card .icon { width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;color:#fff;flex-shrink:0; }
+    .dash-card .info { flex:1; min-width:0; }
+    .dash-card .num { font-size:1.5rem; font-weight:700; line-height:1.2; }
+    .dash-card .lbl { font-size:12px; color:#888; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .dash-card .badge { display:inline-block; font-size:10px; padding:2px 8px; border-radius:10px; font-weight:600; }
+    .dash-row { display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:32px; }
+    .dash-panel { background:#fff; border-radius:12px; box-shadow:0 1px 4px rgba(0,0,0,0.06); border:1px solid #eef0f4; overflow:hidden; }
+    .dash-panel h4 { font-size:14px; padding:16px 20px; margin:0; border-bottom:1px solid #eef0f4; display:flex; align-items:center; gap:8px; }
+    .dash-panel .empty { padding:32px; text-align:center; color:#aaa; font-size:13px; }
+    .dash-panel table { width:100%; border-collapse:collapse; }
+    .dash-panel th { text-align:right; padding:10px 16px; font-size:12px; color:#888; font-weight:600; border-bottom:1px solid #eef0f4; }
+    .dash-panel td { padding:10px 16px; font-size:13px; border-bottom:1px solid #f5f6f8; }
+    .dash-panel tr:last-child td { border-bottom:none; }
+    .dash-panel td a { color:var(--rang-asli,#FF6F00); text-decoration:none; }
+    .dash-panel td a:hover { text-decoration:underline; }
+    .status-b { display:inline-block; padding:2px 10px; border-radius:10px; font-size:11px; font-weight:600; }
+    .status-b.pending { background:#fff3e0; color:#e65100; }
+    .status-b.processing { background:#e3f2fd; color:#1565c0; }
+    .status-b.publish { background:#e8f5e9; color:#2e7d32; }
+    .status-b.draft { background:#f5f5f5; color:#757575; }
+    .dash-actions { display:flex; flex-wrap:wrap; gap:8px; }
+    .dash-actions a { display:inline-flex;align-items:center;gap:6px; padding:10px 18px; border-radius:8px; font-size:13px; font-weight:600; text-decoration:none; transition:all 0.2s; background:#f5f6f8; color:#333; }
+    .dash-actions a:hover { background:var(--rang-asli,#FF6F00); color:#fff; transform:translateY(-1px); }
+    @media (max-width:768px) { .dash-row { grid-template-columns:1fr; } }
     </style>
 
-    <div class="dashboard-cards">
-        <div class="card">
-            <div class="number"><?php echo $posts_count; ?></div>
-            <div class="label">کل مطالب</div>
+    <div class="dash">
+    <h3>داشبورد مدیریت</h3>
+    <p class="sub">خلاصه وضعیت سایت — <?= date('Y/m/d') ?></p>
+
+    <div class="dash-grid">
+        <div class="dash-card"><div class="icon" style="background:#FF6F00;"><i class="fa-solid fa-file-lines"></i></div><div class="info"><div class="num"><?= $posts_count ?></div><div class="lbl">کل مطالب</div></div></div>
+        <div class="dash-card"><div class="icon" style="background:#E65100;"><i class="fa-solid fa-copy"></i></div><div class="info"><div class="num"><?= $pages_count ?></div><div class="lbl">برگه‌ها</div></div></div>
+        <div class="dash-card"><div class="icon" style="background:#BF360C;"><i class="fa-solid fa-newspaper"></i></div><div class="info"><div class="num"><?= $articles_count ?></div><div class="lbl">مقالات</div></div></div>
+        <div class="dash-card"><div class="icon" style="background:#6C5CE7;"><i class="fa-solid fa-headset"></i></div><div class="info"><div class="num"><?= $services_count ?></div><div class="lbl">خدمات فعال</div></div></div>
+        <div class="dash-card"><div class="icon" style="background:#00B894;"><i class="fa-solid fa-cube"></i></div><div class="info"><div class="num"><?= $products_count ?></div><div class="lbl">محصولات</div></div></div>
+        <div class="dash-card"><div class="icon" style="background:#0984E3;"><i class="fa-solid fa-tags"></i></div><div class="info"><div class="num"><?= $categories_count ?></div><div class="lbl">دسته‌بندی‌ها</div></div></div>
+        <div class="dash-card"><div class="icon" style="background:#E17055;"><i class="fa-solid fa-shopping-cart"></i></div><div class="info"><div class="num"><?= $orders_count ?> <span class="badge" style="background:#fff3e0;color:#e65100;"><?= $orders_pending ?> در انتظار</span></div><div class="lbl"><?= $orders_processing ?> در حال پردازش</div></div></div>
+        <div class="dash-card"><div class="icon" style="background:#FDCB6E;color:#333;"><i class="fa-solid fa-coin"></i></div><div class="info"><div class="num"><?= number_format($orders_revenue) ?></div><div class="lbl">تومان فروش</div></div></div>
+        <div class="dash-card"><div class="icon" style="background:#00B894;"><i class="fa-solid fa-comment-dots"></i></div><div class="info"><div class="num"><?= $messages_count ?></div><div class="lbl">پیام‌های تماس</div></div></div>
+        <div class="dash-card"><div class="icon" style="background:#6C5CE7;"><i class="fa-solid fa-comments"></i></div><div class="info"><div class="num"><?= $chat_active ?> <span class="badge" style="background:#ffe0e0;color:#c62828;"><?= $chat_unread ?> جدید</span></div><div class="lbl">چت فعال</div></div></div>
+        <div class="dash-card"><div class="icon" style="background:#0984E3;"><i class="fa-solid fa-users"></i></div><div class="info"><div class="num"><?= $users_count ?></div><div class="lbl">کاربران</div></div></div>
+    </div>
+
+    <div class="dash-row">
+        <div class="dash-panel">
+            <h4><i class="fa-solid fa-truck" style="color:#e65100;"></i> آخرین سفارشات</h4>
+            <?php if ($recent_orders && $recent_orders->num_rows > 0): ?>
+            <table><thead><tr><th>مشتری</th><th>مبلغ</th><th>وضعیت</th></tr></thead><tbody>
+            <?php while ($o = $recent_orders->fetch_assoc()): ?>
+            <tr><td><a href="<?= BASE_URL ?>mod/sefaresh/<?= $o['id'] ?>"><?= htmlspecialchars($o['onvan_girande']) ?></a></td><td><?= number_format($o['majmoo_gheymat']) ?></td><td><span class="status-b <?= $o['vaziat'] ?>"><?= $o['vaziat'] === 'pending' ? 'در انتظار' : ($o['vaziat'] === 'processing' ? 'در حال پردازش' : $o['vaziat']) ?></span></td></tr>
+            <?php endwhile; ?>
+            </tbody></table>
+            <?php else: ?><div class="empty">هیچ سفارشی ثبت نشده</div><?php endif; ?>
         </div>
-        <div class="card">
-            <div class="number"><?php echo $pages_count; ?></div>
-            <div class="label">برگه‌ها</div>
-        </div>
-        <div class="card">
-            <div class="number"><?php echo $articles_count; ?></div>
-            <div class="label">مقالات</div>
-        </div>
-        <div class="card">
-            <div class="number"><?php echo $users_count; ?></div>
-            <div class="label">کاربران</div>
+        <div class="dash-panel">
+            <h4><i class="fa-solid fa-envelope" style="color:#00B894;"></i> آخرین پیام‌های تماس</h4>
+            <?php if ($recent_messages && $recent_messages->num_rows > 0): ?>
+            <table><thead><tr><th>نام</th><th>موضوع</th><th>تاریخ</th></tr></thead><tbody>
+            <?php while ($m = $recent_messages->fetch_assoc()): ?>
+            <tr><td><?= htmlspecialchars($m['nam']) ?></td><td><?= htmlspecialchars($m['mozoo'] ?? '—') ?></td><td style="font-size:11px;color:#888;"><?= $m['created_at'] ?></td></tr>
+            <?php endwhile; ?>
+            </tbody></table>
+            <?php else: ?><div class="empty">هیچ پیامی دریافت نشده</div><?php endif; ?>
         </div>
     </div>
 
-    <div class="quick-links">
-        <a href="<?php echo BASE_URL; ?>mod/content">مدیریت محتوا</a>
-        <a href="<?php echo BASE_URL; ?>mod/users">مدیریت کاربران</a>
-        <a href="<?php echo BASE_URL; ?>mod/settings">تنظیمات پنل</a>
-        <a href="<?php echo BASE_URL; ?>mod/site_settings">تنظیمات سایت</a>
+    <div class="dash-row">
+        <div class="dash-panel">
+            <h4><i class="fa-solid fa-comment-dots" style="color:#6C5CE7;"></i> چت‌های فعال <span id="chat-dash-count" style="font-size:11px;color:#888;font-weight:400;"></span></h4>
+            <?php if (!empty($recent_chats)): ?>
+            <table id="chat-dash-table"><thead><tr><th>نام</th><th>آخرین پیام</th><th>عملیات</th></tr></thead><tbody>
+            <?php foreach ($recent_chats as $c): ?>
+            <tr id="chat-dash-row-<?= $c['id'] ?>">
+                <td><?= htmlspecialchars($c['user_name']) ?></td>
+                <td style="font-size:12px;color:#888;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"><?= htmlspecialchars(mb_substr($c['last_msg'] ?? '', 0, 60)) ?></td>
+                <td><a href="<?= BASE_URL ?>mod/chat_view/<?= $c['id'] ?>">مشاهده</a></td>
+            </tr>
+            <?php endforeach; ?>
+            </tbody></table>
+            <?php else: ?><div class="empty" id="chat-dash-empty">چت فعالی وجود ندارد</div><?php endif; ?>
+        </div>
+        <div class="dash-panel">
+            <h4><i class="fa-solid fa-clock-rotate-left" style="color:#0984E3;"></i> آخرین مطالب</h4>
+            <?php if ($recent_posts && $recent_posts->num_rows > 0): ?>
+            <table><thead><tr><th>عنوان</th><th>نوع</th><th>وضعیت</th></tr></thead><tbody>
+            <?php while ($p = $recent_posts->fetch_assoc()): ?>
+            <tr><td><a href="<?= BASE_URL ?>mod/edit_content/<?= $p['id'] ?>"><?= htmlspecialchars(mb_substr($p['title'], 0, 50)) ?></a></td><td style="font-size:12px;"><?= $p['type'] === 'maghaleh' ? 'مقاله' : ($p['type'] === 'safhe' ? 'برگه' : 'وبلاگ') ?></td><td><span class="status-b <?= $p['status'] ?>"><?= $p['status'] === 'publish' ? 'منتشر' : 'پیش‌نویس' ?></span></td></tr>
+            <?php endwhile; ?>
+            </tbody></table>
+            <?php else: ?><div class="empty">مطلبی وجود ندارد</div><?php endif; ?>
+        </div>
+    </div>
+
+    <script>
+    function chatDashPoll() {
+        fetch('<?= BASE_URL ?>mod/chat')
+            .then(r => r.text())
+            .then(html => {
+                var match = html.match(/چت‌های فعال/i);
+                if (match) {
+                    location.reload();
+                }
+            });
+    }
+    setInterval(chatDashPoll, 10000);
+    </script>
+
+    <div class="dash-actions">
+        <a href="<?= BASE_URL ?>mod/content"><i class="fa-solid fa-plus"></i> مطلب جدید</a>
+        <a href="<?= BASE_URL ?>mod/pages"><i class="fa-solid fa-file"></i> برگه جدید</a>
+        <a href="<?= BASE_URL ?>mod/services"><i class="fa-solid fa-headset"></i> خدمات</a>
+        <a href="<?= BASE_URL ?>mod/chat"><i class="fa-solid fa-comment-dots"></i> چت</a>
+        <a href="<?= BASE_URL ?>mod/site_settings"><i class="fa-solid fa-gear"></i> تنظیمات سایت</a>
+    </div>
     </div>
 <?php
     include __DIR__ . '/../../ghaleb/ghmod/panevis.php';
     break;
+
+        case 'content':
+            require_once __DIR__ . '/../../dade/bank.php';
+            $bank = new Bank();
+            $conn = $bank->getConnection();
+            $result = $conn->query("SELECT id, title, slug, type, status, created_at FROM posts WHERE type IN ('blog','maghaleh') ORDER BY created_at DESC");
+            $posts_list = [];
+            if ($result) while ($row = $result->fetch_assoc()) $posts_list[] = $row;
+            $conn->close();
+
+            include __DIR__ . '/../../ghaleb/ghmod/sarsafhe.php';
+            ?>
+            <h3>مدیریت محتوا</h3>
+            <p><a href="<?php echo BASE_URL; ?>mod/edit_content">+ مطلب جدید</a></p>
+            <table border="1" cellpadding="5" cellspacing="0" width="100%">
+                <tr><th>عنوان</th><th>نوع</th><th>وضعیت</th><th>تاریخ</th><th>عملیات</th></tr>
+                <?php foreach ($posts_list as $p): ?>
+                <tr>
+                    <td><?php echo htmlspecialchars($p['title']); ?></td>
+                    <td><?php echo $p['type'] === 'maghaleh' ? 'مقاله' : 'وبلاگ'; ?></td>
+                    <td><?php echo $p['status'] === 'publish' ? 'منتشر' : 'پیش‌نویس'; ?></td>
+                    <td><?php echo $p['created_at']; ?></td>
+                    <td>
+                        <a href="<?php echo BASE_URL; ?>mod/edit_content/<?php echo $p['id']; ?>">ویرایش</a> |
+                        <a href="<?php echo BASE_URL; ?>mod/delete_content/<?php echo $p['id']; ?>" onclick="return confirm('مطمئنی؟')">حذف</a>
+                    </td>
+                </tr>
+                <?php endforeach; ?>
+            </table>
+            <?php
+            include __DIR__ . '/../../ghaleb/ghmod/panevis.php';
+            break;
 
         case 'pages':
             require_once __DIR__ . '/../../dade/bank.php';
@@ -207,7 +320,7 @@ function mod_route($action, $params) {
                 $stmt->close();
             }
 
-            if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
                 $title   = $_POST['title'] ?? '';
                 $slug    = $_POST['slug'] ?? '';
                 $content = $_POST['content'] ?? '';
@@ -248,7 +361,13 @@ function mod_route($action, $params) {
                     <option value="draft" <?php echo $post['status']=='draft' ? 'selected' : ''; ?>>پیش‌نویس</option>
                 </select></label><br><br>
                 <label>محتوا:</label><br>
-                <textarea name="content" rows="15" style="width:100%; height:400px; font-family:monospace;"><?php echo htmlspecialchars($post['content']); ?></textarea><br>
+                <?php
+                $edr_value = htmlspecialchars($post['content']);
+                $edr_name = 'content';
+                $edr_id = 'pageContent';
+                include __DIR__ . '/../editor/editor.php';
+                ?>
+                <br>
                 <button type="submit">ذخیره</button>
             </form>
             <?php
@@ -276,8 +395,9 @@ function mod_route($action, $params) {
             break;
 
         case 'settings':
+            require_once __DIR__ . '/../settings.php';
             $admin_settings = json_decode(file_get_contents(ADMIN_SETTINGS_FILE), true) ?: ['bg_color' => '#f0f2f5', 'font' => 'Tahoma', 'favicon' => ''];
-            if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
                 $new_settings = [
                     'bg_color' => $_POST['bg_color'] ?? '#f0f2f5',
                     'font'     => $_POST['font'] ?? 'Tahoma',
@@ -313,10 +433,11 @@ function mod_route($action, $params) {
             global $site_settings;
             $current = $site_settings;
 
-            if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
                 $new_settings = [
                     'site_title' => $_POST['site_title'] ?? 'سایت من',
-                    'favicon'    => $_POST['favicon'] ?? 'ghaleb/manabe/favicon.png'
+                    'favicon'    => $_POST['favicon'] ?? 'ghaleb/manabe/favicon.png',
+                    'map_embed_url' => $_POST['map_embed_url'] ?? 'https://maps.google.com/maps?q=35.7257,51.3814&z=15&output=embed'
                 ];
                 save_site_settings($new_settings);
                 global $site_settings;
@@ -332,41 +453,11 @@ function mod_route($action, $params) {
                 <label>عنوان سایت: <input type="text" name="site_title" value="<?php echo htmlspecialchars($current['site_title'] ?? ''); ?>"></label><br><br>
                 <label>مسیر Favicon (نسبی): <input type="text" name="favicon" value="<?php echo htmlspecialchars($current['favicon'] ?? ''); ?>" size="50"></label>
                 <small>مثال: ghaleb/manabe/favicon.png</small><br><br>
+                <label>کد Embed نقشه (Google Maps یا OpenStreetMap):</label><br>
+                <textarea name="map_embed_url" rows="3" style="width:100%; direction:ltr; font-family:monospace;"><?php echo htmlspecialchars($current['map_embed_url'] ?? ''); ?></textarea>
+                <small>مثال: https://maps.google.com/maps?q=35.7257,51.3814&z=15&output=embed</small><br><br>
                 <button type="submit">ذخیره</button>
             </form>
-            <?php
-            include __DIR__ . '/../../ghaleb/ghmod/panevis.php';
-            break;
-
-        case 'pages':
-            require_once __DIR__ . '/../../dade/bank.php';
-            $bank = new Bank();
-            $conn = $bank->getConnection();
-
-            $result = $conn->query("SELECT * FROM posts WHERE type='page' OR type='safhe' ORDER BY id ASC");
-            $pages = [];
-            if ($result) while ($row = $result->fetch_assoc()) $pages[] = $row;
-            $conn->close();
-
-            include __DIR__ . '/../../ghaleb/ghmod/sarsafhe.php';
-            ?>
-            <h3>مدیریت صفحات</h3>
-            <p><a href="<?php echo BASE_URL; ?>mod/edit_page">+ صفحه جدید</a></p>
-            <table border="1" cellpadding="5" cellspacing="0" width="100%">
-                <tr><th>عنوان</th><th>slug</th><th>قالب</th><th>وضعیت</th><th>عملیات</th></tr>
-                <?php foreach ($pages as $p): ?>
-                <tr>
-                    <td><?php echo htmlspecialchars($p['title']); ?></td>
-                    <td><?php echo htmlspecialchars($p['slug']); ?></td>
-                    <td><?php echo htmlspecialchars($p['template'] ?? 'default'); ?></td>
-                    <td><?php echo $p['status']; ?></td>
-                    <td>
-                        <a href="<?php echo BASE_URL; ?>mod/edit_page/<?php echo $p['id']; ?>">ویرایش</a> |
-                        <a href="<?php echo BASE_URL; ?>mod/delete_page/<?php echo $p['id']; ?>" onclick="return confirm('مطمئنی؟')">حذف</a>
-                    </td>
-                </tr>
-                <?php endforeach; ?>
-            </table>
             <?php
             include __DIR__ . '/../../ghaleb/ghmod/panevis.php';
             break;
@@ -395,7 +486,7 @@ function mod_route($action, $params) {
                 $stmt->close();
             }
 
-            if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
                 $title   = $_POST['title'] ?? '';
                 $slug    = $_POST['slug'] ?? '';
                 $content = $_POST['content'] ?? '';
@@ -422,28 +513,12 @@ function mod_route($action, $params) {
             ?>
             <h3><?php echo $is_edit ? 'ویرایش مطلب' : 'ایجاد مطلب جدید'; ?></h3>
 
-            <!-- نوار ابزار ویرایشگر پیشرفته -->
-            <style>
-                .editor-toolbar { margin-bottom: 10px; }
-                .editor-toolbar button { margin-right: 5px; padding: 5px 10px; }
-                textarea#contentArea { width: 100%; height: 350px; font-family: monospace; direction: rtl; }
-            </style>
-            <div class="editor-toolbar">
-                <button type="button" onclick="formatText('bold')"><b>B</b></button>
-                <button type="button" onclick="formatText('italic')"><i>I</i></button>
-                <button type="button" onclick="formatText('underline')"><u>U</u></button>
-                |
-                <button type="button" onclick="alignText('right')">راست‌چین</button>
-                <button type="button" onclick="alignText('center')">وسط‌چین</button>
-                <button type="button" onclick="alignText('left')">چپ‌چین</button>
-                <button type="button" onclick="alignText('justify')">تراز کامل</button>
-                |
-                <button type="button" onclick="setDirection('rtl')">راست به چپ</button>
-                <button type="button" onclick="setDirection('ltr')">چپ به راست</button>
-                |
-                <button type="button" onclick="insertLink()">لینک</button>
-            </div>
-
+            <?php
+            $edr_value = htmlspecialchars($post['content']);
+            $edr_name = 'content';
+            $edr_id = 'contentArea';
+            include __DIR__ . '/../editor/editor.php';
+            ?>
             <form method="post" id="contentForm">
                 <label>عنوان: <input type="text" name="title" value="<?php echo htmlspecialchars($post['title']); ?>" required></label><br><br>
                 <label>نامک (slug): <input type="text" name="slug" value="<?php echo htmlspecialchars($post['slug']); ?>"></label><br><br>
@@ -456,53 +531,8 @@ function mod_route($action, $params) {
                     <option value="draft" <?php echo $post['status']=='draft' ? 'selected' : ''; ?>>پیش‌نویس</option>
                     <option value="publish" <?php echo $post['status']=='publish' ? 'selected' : ''; ?>>منتشر</option>
                 </select></label><br><br>
-                <label>محتوا:</label><br>
-                <textarea name="content" id="contentArea"><?php echo htmlspecialchars($post['content']); ?></textarea><br>
                 <button type="submit">ذخیره</button>
             </form>
-
-            <script>
-                function formatText(cmd) {
-                    var ta = document.getElementById('contentArea');
-                    var start = ta.selectionStart, end = ta.selectionEnd;
-                    var selectedText = ta.value.substring(start, end);
-                    var newText = '';
-                    switch(cmd) {
-                        case 'bold': newText = '<b>' + selectedText + '</b>'; break;
-                        case 'italic': newText = '<i>' + selectedText + '</i>'; break;
-                        case 'underline': newText = '<u>' + selectedText + '</u>'; break;
-                    }
-                    ta.setRangeText(newText, start, end, 'select');
-                    ta.focus();
-                }
-                function alignText(align) {
-                    var ta = document.getElementById('contentArea');
-                    var start = ta.selectionStart, end = ta.selectionEnd;
-                    var selectedText = ta.value.substring(start, end) || ' ';
-                    var newText = '<div style="text-align: ' + align + ';">' + selectedText + '</div>';
-                    ta.setRangeText(newText, start, end, 'select');
-                    ta.focus();
-                }
-                function setDirection(dir) {
-                    var ta = document.getElementById('contentArea');
-                    var start = ta.selectionStart, end = ta.selectionEnd;
-                    var selectedText = ta.value.substring(start, end) || ' ';
-                    var newText = '<span dir="' + dir + '">' + selectedText + '</span>';
-                    ta.setRangeText(newText, start, end, 'select');
-                    ta.focus();
-                }
-                function insertLink() {
-                    var url = prompt('آدرس لینک:');
-                    if(url) {
-                        var ta = document.getElementById('contentArea');
-                        var start = ta.selectionStart, end = ta.selectionEnd;
-                        var selectedText = ta.value.substring(start, end) || url;
-                        var newText = '<a href="' + url + '">' + selectedText + '</a>';
-                        ta.setRangeText(newText, start, end, 'select');
-                        ta.focus();
-                    }
-                }
-            </script>
             <?php
             include __DIR__ . '/../../ghaleb/ghmod/panevis.php';
             break;
@@ -520,6 +550,55 @@ function mod_route($action, $params) {
                 $conn->close();
             }
             redirect('mod/content');
+            break;
+
+        case 'chat':
+            require_once __DIR__ . '/../../mohtava/chat/chat-model.php';
+            include __DIR__ . '/../../ghaleb/ghmod/sarsafhe.php';
+            include __DIR__ . '/../../ghaleb/ghmod/chat/admin-chat.php';
+            include __DIR__ . '/../../ghaleb/ghmod/panevis.php';
+            break;
+
+        case 'chat_view':
+            require_once __DIR__ . '/../../mohtava/chat/chat-model.php';
+            $chat_session = chat_get_session($params[0] ?? 0);
+            $chat_messages = $chat_session ? chat_get_all_messages($chat_session['id']) : [];
+            include __DIR__ . '/../../ghaleb/ghmod/sarsafhe.php';
+            include __DIR__ . '/../../ghaleb/ghmod/chat/admin-chat-view.php';
+            include __DIR__ . '/../../ghaleb/ghmod/panevis.php';
+            break;
+
+        case 'chat_poll_admin':
+            require_once __DIR__ . '/../../mohtava/chat/chat-model.php';
+            header('Content-Type: application/json');
+            $session_id = (int)($params[0] ?? 0);
+            $since_id = (int)($_GET['since'] ?? 0);
+            $messages = $session_id ? chat_get_messages($session_id, $since_id) : [];
+            echo json_encode(['messages' => $messages]);
+            break;
+
+        case 'chat_reply':
+            require_once __DIR__ . '/../../mohtava/chat/chat-model.php';
+            $session_id = $params[0] ?? 0;
+            $message = $_POST['message'] ?? '';
+            if ($session_id && $message) {
+                chat_send_message($session_id, 'admin', $message);
+            }
+            redirect('mod/chat_view/' . $session_id);
+            break;
+
+        case 'chat_close':
+            require_once __DIR__ . '/../../mohtava/chat/chat-model.php';
+            $session_id = $params[0] ?? 0;
+            if ($session_id) chat_close_session($session_id);
+            redirect('mod/chat');
+            break;
+
+        case 'chat_delete':
+            require_once __DIR__ . '/../../mohtava/chat/chat-model.php';
+            $session_id = $params[0] ?? 0;
+            if ($session_id) chat_delete_session($session_id);
+            redirect('mod/chat');
             break;
 
         case 'logout':

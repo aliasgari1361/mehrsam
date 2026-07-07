@@ -35,10 +35,17 @@ define('MASIR_DADE',   MASIR_RISH . 'dade' . DIRECTORY_SEPARATOR);
 // تنظیمات سایت
 // ====================================================
 define('SITE_NAME',    'مهراد سام');
-define('SITE_SLOGAN',  'پشتیبانی کامپیوتر در ملارد و مارلیک');
-define('SITE_EMAIL',   'info@mhsi.ir');
-define('SITE_TEL',     '۰۹۱۲-۰۰۰-۰۰۰۰');   // شماره واقعی را بذار
-define('SITE_ADRES',   'ملارد – مارلیک – پاساژ ارغوان شمالی');
+define('SITE_SLOGAN',  'خدمات کامپیوتر مهراد سام در تهران');
+define('SITE_EMAIL',   'ali.asgari.6106@gmail.com');
+define('SITE_TEL',     '۰۹۱۰۵۹۲۱۳۵۸');
+define('SITE_ADRES',   'تهران، ضلع شمال غرب تقاطع چمران و جلال آل احمد، گیشا، ابتدای بلوچستان، ساختمان گیشا پلاک ۸ واحد ۴');
+
+define('SITE_TEL_EN',    '989105921358');
+define('SITE_TELEGRAM',  'https://t.me/mehrsys61');
+define('SITE_WHATSAPP',  'https://wa.me/989105921358');
+define('SITE_BALE',      'https://ble.ir/ali2761');
+define('SITE_INSTAGRAM', '#');
+define('SITE_HOURS',     'شنبه تا پنج‌شنبه: ۹ تا ۲۰');
 
 // ====================================================
 // درگاه پرداخت زرین‌پال

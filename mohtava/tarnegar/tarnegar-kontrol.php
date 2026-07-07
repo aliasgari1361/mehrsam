@@ -17,8 +17,14 @@ function tarnegar_fehrest($page = 1) {
     $posts = $data['posts'];
     $total_pages = $data['pages'];
     $current_page = $page;
-    $onvan_safhe = 'تارنگار | ' . SITE_NAME;
-    $meta_sharh = 'تازه‌ترین مطالب آموزشی و خبری کامپیوتر و فناوری';
+
+    $bank = new Bank();
+    $conn = $bank->getConnection();
+    $page_data = $conn->query("SELECT * FROM posts WHERE template='blog' AND status='publish' LIMIT 1")->fetch_assoc();
+    $conn->close();
+
+    $onvan_safhe = $page_data['title'] ?? ('تارنگار | ' . SITE_NAME);
+    $meta_sharh = strip_tags($page_data['content'] ?? 'تازه‌ترین مطالب آموزشی');
     $safhe_faali = 'tarnegar';
     include MASIR_GHALEB . 'tarnegar.php';
 }
