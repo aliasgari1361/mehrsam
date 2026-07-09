@@ -1,5 +1,9 @@
 {
     "bg_color": "#0080c0",
     "font": "Vazir",
-    "favicon": ""
+    "favicon": "",
+    "font_size": 15,
+    "menu_font_size": 16,
+    "table_font_size": 15,
+    "title_font_size": 18
 }

@@ -28,7 +28,7 @@ unset($_prot, $_host, $_dir, $_base);
 define('MASIR_RISH',   dirname(__DIR__) . DIRECTORY_SEPARATOR);   // ریشه پروژه
 define('GHALEB_FAAAL', 'mehrsam');                                 // قالب فعال
 define('MASIR_GHALEB', MASIR_RISH . 'ghaleb/' . GHALEB_FAAAL . DIRECTORY_SEPARATOR);
-define('URL_GHALEB',   BASE_URL . '/ghaleb/' . GHALEB_FAAAL);
+define('URL_GHALEB',   BASE_URL . 'ghaleb/' . GHALEB_FAAAL);
 define('MASIR_DADE',   MASIR_RISH . 'dade' . DIRECTORY_SEPARATOR);
 
 // ====================================================

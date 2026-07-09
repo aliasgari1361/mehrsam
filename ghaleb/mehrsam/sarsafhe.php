@@ -12,6 +12,8 @@ $primary_color = $theme_settings['primary_color'] ?? '#FF6F00';
 $primary_hover = $theme_settings['primary_hover'] ?? '#E65100';
 $secondary_color = $theme_settings['secondary_color'] ?? '#00B894';
 $font_family = $theme_settings['font_family'] ?? 'Vazirmatn';
+$body_font_size = $theme_settings['body_font_size'] ?? '15';
+$body_text_color = $theme_settings['body_text_color'] ?? '#1a1a1a';
 $custom_css = $theme_settings['custom_css'] ?? '';
 $logo_url = !empty($general_settings['logo']) ? $general_settings['logo'] : BASE_URL . 'ghaleb/manabe/logo.png';
 $favicon_url = !empty($general_settings['favicon']) ? $general_settings['favicon'] : BASE_URL . 'ghaleb/manabe/favicon.png';
@@ -47,13 +49,13 @@ $site_title = $general_settings['site_title'] ?? 'مهراد سام';
     <style>
         @font-face {
             font-family: 'Vazirmatn';
-            src: url('<?= URL_GHALEB ?>/manabe/fonts/Vazirmatn-RD-Regular.woff2') format('woff2');
+            src: url('<?= BASE_URL ?>ghaleb/manabe/fonts/Vazirmatn-RD-Regular.woff2') format('woff2');
             font-weight: 400;
             font-display: swap;
         }
         @font-face {
             font-family: 'Vazirmatn';
-            src: url('<?= URL_GHALEB ?>/manabe/fonts/Vazirmatn-RD-Bold.woff2') format('woff2');
+            src: url('<?= BASE_URL ?>ghaleb/manabe/fonts/Vazirmatn-RD-Bold.woff2') format('woff2');
             font-weight: 700;
             font-display: swap;
         }
@@ -70,7 +72,7 @@ $site_title = $general_settings['site_title'] ?? 'مهراد سام';
             --rang-asli:     <?= $primary_color ?>;
             --rang-tira:     <?= $primary_hover ?>;
             --rang-roshan:   <?= shade_color($primary_color, 92) ?>;
-            --rang-matn:     #1a1a1a;
+            --rang-matn:     <?= $body_text_color ?>;
             --rang-zamin:    #ffffff;
             --rang-sabz:     #f8f9fa;
             --rang-border:   #e9ecef;
@@ -85,13 +87,13 @@ $site_title = $general_settings['site_title'] ?? 'مهراد سام';
             --transition:    all 0.3s ease;
         }
 
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; font-family: inherit; }
 
         html { scroll-behavior: smooth; }
 
         body {
-            font-family: '<?= $font_family ?>', Tahoma, sans-serif;
-            font-size: 15px;
+            font-family: 'Vazirmatn', Tahoma, sans-serif;
+            font-size: <?= (int)$body_font_size ?>px;
             line-height: 1.8;
             color: var(--rang-matn);
             background: var(--rang-zamin);

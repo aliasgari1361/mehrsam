@@ -57,6 +57,8 @@ function get_default_site_settings() {
             'primary_hover'     => '#E65100',
             'secondary_color'   => '#00B894',
             'font_family'       => 'Vazirmatn',
+            'body_font_size'    => '15',
+            'body_text_color'   => '#1a1a1a',
             'custom_css'        => '',
         ],
         'store' => [
@@ -195,4 +197,46 @@ function shade_color($hex, $percent) {
     $b = max(0, min(255, $b + $percent * 2.55));
 
     return '#' . sprintf('%02x%02x%02x', $r, $g, $b);
+}
+
+/**
+ * تبدیل تاریخ میلادی به شمسی
+ * @param string|int $datetime رشته تاریخ یا timestamp
+ * @param string $format فرمت خروجی (Y/m/d H:i:s)
+ * @return string
+ */
+function g2j($gy, $gm, $gd) {
+    $g_d_m = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
+    $jy = ($gy <= 1600) ? 0 : 979;
+    $gy -= ($gy <= 1600) ? 621 : 1600;
+    $gy2 = ($gm > 2) ? ($gy + 1) : $gy;
+    $days = 365 * $gy + (int)(($gy2 + 3) / 4) - (int)(($gy2 + 99) / 100) + (int)(($gy2 + 399) / 400) - 80 + $gd + $g_d_m[$gm - 1];
+    $jy += 33 * ((int)($days / 12053));
+    $days %= 12053;
+    $jy += 4 * ((int)($days / 1461));
+    $days %= 1461;
+    if ($days > 365) {
+        $jy += (int)(($days - 1) / 365);
+        $days = ($days - 1) % 365;
+    }
+    $jm = ($days < 186) ? 1 + (int)($days / 31) : 7 + (int)(($days - 186) / 30);
+    $jd = 1 + (($days < 186) ? ($days % 31) : (($days - 186) % 30));
+    return [$jy, $jm, $jd];
+}
+
+/**
+ * فرمت‌بندی تاریخ میلادی به شمسی
+ */
+function to_jalali($datetime, $format = 'Y/m/d') {
+    if (empty($datetime)) return '';
+    $ts = is_numeric($datetime) ? (int)$datetime : strtotime($datetime);
+    if ($ts === false || $ts === 0) return '';
+    list($jy, $jm, $jd) = g2j((int)date('Y', $ts), (int)date('n', $ts), (int)date('j', $ts));
+    $out = str_replace('Y', $jy, $format);
+    $out = str_replace('m', str_pad($jm, 2, '0', STR_PAD_LEFT), $out);
+    $out = str_replace('d', str_pad($jd, 2, '0', STR_PAD_LEFT), $out);
+    $out = str_replace('H', date('H', $ts), $out);
+    $out = str_replace('i', date('i', $ts), $out);
+    $out = str_replace('s', date('s', $ts), $out);
+    return $out;
 }

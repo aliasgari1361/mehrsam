@@ -16,10 +16,25 @@ function mohtava_route($action, $params) {
 
             $post = getPostBySlug($slug, $action);
             if ($post) {
-                include __DIR__ . '/../ghaleb/' . $template . '/sarsafhe.php';
-                echo "<h1>" . htmlspecialchars($post['title']) . "</h1>";
-                echo "<div>" . nl2br(htmlspecialchars($post['content'])) . "</div>";
-                include __DIR__ . '/../ghaleb/' . $template . '/panevis.php';
+                $block_page = null;
+                require_once __DIR__ . '/builder/builder.php';
+                $bp_info = builder_get_page_id($action, $slug);
+                if ($bp_info && $bp_info['bp_id']) {
+                    $block_html = builder_render_page($bp_info['bp_id']);
+                } else {
+                    $block_html = '';
+                }
+                if ($block_html) {
+                    $onvan_safhe = htmlspecialchars($post['title']);
+                    include __DIR__ . '/../ghaleb/' . $template . '/sarsafhe.php';
+                    echo $block_html;
+                    include __DIR__ . '/../ghaleb/' . $template . '/panevis.php';
+                } else {
+                    include __DIR__ . '/../ghaleb/' . $template . '/sarsafhe.php';
+                    echo "<h1>" . htmlspecialchars($post['title']) . "</h1>";
+                    echo "<div>" . $post['content'] . "</div>";
+                    include __DIR__ . '/../ghaleb/' . $template . '/panevis.php';
+                }
             } else {
                 header("HTTP/1.0 404 Not Found");
                 echo "مطلب مورد نظر یافت نشد.";

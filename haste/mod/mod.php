@@ -61,13 +61,11 @@ function mod_route($action, $params) {
 
     // نگاشت روت‌های میانبر به تب‌های تنظیمات سایت
     $tab_routes = [
-        'theme'    => 'theme',
-        'store'    => 'store',
-        'gateways' => 'gateways',
+        'gateways' => 'store/settings',
     ];
     if (isset($tab_routes[$action])) {
-        $_GET['tab'] = $tab_routes[$action];
-        $action = 'settings';
+        redirect('mod/' . $tab_routes[$action]);
+        return;
     }
 
     switch ($action) {
@@ -75,6 +73,7 @@ function mod_route($action, $params) {
         case 'dashmod':
     $onvan_safhe = 'داشبورد مدیریت';
     $meta_sharh = 'پنل مدیریت سایت';
+    require_once __DIR__ . '/../site_settings.php';
     require_once __DIR__ . '/../../dade/bank.php';
     $bank = new Bank();
     $conn = $bank->getConnection();
@@ -83,7 +82,7 @@ function mod_route($action, $params) {
     $pages_count    = $conn->query("SELECT COUNT(*) AS cnt FROM posts WHERE type='safhe'")->fetch_assoc()['cnt'] ?? 0;
     $articles_count = $conn->query("SELECT COUNT(*) AS cnt FROM posts WHERE type='maghaleh'")->fetch_assoc()['cnt'] ?? 0;
     $users_count    = $conn->query("SELECT COUNT(*) AS cnt FROM users")->fetch_assoc()['cnt'] ?? 0;
-    $services_count = $conn->query("SELECT COUNT(*) AS cnt FROM khadamat WHERE vaziat=1")->fetch_assoc()['cnt'] ?? 0;
+    $services_count = $conn->query("SELECT COUNT(*) AS cnt FROM posts WHERE page_section='khadamat' AND type='safhe' AND status='publish'")->fetch_assoc()['cnt'] ?? 0;
 
     $orders_count     = $conn->query("SELECT COUNT(*) AS cnt FROM sefaresh")->fetch_assoc()['cnt'] ?? 0;
     $orders_pending   = $conn->query("SELECT COUNT(*) AS cnt FROM sefaresh WHERE vaziat='pending'")->fetch_assoc()['cnt'] ?? 0;
@@ -162,7 +161,7 @@ function mod_route($action, $params) {
         <div class="dash-card"><div class="icon" style="background:#0984E3;"><i class="fa-solid fa-tags"></i></div><div class="info"><div class="num"><?= $categories_count ?></div><div class="lbl">دسته‌بندی‌ها</div></div></div>
         <div class="dash-card"><div class="icon" style="background:#E17055;"><i class="fa-solid fa-shopping-cart"></i></div><div class="info"><div class="num"><?= $orders_count ?> <span class="badge" style="background:#fff3e0;color:#e65100;"><?= $orders_pending ?> در انتظار</span></div><div class="lbl"><?= $orders_processing ?> در حال پردازش</div></div></div>
         <div class="dash-card"><div class="icon" style="background:#FDCB6E;color:#333;"><i class="fa-solid fa-coin"></i></div><div class="info"><div class="num"><?= number_format($orders_revenue) ?></div><div class="lbl">تومان فروش</div></div></div>
-        <div class="dash-card"><div class="icon" style="background:#00B894;"><i class="fa-solid fa-comment-dots"></i></div><div class="info"><div class="num"><?= $messages_count ?></div><div class="lbl">پیام‌های تماس</div></div></div>
+        <a href="<?= BASE_URL ?>mod/messages" class="dash-card" style="text-decoration:none;color:inherit;"><div class="icon" style="background:#00B894;"><i class="fa-solid fa-comment-dots"></i></div><div class="info"><div class="num"><?= $messages_count ?></div><div class="lbl">پیام‌های تماس</div></div></a>
         <div class="dash-card"><div class="icon" style="background:#6C5CE7;"><i class="fa-solid fa-comments"></i></div><div class="info"><div class="num"><?= $chat_active ?> <span class="badge" style="background:#ffe0e0;color:#c62828;"><?= $chat_unread ?> جدید</span></div><div class="lbl">چت فعال</div></div></div>
         <div class="dash-card"><div class="icon" style="background:#0984E3;"><i class="fa-solid fa-users"></i></div><div class="info"><div class="num"><?= $users_count ?></div><div class="lbl">کاربران</div></div></div>
     </div>
@@ -179,11 +178,11 @@ function mod_route($action, $params) {
             <?php else: ?><div class="empty">هیچ سفارشی ثبت نشده</div><?php endif; ?>
         </div>
         <div class="dash-panel">
-            <h4><i class="fa-solid fa-envelope" style="color:#00B894;"></i> آخرین پیام‌های تماس</h4>
+            <h4><a href="<?= BASE_URL ?>mod/messages" style="text-decoration:none;color:inherit;"><i class="fa-solid fa-envelope" style="color:#00B894;"></i> آخرین پیام‌های تماس <span style="font-size:11px;font-weight:400;color:var(--rang-asli,#FF6F00);float:left;">مشاهده همه ←</span></a></h4>
             <?php if ($recent_messages && $recent_messages->num_rows > 0): ?>
             <table><thead><tr><th>نام</th><th>موضوع</th><th>تاریخ</th></tr></thead><tbody>
             <?php while ($m = $recent_messages->fetch_assoc()): ?>
-            <tr><td><?= htmlspecialchars($m['nam']) ?></td><td><?= htmlspecialchars($m['mozoo'] ?? '—') ?></td><td style="font-size:11px;color:#888;"><?= $m['created_at'] ?></td></tr>
+            <tr><td><?= htmlspecialchars($m['nam']) ?></td><td><?= htmlspecialchars($m['mozoo'] ?? '—') ?></td><td style="font-size:11px;color:#888;"><?= $m['created_at'] ?><br><span style="color:var(--rang-asli,#FF6F00);"><?= to_jalali($m['created_at'], 'Y/m/d H:i') ?></span></td></tr>
             <?php endwhile; ?>
             </tbody></table>
             <?php else: ?><div class="empty">هیچ پیامی دریافت نشده</div><?php endif; ?>
@@ -232,13 +231,14 @@ function mod_route($action, $params) {
     </script>
 
     <div class="dash-actions">
-        <a href="<?= BASE_URL ?>mod/content"><i class="fa-solid fa-plus"></i> مطلب جدید</a>
-        <a href="<?= BASE_URL ?>mod/pages"><i class="fa-solid fa-file"></i> برگه جدید</a>
-        <a href="<?= BASE_URL ?>mod/services"><i class="fa-solid fa-headset"></i> خدمات</a>
-        <a href="<?= BASE_URL ?>mod/chat"><i class="fa-solid fa-comment-dots"></i> چت</a>
-        <a href="<?= BASE_URL ?>mod/theme"><i class="fa-solid fa-palette"></i> مدیریت قالب</a>
-        <a href="<?= BASE_URL ?>mod/store"><i class="fa-solid fa-store"></i> مدیریت فروشگاه</a>
-        <a href="<?= BASE_URL ?>mod/settings"><i class="fa-solid fa-gear"></i> تنظیمات سایت</a>
+        <a href="<?php echo BASE_URL; ?>mod/content"><i class="fa-solid fa-plus"></i> مطلب جدید</a>
+        <a href="<?php echo BASE_URL; ?>mod/pages"><i class="fa-solid fa-file"></i> برگه جدید</a>
+        <a href="<?php echo BASE_URL; ?>mod/services"><i class="fa-solid fa-headset"></i> خدمات</a>
+        <a href="<?php echo BASE_URL; ?>mod/chat"><i class="fa-solid fa-comment-dots"></i> چت</a>
+        <a href="<?php echo BASE_URL; ?>mod/store/products"><i class="fa-solid fa-store"></i> فروشگاه</a>
+        <a href="<?php echo BASE_URL; ?>mod/theme"><i class="fa-solid fa-palette"></i> قالب</a>
+        <a href="<?php echo BASE_URL; ?>mod/builder/pages"><i class="fa-solid fa-layer-group"></i> صفحه‌ساز</a>
+        <a href="<?php echo BASE_URL; ?>mod/settings"><i class="fa-solid fa-gear"></i> تنظیمات سایت</a>
     </div>
     </div>
 <?php
@@ -246,6 +246,7 @@ function mod_route($action, $params) {
     break;
 
         case 'content':
+            require_once __DIR__ . '/../site_settings.php';
             require_once __DIR__ . '/../../dade/bank.php';
             $bank = new Bank();
             $conn = $bank->getConnection();
@@ -265,7 +266,7 @@ function mod_route($action, $params) {
                     <td><?php echo htmlspecialchars($p['title']); ?></td>
                     <td><?php echo $p['type'] === 'maghaleh' ? 'مقاله' : 'وبلاگ'; ?></td>
                     <td><?php echo $p['status'] === 'publish' ? 'منتشر' : 'پیش‌نویس'; ?></td>
-                    <td><?php echo $p['created_at']; ?></td>
+                    <td><?php echo $p['created_at']; ?><br><span style="color:var(--rang-asli,#FF6F00);"><?php echo to_jalali($p['created_at'], 'Y/m/d H:i'); ?></span></td>
                     <td>
                         <a href="<?php echo BASE_URL; ?>mod/edit_content/<?php echo $p['id']; ?>">ویرایش</a> |
                         <a href="<?php echo BASE_URL; ?>mod/delete_content/<?php echo $p['id']; ?>" onclick="return confirm('مطمئنی؟')">حذف</a>
@@ -402,11 +403,6 @@ function mod_route($action, $params) {
             redirect('mod/pages');
             break;
 
-        case 'services':
-            require_once __DIR__ . '/../mod/services.php';
-            admin_services_route($params[0] ?? 'list', $params);
-            break;
-
         case 'panel_settings':
             require_once __DIR__ . '/../settings.php';
             $admin_settings = json_decode(file_get_contents(ADMIN_SETTINGS_FILE), true) ?: ['bg_color' => '#f0f2f5', 'font' => 'Tahoma', 'favicon' => ''];
@@ -414,7 +410,11 @@ function mod_route($action, $params) {
                 $new_settings = [
                     'bg_color' => $_POST['bg_color'] ?? '#f0f2f5',
                     'font'     => $_POST['font'] ?? 'Tahoma',
-                    'favicon'  => $_POST['favicon'] ?? ''
+                    'favicon'  => $_POST['favicon'] ?? '',
+                    'font_size'       => (int)($_POST['font_size'] ?? 14),
+                    'menu_font_size'  => (int)($_POST['menu_font_size'] ?? 13),
+                    'table_font_size' => (int)($_POST['table_font_size'] ?? 14),
+                    'title_font_size' => (int)($_POST['title_font_size'] ?? 18),
                 ];
                 save_admin_settings($new_settings);
                 $admin_settings = json_decode(file_get_contents(ADMIN_SETTINGS_FILE), true) ?: $new_settings;
@@ -426,7 +426,7 @@ function mod_route($action, $params) {
             <?php if (isset($message)) echo "<p style='color:green;'>$message</p>"; ?>
             <form method="post">
                 <label>رنگ پس‌زمینه:</label>
-                <input type="color" name="bg_color" value="<?php echo $admin_settings['bg_color']; ?>"><br><br>
+                <input type="color" name="bg_color" value="<?php echo htmlspecialchars($admin_settings['bg_color']); ?>"><br><br>
 
                 <label>فونت:</label>
                 <select name="font">
@@ -434,6 +434,16 @@ function mod_route($action, $params) {
                     <option value="Arial" <?php if($admin_settings['font']=='Arial') echo 'selected'; ?>>Arial</option>
                     <option value="Vazir" <?php if($admin_settings['font']=='Vazir') echo 'selected'; ?>>وزیر</option>
                 </select><br><br>
+
+                <fieldset style="border:1px solid #dde1e6;border-radius:8px;padding:16px;margin-bottom:16px;">
+                    <legend style="padding:0 8px;font-weight:700;">اندازه فونت بخش‌های پنل (پیکسل)</legend>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+                        <div><label>متن عمومی:</label><br><input type="number" name="font_size" value="<?php echo (int)($admin_settings['font_size'] ?? 14); ?>" min="11" max="22" style="width:90px;"></div>
+                        <div><label>منوی بالا:</label><br><input type="number" name="menu_font_size" value="<?php echo (int)($admin_settings['menu_font_size'] ?? 13); ?>" min="10" max="20" style="width:90px;"></div>
+                        <div><label>جداول:</label><br><input type="number" name="table_font_size" value="<?php echo (int)($admin_settings['table_font_size'] ?? 14); ?>" min="11" max="22" style="width:90px;"></div>
+                        <div><label>عنوان صفحات:</label><br><input type="number" name="title_font_size" value="<?php echo (int)($admin_settings['title_font_size'] ?? 18); ?>" min="14" max="30" style="width:90px;"></div>
+                    </div>
+                </fieldset>
 
                 <button type="submit">ذخیره</button>
             </form>
@@ -469,7 +479,7 @@ function mod_route($action, $params) {
 
                 // ذخیره تنظیمات
                 $new_settings = [];
-                foreach (['general', 'social', 'theme', 'store', 'gateways'] as $section) {
+                foreach (['general', 'social', 'theme'] as $section) {
                     if (!empty($_POST[$section]) && is_array($_POST[$section])) {
                         $new_settings[$section] = $_POST[$section];
                     }
@@ -485,10 +495,8 @@ function mod_route($action, $params) {
             $tabs = [
                 'general'   => 'عمومی',
                 'social'    => 'شبکه‌ها',
-                'theme'     => 'قالب',
-                'store'     => 'فروشگاه',
-                'gateways'  => 'درگاه‌ها',
             ];
+            $standalone = in_array($active_tab, ['theme', 'git'], true);
 
             include __DIR__ . '/../../ghaleb/ghmod/sarsafhe.php';
             ?>
@@ -500,7 +508,8 @@ function mod_route($action, $params) {
                 .settings-panel { background:#fff; border:1px solid var(--rang-border); border-radius:12px; padding:24px; }
                 .form-group { margin-bottom:20px; }
                 .form-group label { display:block; margin-bottom:6px; font-weight:600; color:var(--rang-matn); }
-                .form-group input[type=text], .form-group input[type=email], .form-group input[type=tel], .form-group input[type=url], .form-group input[type=number], .form-group select, .form-group textarea { width:100%; padding:12px; border:1.5px solid var(--rang-border); border-radius:8px; font-family:inherit; font-size:1rem; box-sizing:border-box; }
+                .form-group input[type=text], .form-group input[type=email], .form-group input[type=tel], .form-group input[type=url], .form-group input[type=number], .form-group select, .form-group textarea { width:100%; padding:12px; border:1.5px solid #cdd3da; background:#f6f7f9; border-radius:8px; font-family:inherit; font-size:1rem; box-sizing:border-box; color:#1a1a1a; }
+                .form-group input[type=color] { background:#fff; }
                 .form-group textarea { min-height:100px; resize:vertical; direction:rtl; }
                 .form-group input[type=color] { width:60px; height:40px; padding:0; border:none; border-radius:8px; cursor:pointer; }
                 .form-group .color-preview { display:inline-block; width:30px; height:30px; border-radius:6px; border:2px solid var(--rang-border); vertical-align:middle; margin-right:10px; }
@@ -524,14 +533,16 @@ function mod_route($action, $params) {
             </style>
 
             <h3 style="margin-bottom:8px;">تنظیمات سایت</h3>
-            <p style="color:var(--rang-gray); margin-bottom:24px;">مدیریت تنظیمات عمومی، ظاهر، فروشگاه و درگاه‌های پرداخت</p>
+            <p style="color:var(--rang-gray); margin-bottom:24px;">مدیریت تنظیمات عمومی و شبکه‌های اجتماعی</p>
             <?php if (isset($message)) echo $message; ?>
 
+            <?php if (!$standalone): ?>
             <div class="settings-tabs">
                 <?php foreach ($tabs as $key => $label): ?>
                     <a href="?tab=<?= $key ?>" class="<?= $active_tab === $key ? 'active' : '' ?>"><?= $label ?></a>
                 <?php endforeach; ?>
             </div>
+            <?php endif; ?>
 
             <form method="post" enctype="multipart/form-data" action="<?= BASE_URL ?>mod/settings">
                 <input type="hidden" name="tab" value="<?= $active_tab ?>">
@@ -654,7 +665,20 @@ function mod_route($action, $params) {
                                 <option value="IRANSans" <?= ($current['theme']['font_family'] ?? '') === 'IRANSans' ? 'selected' : '' ?>>ایران‌سنس</option>
                             </select>
                         </div>
+                        <div class="form-group">
+                            <label>اندازه فونت متن (پیکسل)</label>
+                            <input type="number" name="theme[body_font_size]" value="<?= (int)($current['theme']['body_font_size'] ?? 15) ?>" min="12" max="22" step="1" style="width:120px;"> <span>px</span>
+                        </div>
                     </div>
+
+                    <div class="form-group">
+                        <label>رنگ متن (Body Text Color)</label>
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <input type="color" name="theme[body_text_color]" value="<?= htmlspecialchars($current['theme']['body_text_color'] ?? '#1a1a1a') ?>" id="bodyTextColor">
+                            <span class="color-preview" id="bodyTextPreview" style="background:<?= htmlspecialchars($current['theme']['body_text_color'] ?? '#1a1a1a') ?>"></span>
+                        </div>
+                    </div>
+
 
                     <div class="form-row">
                         <div class="form-group">
@@ -691,113 +715,83 @@ function mod_route($action, $params) {
                         document.getElementById('primColor').addEventListener('input', e => document.getElementById('primPreview').style.background = e.target.value);
                         document.getElementById('primHoverColor').addEventListener('input', e => document.getElementById('primHoverPreview').style.background = e.target.value);
                         document.getElementById('secColor').addEventListener('input', e => document.getElementById('secPreview').style.background = e.target.value);
+                        document.getElementById('bodyTextColor').addEventListener('input', e => document.getElementById('bodyTextPreview').style.background = e.target.value);
                     </script>
                 </div>
 
-                <?php elseif ($active_tab === 'store' || $active_tab === 'gateways'): ?>
-
-                <?php if ($active_tab === 'store'): ?>
-                <div class="settings-panel">
-                    <h4 class="section-title"><i class="fa-solid fa-store"></i> تنظیمات فروشگاه</h4>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>واحد پول (نمایش)</label>
-                            <input type="text" name="store[currency]" value="<?= htmlspecialchars($current['store']['currency'] ?? 'تومان') ?>">
-                        </div>
-                        <div class="form-group">
-                            <label>نماد ارز</label>
-                            <input type="text" name="store[currency_symbol]" value="<?= htmlspecialchars($current['store']['currency_symbol'] ?? 'تومان') ?>">
-                        </div>
+                <?php elseif ($active_tab === 'git'): ?>
+                <div class="settings-panel" id="gitPanel">
+                    <h4 class="section-title"><i class="fa-brands fa-github"></i> به‌روزرسانی از گیت</h4>
+                    <p class="help-text">وضعیت مخزن گیت و به‌روزرسانی پروژه از مخزن اصلی (GitHub).</p>
+                    <div id="gitStatus" style="background:#f8f9fa;border-radius:8px;padding:20px;margin:20px 0;direction:ltr;text-align:left;font-family:monospace;font-size:13px;line-height:1.8;">
+                        <div style="margin-bottom:8px;"><strong>در حال دریافت اطلاعات...</strong></div>
                     </div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>آستانه ارسال رایگان (ریال/تومان)</label>
-                            <input type="number" name="store[free_shipping_threshold]" value="<?= (int)($current['store']['free_shipping_threshold'] ?? 0) ?>" min="0" step="10000">
-                        </div>
-                        <div class="form-group">
-                            <label>هزینه ارسال پیش‌فرض</label>
-                            <input type="number" name="store[default_shipping_cost]" value="<?= (int)($current['store']['default_shipping_cost'] ?? 0) ?>" min="0" step="1000">
-                        </div>
+                    <div style="display:flex;gap:12px;flex-wrap:wrap;">
+                        <button onclick="gitPull()" style="padding:12px 28px;background:var(--rang-asli,#FF6F00);color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;">
+                            <i class="fa-solid fa-cloud-arrow-down"></i> git pull (به‌روزرسانی)
+                        </button>
+                        <button onclick="gitRefresh()" style="padding:12px 28px;background:#f5f6f8;border:1px solid #dde1e6;border-radius:8px;font-weight:700;cursor:pointer;">
+                            <i class="fa-solid fa-rotate"></i> بررسی مجدد
+                        </button>
                     </div>
-
-                    <div class="form-group">
-                        <label class="checkbox-label">
-                            <input type="checkbox" name="store[stock_management]" value="1" <?= !empty($current['store']['stock_management']) ? 'checked' : '' ?>> مدیریت موجودی (کم کردن از موجودی بعد از پرداخت)
-                        </label>
-                    </div>
-                    <div class="form-group">
-                        <label class="checkbox-label">
-                            <input type="checkbox" name="store[auto_confirm_orders]" value="1" <?= !empty($current['store']['auto_confirm_orders']) ? 'checked' : '' ?>> تایید خودکار سفارش‌ها بعد از پرداخت
-                        </label>
-                    </div>
+                    <div id="gitOutput" style="display:none;margin-top:20px;background:#1e1e2e;color:#cdd6f4;border-radius:8px;padding:20px;direction:ltr;text-align:left;font-family:monospace;font-size:13px;line-height:1.6;white-space:pre-wrap;"></div>
                 </div>
+                <script>
+                function gitRefresh() {
+                    document.getElementById('gitStatus').innerHTML = '<div style="margin-bottom:8px;"><strong>در حال دریافت اطلاعات...</strong></div>';
+                    fetch('<?= BASE_URL ?>mod/git_status')
+                        .then(r => r.json())
+                        .then(data => {
+                            var html = '<div style="margin-bottom:8px;"><strong>شاخه (Branch):</strong> ' + data.branch + '</div>';
+                            html += '<div style="margin-bottom:8px;"><strong>آخرین کامیت:</strong> ' + data.last_commit + '</div>';
+                            if (data.changes) {
+                                html += '<div style="margin-top:12px;padding-top:12px;border-top:1px solid #dde1e6;"><strong>تغییرات محلی:</strong><br>' + data.changes.replace(/\n/g, '<br>') + '</div>';
+                            } else {
+                                html += '<div style="margin-top:12px;padding-top:12px;border-top:1px solid #dde1e6;color:#2e7d32;">✅ مخزن بدون تغییرات محلی است</div>';
+                            }
+                            document.getElementById('gitStatus').innerHTML = html;
+                        })
+                        .catch(function() {
+                            document.getElementById('gitStatus').innerHTML = '<div style="color:#c62828;">❌ خطا در ارتباط با سرور</div>';
+                        });
+                }
+
+                function gitPull() {
+                    var btn = event.target;
+                    btn.disabled = true;
+                    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> در حال به‌روزرسانی...';
+                    var output = document.getElementById('gitOutput');
+                    output.style.display = 'block';
+                    output.innerHTML = 'در حال اجرای git pull...';
+                    fetch('<?= BASE_URL ?>mod/git_pull')
+                        .then(r => r.json())
+                        .then(data => {
+                            output.innerHTML = data.output;
+                            if (data.success) {
+                                output.innerHTML = '<span style="color:#a6e3a1;">✅ به‌روزرسانی موفق</span>\n\n' + data.output;
+                            } else {
+                                output.innerHTML = '<span style="color:#f38ba8;">❌ خطا</span>\n\n' + data.output;
+                            }
+                            gitRefresh();
+                        })
+                        .catch(function() {
+                            output.innerHTML = '<span style="color:#f38ba8;">❌ خطا در ارتباط با سرور</span>';
+                        })
+                        .finally(function() {
+                            btn.disabled = false;
+                            btn.innerHTML = '<i class="fa-solid fa-cloud-arrow-down"></i> git pull (به‌روزرسانی)';
+                        });
+                }
+
+                gitRefresh();
+                </script>
                 <?php endif; ?>
 
-                <div class="settings-panel" style="margin-top:24px;">
-                    <h4 class="section-title"><i class="fa-solid fa-credit-card"></i> درگاه‌های پرداخت</h4>
-                    <p class="help-text">برای هر درگاه، فعال‌سازی و مشخصات را وارد کنید. درگاه‌های غیرفعال در چک‌اوت نمایش داده نمی‌شوند.</p>
-
-                    <?php
-                    $gateways = $current['gateways'] ?? [
-                        'zarinpal' => ['enabled'=>false,'title'=>'زرین‌پال','merchant'=>'','sandbox'=>true],
-                        'idpay'    => ['enabled'=>false,'title'=>'آی‌دی‌پی','api_key'=>'','sandbox'=>true],
-                        'zibal'    => ['enabled'=>false,'title'=>'زیبال','merchant'=>'','sandbox'=>true],
-                    ];
-                    foreach ($gateways as $key => $gw): ?>
-                    <div class="gateway-card">
-                        <h4>
-                            <label class="toggle-switch">
-                                <input type="checkbox" name="gateways[<?= $key ?>][enabled]" value="1" <?= !empty($gw['enabled']) ? 'checked' : '' ?>> 
-                                <span class="toggle-slider"></span>
-                            </label>
-                            <?= htmlspecialchars($gw['title'] ?? $key) ?>
-                        </h4>
-
-                        <?php if ($key === 'zarinpal'): ?>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>مرچنت کد (Merchant ID)</label>
-                                <input type="text" name="gateways[<?= $key ?>][merchant]" value="<?= htmlspecialchars($gw['merchant'] ?? '') ?>" dir="ltr" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
-                            </div>
-                            <div class="form-group">
-                                <label class="checkbox-label">
-                                    <input type="checkbox" name="gateways[<?= $key ?>][sandbox]" value="1" <?= !empty($gw['sandbox']) ? 'checked' : '' ?>> حالت سندباکس (تست)
-                                </label>
-                            </div>
-                        </div>
-                        <?php elseif ($key === 'idpay'): ?>
-                        <div class="form-group">
-                            <label>API Key</label>
-                            <input type="text" name="gateways[<?= $key ?>][api_key]" value="<?= htmlspecialchars($gw['api_key'] ?? '') ?>" dir="ltr" placeholder="YOUR_API_KEY">
-                        </div>
-                        <div class="form-group">
-                            <label class="checkbox-label">
-                                <input type="checkbox" name="gateways[<?= $key ?>][sandbox]" value="1" <?= !empty($gw['sandbox']) ? 'checked' : '' ?>> حالت سندباکس
-                            </label>
-                        </div>
-                        <?php elseif ($key === 'zibal'): ?>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>مرچنت کد</label>
-                                <input type="text" name="gateways[<?= $key ?>][merchant]" value="<?= htmlspecialchars($gw['merchant'] ?? '') ?>" dir="ltr">
-                            </div>
-                            <div class="form-group">
-                                <label class="checkbox-label">
-                                    <input type="checkbox" name="gateways[<?= $key ?>][sandbox]" value="1" <?= !empty($gw['sandbox']) ? 'checked' : '' ?>> حالت سندباکس
-                                </label>
-                            </div>
-                        </div>
-                        <?php endif; ?>
-                    </div>
-                    <?php endforeach; ?>
-                </div>
-                <?php endif; ?>
-
+                <?php if ($active_tab !== 'git'): ?>
                 <div style="margin-top:24px;">
                     <button type="submit" class="btn btn-primary"><i class="fa-solid fa-save"></i> ذخیره تغییرات</button>
                 </div>
+                <?php endif; ?>
             </form>
 
             <?php
@@ -901,6 +895,72 @@ function mod_route($action, $params) {
             include __DIR__ . '/../../ghaleb/ghmod/panevis.php';
             break;
 
+        case 'messages':
+            require_once __DIR__ . '/../site_settings.php';
+            require_once __DIR__ . '/../../dade/bank.php';
+            $bank = new Bank();
+            $conn = $bank->getConnection();
+            if (($params[0] ?? '') === 'view' && !empty($params[1])) {
+                $id = (int)$params[1];
+                $stmt = $conn->prepare("UPDATE payam_tamas SET khande_shode = 1 WHERE id = ?");
+                $stmt->bind_param("i", $id);
+                $stmt->execute();
+                $stmt->close();
+                $stmt = $conn->prepare("SELECT * FROM payam_tamas WHERE id = ?");
+                $stmt->bind_param("i", $id);
+                $stmt->execute();
+                $msg = $stmt->get_result()->fetch_assoc();
+                $stmt->close();
+                $conn->close();
+                include __DIR__ . '/../../ghaleb/ghmod/sarsafhe.php';
+                ?>
+                <h3>مشاهده پیام تماس</h3>
+                <p><a href="<?= BASE_URL ?>mod/messages" style="color:var(--rang-asli,#FF6F00);">&larr; بازگشت به لیست</a></p>
+                <?php if ($msg): ?>
+                <div style="background:#fff;border:1px solid #eef0f4;border-radius:12px;padding:24px;max-width:800px;">
+                    <p><strong>نام:</strong> <?= htmlspecialchars($msg['nam']) ?></p>
+                    <p><strong>ایمیل:</strong> <?= htmlspecialchars($msg['email'] ?? '') ?></p>
+                    <p><strong>تلفن:</strong> <?= htmlspecialchars($msg['telefon'] ?? '') ?></p>
+                    <p><strong>موضوع:</strong> <?= htmlspecialchars($msg['mozoo'] ?? '') ?></p>
+                    <p><strong>تاریخ:</strong> <?= $msg['created_at'] ?> <span style="color:var(--rang-asli,#FF6F00);"><?= to_jalali($msg['created_at'], 'Y/m/d H:i') ?></span></p>
+                    <hr style="margin:16px 0;border:none;border-top:1px solid #eef0f4;">
+                    <p style="white-space:pre-wrap;line-height:1.8;"><?= htmlspecialchars($msg['payam']) ?></p>
+                </div>
+                <?php else: ?>
+                <p>پیام یافت نشد.</p>
+                <?php endif; ?>
+                <?php
+                include __DIR__ . '/../../ghaleb/ghmod/panevis.php';
+                break;
+            }
+            $result = $conn->query("SELECT id, nam, email, telefon, mozoo, khande_shode, created_at FROM payam_tamas ORDER BY id DESC");
+            $messages_list = [];
+            if ($result) while ($row = $result->fetch_assoc()) $messages_list[] = $row;
+            $conn->close();
+            include __DIR__ . '/../../ghaleb/ghmod/sarsafhe.php';
+            ?>
+            <h3>پیام‌های تماس با ما</h3>
+            <p style="color:#888;margin-bottom:16px;">پیام‌های ارسالی از فرم تماس با ما</p>
+            <table border="1" cellpadding="8" cellspacing="0" width="100%" style="border-collapse:collapse;">
+                <tr style="background:#f8f9fa;"><th>نام</th><th>ایمیل</th><th>تلفن</th><th>موضوع</th><th>وضعیت</th><th>تاریخ</th><th>عملیات</th></tr>
+                <?php if (empty($messages_list)): ?>
+                <tr><td colspan="7" style="text-align:center;padding:32px;color:#888;">پیامی دریافت نشده است</td></tr>
+                <?php else: foreach ($messages_list as $m): ?>
+                <tr style="<?= $m['khande_shode'] ? '' : 'background:#fff8f0;font-weight:600;' ?>">
+                    <td><?= htmlspecialchars($m['nam']) ?></td>
+                    <td><?= htmlspecialchars($m['email'] ?? '') ?></td>
+                    <td dir="ltr"><?= htmlspecialchars($m['telefon'] ?? '') ?></td>
+                    <td><?= htmlspecialchars($m['mozoo'] ?? '') ?></td>
+                    <td><?= $m['khande_shode'] ? '<span style="color:#2e7d32;">خوانده شده</span>' : '<span style="color:#e65100;">جدید</span>' ?></td>
+                    <td style="font-size:12px;color:#888;"><?= $m['created_at'] ?><br><span style="color:var(--rang-asli,#FF6F00);"><?= to_jalali($m['created_at'], 'Y/m/d H:i') ?></span></td>
+                    <td><a href="<?= BASE_URL ?>mod/messages/view/<?= $m['id'] ?>">مشاهده</a></td>
+                </tr>
+                <?php endforeach; endif; ?>
+            </table>
+            <?php
+            include __DIR__ . '/../../ghaleb/ghmod/panevis.php';
+            break;
+
         case 'chat_view':
             require_once __DIR__ . '/../../mohtava/chat/chat-model.php';
             $chat_session = chat_get_session($params[0] ?? 0);
@@ -947,6 +1007,67 @@ function mod_route($action, $params) {
             session_destroy();
             redirect('mod/lomod');
             break;
+
+        case 'store':
+            require_once MASIR_RISH . 'mohtava/forushgah/admin-store.php';
+            $store_action = $params[0] ?? '';
+            $store_params = array_slice($params, 1);
+            admin_store_route($store_action, $store_params);
+            break;
+
+        case 'theme':
+            require_once MASIR_RISH . 'mohtava/ghaleb/admin-theme.php';
+            $theme_action = $params[0] ?? '';
+            $theme_params = array_slice($params, 1);
+            admin_theme_route($theme_action, $theme_params);
+            break;
+
+        case 'builder':
+            require_once MASIR_RISH . 'mohtava/builder/builder.php';
+            $builder_action = $params[0] ?? '';
+            $builder_params = array_slice($params, 1);
+            if ($builder_action === 'save') {
+                builder_save_blocks();
+            } elseif ($builder_action === 'clear_cache') {
+                builder_clear_cache($builder_params[0] ?? 0);
+            } else {
+                builder_route($builder_action, $builder_params);
+            }
+            break;
+
+        case 'git_pull':
+            header('Content-Type: application/json');
+            $output = [];
+            $return_var = 0;
+            $git_dir = MASIR_RISH;
+            chdir($git_dir);
+            exec('git pull origin main 2>&1', $output, $return_var);
+            if ($return_var !== 0) {
+                exec('git pull origin master 2>&1', $output, $return_var);
+            }
+            echo json_encode([
+                'success' => $return_var === 0,
+                'output' => implode("\n", $output),
+            ]);
+            exit;
+
+        case 'git_status':
+            header('Content-Type: application/json');
+            $output = [];
+            $git_dir = MASIR_RISH;
+            chdir($git_dir);
+            exec('git status --short 2>&1', $output);
+            $changes = implode("\n", $output);
+            exec('git log -1 --oneline 2>&1', $log_output);
+            $last_commit = $log_output[0] ?? 'N/A';
+            exec('git rev-parse --abbrev-ref HEAD 2>&1', $branch_output);
+            $branch = $branch_output[0] ?? 'N/A';
+            echo json_encode([
+                'branch' => $branch,
+                'last_commit' => $last_commit,
+                'changes' => $changes,
+            ]);
+            exit;
 
         default:
             redirect('mod/dashmod');

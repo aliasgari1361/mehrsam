@@ -2,6 +2,7 @@
 
 require_once MASIR_DADE . 'bank.php';
 require_once __DIR__ . '/tarnegar-model.php';
+require_once __DIR__ . '/../builder/builder.php';
 
 function tarnegar_route($amaliat, $paramha) {
     if (empty($amaliat) || ctype_digit($amaliat)) {
@@ -13,6 +14,17 @@ function tarnegar_route($amaliat, $paramha) {
 }
 
 function tarnegar_fehrest($page = 1) {
+    // بررسی تم‌بلدر (قالب آرشیو وبلاگ)
+    $theme_html = builder_render_for('archive', 'blog');
+    if ($theme_html) {
+        $onvan_safhe = 'تارنگار | ' . SITE_NAME;
+        $meta_sharh = 'تازه‌ترین مطالب آموزشی';
+        include MASIR_GHALEB . 'sarsafhe.php';
+        echo $theme_html;
+        include MASIR_GHALEB . 'panevis.php';
+        return;
+    }
+
     $data = tarnegar_get_list($page, 6);
     $posts = $data['posts'];
     $total_pages = $data['pages'];
@@ -30,6 +42,16 @@ function tarnegar_fehrest($page = 1) {
 }
 
 function tarnegar_neveshteh($slug) {
+    // بررسی تم‌بلدر (قالب مطلب تکی)
+    $theme_html = builder_render_for('single', 'post', $slug);
+    if ($theme_html) {
+        $onvan_safhe = $slug . ' | ' . SITE_NAME;
+        include MASIR_GHALEB . 'sarsafhe.php';
+        echo $theme_html;
+        include MASIR_GHALEB . 'panevis.php';
+        return;
+    }
+
     $post = tarnegar_get_by_slug($slug);
     if (!$post) {
         http_response_code(404);

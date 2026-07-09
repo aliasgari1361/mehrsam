@@ -30,7 +30,7 @@ $closed = chat_get_closed_sessions();
     <tr>
         <td><?= htmlspecialchars($s['user_name']) ?></td>
         <td dir="ltr"><?= htmlspecialchars($s['user_phone']) ?></td>
-        <td><?= $s['created_at'] ?></td>
+        <td><?= $s['created_at'] ?><br><span style="color:#FF6F00;"><?= function_exists('to_jalali') ? to_jalali($s['created_at'], 'Y/m/d H:i') : '' ?></span></td>
         <td><a href="<?= BASE_URL ?>mod/chat_view/<?= $s['id'] ?>">مشاهده</a> | <a href="<?= BASE_URL ?>mod/chat_delete/<?= $s['id'] ?>" onclick="return confirm('حذف شود؟')" style="color:#c62828;">حذف</a></td>
     </tr>
     <?php endforeach; ?>

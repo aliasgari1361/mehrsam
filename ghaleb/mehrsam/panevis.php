@@ -102,5 +102,12 @@ document.addEventListener('click', function(e) {
 });
 </script>
 
+<?php
+// JS سفارشی از تنظیمات قالب
+$custom_js = get_site_setting('theme.custom_js') ?? '';
+if ($custom_js): ?>
+<script><?= $custom_js ?></script>
+<?php endif; ?>
+
 </body>
 </html>

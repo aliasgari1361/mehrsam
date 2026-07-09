@@ -1,0 +1,23 @@
+CREATE TABLE IF NOT EXISTS template_sections (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    page VARCHAR(100) NOT NULL DEFAULT 'global',
+    section_key VARCHAR(100) NOT NULL,
+    title VARCHAR(200) DEFAULT NULL,
+    content TEXT,
+    vaziat TINYINT(1) DEFAULT 1,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY unique_page_section (page, section_key)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS block_pages (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    page_id INT DEFAULT NULL,
+    page_type VARCHAR(50) DEFAULT 'safhe',
+    blocks_data LONGTEXT,
+    cached_html LONGTEXT,
+    cache_updated TIMESTAMP NULL DEFAULT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY unique_page (page_id, page_type)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
