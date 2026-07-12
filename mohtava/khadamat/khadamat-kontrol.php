@@ -29,31 +29,57 @@ function safhe_khane() {
     $meta_sharh   = strip_tags($page_data['content'] ?? 'خدمات پشتیبانی کامپیوتر');
     $safhe_faali  = 'khane';
 
+    // استفاده از صفحه‌ساز اگر تم home فعال باشد
+    $GLOBALS['khane_builder_html'] = '';
+    if (file_exists(MASIR_RISH . 'mohtava/builder/builder.php')) {
+        require_once MASIR_RISH . 'mohtava/builder/builder.php';
+        $GLOBALS['khane_builder_html'] = builder_render_for('home');
+    }
+
     include MASIR_GHALEB . 'khane.php';
 }
 
 // ---- لیست تمام خدمات (صفحه خدمات) ----
-// فقط صفحه template='services' رندر می‌شود
 function khadamat_fehrest() {
     $bank     = new Bank();
     $conn     = $bank->getConnection();
 
-    $page_data = $conn->query("SELECT * FROM posts WHERE template='services' AND status='publish' LIMIT 1")->fetch_assoc();
+    $result = $conn->query("SELECT id, title, slug, kholaseh, tasvir, subtitle, display_order FROM khadamat WHERE vaziat=1 ORDER BY display_order ASC");
+    $khadamat_list = $result ? $result->fetch_all(MYSQLI_ASSOC) : [];
     $conn->close();
 
-    $onvan_safhe  = $page_data['title'] ?? ('خدمات | ' . SITE_NAME);
-    $meta_sharh   = strip_tags($page_data['content'] ?? 'خدمات پشتیبانی کامپیوتر');
+    $page_data = ['title' => 'خدمات | ' . SITE_NAME, 'content' => ''];
+    $onvan_safhe  = 'خدمات | ' . SITE_NAME;
+    $meta_sharh   = 'خدمات پشتیبانی کامپیوتر و شبکه مهراد سام';
     $safhe_faali  = 'khadamat';
 
     include MASIR_GHALEB . 'khadamat.php';
 }
 
 // ---- جزئیات یک خدمت ----
-// دیگر URL جداگانه ندارد؛ پیام دوستانه نمایش داده می‌شود
 function khadamat_tan($slug) {
-    $onvan_safhe  = 'خدمت یافت نشد | ' . SITE_NAME;
-    $meta_sharh   = 'این خدمت در حال حاضر در دسترس نیست.';
-    $safhe_faali  = 'khadamat';
+    require_once MASIR_RISH . 'dade/bank.php';
+    $bank = new Bank();
+    $conn = $bank->getConnection();
+
+    $stmt = $conn->prepare("SELECT * FROM khadamat WHERE slug = ? AND vaziat = 1 LIMIT 1");
+    $stmt->bind_param("s", $slug);
+    $stmt->execute();
+    $service = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    $conn->close();
+
+    if (!$service) {
+        $onvan_safhe  = 'خدمت یافت نشد | ' . SITE_NAME;
+        $meta_sharh   = 'این خدمت در لیست خدمات موجود نیست.';
+        $safhe_faali  = 'khadamat';
+    } else {
+        $onvan_safhe  = $service['title'] . ' | ' . SITE_NAME;
+        $meta_sharh   = strip_tags($service['kholaseh'] ?? 'خدمات پشتیبانی کامپیوتر');
+        $safhe_faali  = 'khadamat';
+        // متغیر $service در khadamat-tan.php استفاده می‌شود
+        $GLOBALS['khadamat_service'] = $service;
+    }
 
     include MASIR_GHALEB . 'khadamat-tan.php';
 }

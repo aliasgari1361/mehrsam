@@ -3,6 +3,7 @@
 require_once MASIR_DADE . 'bank.php';
 require_once __DIR__ . '/tarnegar-model.php';
 require_once __DIR__ . '/../builder/builder.php';
+require_once MASIR_RISH . 'haste/site_settings.php';
 
 function tarnegar_route($amaliat, $paramha) {
     if (empty($amaliat) || ctype_digit($amaliat)) {
@@ -14,7 +15,6 @@ function tarnegar_route($amaliat, $paramha) {
 }
 
 function tarnegar_fehrest($page = 1) {
-    // بررسی تم‌بلدر (قالب آرشیو وبلاگ)
     $theme_html = builder_render_for('archive', 'blog');
     if ($theme_html) {
         $onvan_safhe = 'تارنگار | ' . SITE_NAME;
@@ -29,6 +29,7 @@ function tarnegar_fehrest($page = 1) {
     $posts = $data['posts'];
     $total_pages = $data['pages'];
     $current_page = $page;
+    $categories = tarnegar_get_all_categories();
 
     $bank = new Bank();
     $conn = $bank->getConnection();
@@ -42,7 +43,6 @@ function tarnegar_fehrest($page = 1) {
 }
 
 function tarnegar_neveshteh($slug) {
-    // بررسی تم‌بلدر (قالب مطلب تکی)
     $theme_html = builder_render_for('single', 'post', $slug);
     if ($theme_html) {
         $onvan_safhe = $slug . ' | ' . SITE_NAME;
@@ -58,8 +58,12 @@ function tarnegar_neveshteh($slug) {
         include MASIR_GHALEB . '404.php';
         return;
     }
+
+    $related = tarnegar_get_related_posts($post['id']);
+    $categories = tarnegar_get_all_categories();
+
     $onvan_safhe = $post['title'] . ' | ' . SITE_NAME;
-    $meta_sharh = mb_substr(strip_tags($post['content']), 0, 160);
+    $meta_sharh = strip_tags($post['kholaseh'] ?: mb_substr($post['content'], 0, 160));
     $safhe_faali = 'tarnegar';
     include MASIR_GHALEB . 'neveshteh.php';
 }

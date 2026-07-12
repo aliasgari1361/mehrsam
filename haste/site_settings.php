@@ -18,6 +18,14 @@ if (!defined('UPLOADS_URL')) {
     define('UPLOADS_URL', BASE_URL . '/ghaleb/manabe/uploads/');
 }
 
+// مسیر فایل‌های قابل دانلود (مدیریت فایل‌ها) — فقط این پوشه در درخت نمایش داده می‌شود
+if (!defined('FILES_DIR')) {
+    define('FILES_DIR', UPLOADS_DIR . 'files/');
+}
+if (!defined('FILES_URL')) {
+    define('FILES_URL', UPLOADS_URL . 'files/');
+}
+
 // اگر فایل ذخیره وجود داشت، آن را بارگذاری کن
 if (file_exists(SITE_SETTINGS_FILE)) {
     $json = file_get_contents(SITE_SETTINGS_FILE);
@@ -89,6 +97,11 @@ function get_default_site_settings() {
                 'sandbox'   => true,
             ],
         ],
+        'files' => [
+            'max_upload_size'     => 5242880,
+            'allowed_extensions'  => 'pdf,zip,rar,doc,docx,xls,xlsx,txt,jpg,jpeg,png,gif,webp',
+            'user_upload_enabled' => false,
+        ],
     ];
 }
 
@@ -100,7 +113,16 @@ function get_site_setting($key) {
     $keys = explode('.', $key);
     $val = $site_settings;
     foreach ($keys as $k) {
-        if (!is_array($val) || !array_key_exists($k, $val)) return null;
+        if (!is_array($val) || !array_key_exists($k, $val)) {
+            // اگر تنظیم در فایل نبود، از پیش‌فرض برگردد (برای سازگاری با نصب‌های قبلی)
+            $def = get_default_site_settings();
+            $v = $def;
+            foreach ($keys as $kk) {
+                if (!is_array($v) || !array_key_exists($kk, $v)) return null;
+                $v = $v[$kk];
+            }
+            return $v;
+        }
         $val = $val[$k];
     }
     return $val;

@@ -50,46 +50,10 @@ $panel_title_font_size = (int)($admin_settings['title_font_size'] ?? 18);
             .admin-nav .submenu a i { width:20px; color:#999; margin-left:8px; }
             @media (max-width:768px) { .admin-nav { flex-direction:column; } .admin-nav .submenu { position:static; box-shadow:none; background:#444; } .admin-nav .submenu a { color:#ddd; } }
         </style>
-        <div class="admin-nav">
-            <div class="nav-item"><a href="<?= BASE_URL ?>mod/dashmod"><i class="fa-solid fa-gauge-high"></i> داشبورد</a></div>
-            <div class="nav-item"><a><i class="fa-solid fa-file-lines"></i> محتوا ▾</a>
-                <div class="submenu">
-                    <a href="<?= BASE_URL ?>mod/content">📄 مقالات</a>
-                    <a href="<?= BASE_URL ?>mod/pages">📋 برگه‌ها</a>
-                </div>
-            </div>
-            <div class="nav-item"><a><i class="fa-solid fa-store"></i> فروشگاه ▾</a>
-                <div class="submenu">
-                    <a href="<?= BASE_URL ?>mod/store/products"><i class="fa-solid fa-cube"></i> محصولات</a>
-                    <a href="<?= BASE_URL ?>mod/store/categories"><i class="fa-solid fa-folder"></i> دسته‌بندی‌ها</a>
-                    <a href="<?= BASE_URL ?>mod/store/brands"><i class="fa-solid fa-tag"></i> برندها</a>
-                    <a href="<?= BASE_URL ?>mod/store/orders"><i class="fa-solid fa-truck"></i> سفارشات</a>
-                    <a href="<?= BASE_URL ?>mod/store/settings"><i class="fa-solid fa-gear"></i> تنظیمات فروشگاه</a>
-                </div>
-            </div>
-            <div class="nav-item"><a><i class="fa-solid fa-palette"></i> قالب ▾</a>
-                <div class="submenu">
-                    <a href="<?= BASE_URL ?>mod/theme/sections"><i class="fa-solid fa-puzzle-piece"></i> بخش‌های محتوا</a>
-                    <a href="<?= BASE_URL ?>mod/theme/files"><i class="fa-solid fa-file-code"></i> ویرایش فایل‌ها</a>
-                    <a href="<?= BASE_URL ?>mod/theme/custom"><i class="fa-solid fa-paint-brush"></i> سفارشی‌سازی</a>
-                    <a href="<?= BASE_URL ?>mod/settings?tab=theme"><i class="fa-solid fa-gear"></i> تنظیمات ظاهری</a>
-                </div>
-            </div>
-            <div class="nav-item"><a><i class="fa-solid fa-layer-group"></i> صفحه‌ساز ▾</a>
-                <div class="submenu">
-                    <a href="<?= BASE_URL ?>mod/builder/pages"><i class="fa-solid fa-layer-group"></i> مدیریت صفحات</a>
-                </div>
-            </div>
-            <div class="nav-item"><a href="<?= BASE_URL ?>mod/chat"><i class="fa-solid fa-comments"></i> چت</a></div>
-            <div class="nav-item"><a href="<?= BASE_URL ?>mod/messages"><i class="fa-solid fa-envelope"></i> پیام‌ها</a></div>
-            <div class="nav-item"><a><i class="fa-solid fa-gear"></i> تنظیمات ▾</a>
-                <div class="submenu">
-                    <a href="<?= BASE_URL ?>mod/settings"><i class="fa-solid fa-sliders"></i> تنظیمات سایت</a>
-                    <a href="<?= BASE_URL ?>mod/panel_settings"><i class="fa-solid fa-palette"></i> تنظیمات پنل</a>
-                    <a href="<?= BASE_URL ?>mod/settings?tab=git"><i class="fa-brands fa-github"></i> به‌روزرسانی</a>
-                </div>
-            </div>
-            <div class="nav-item"><a href="<?= BASE_URL ?>mod/logout"><i class="fa-solid fa-sign-out-alt"></i> خروج</a></div>
-        </div>
+        <?php
+        require_once MASIR_RISH . 'mohtava/menu/menu-editor.php';
+        $admin_menu_items = menu_get_admin_items();
+        menu_render_admin($admin_menu_items);
+        ?>
     </div>
     <div class="admin-content">

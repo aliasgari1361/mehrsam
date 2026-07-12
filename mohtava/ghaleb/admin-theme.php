@@ -20,6 +20,10 @@ function admin_theme_route($action, $params) {
         case 'custom':
             admin_theme_customizer();
             break;
+        case 'menu':
+            require_once MASIR_RISH . 'mohtava/menu/menu-editor.php';
+            menu_editor_site();
+            break;
         default:
             admin_theme_dashboard();
             break;

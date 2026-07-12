@@ -385,6 +385,15 @@ $site_title = $general_settings['site_title'] ?? 'مهراد سام';
 </head>
 <body>
 
+<?php if (isLoggedIn() && isAdmin()): ?>
+<div style="background:#343a40; color:#fff; text-align:center; padding:6px 0; font-size:13px; position:sticky; top:0; z-index:9999;">
+    <span style="opacity:0.7;">پنل مدیریت فعال است</span>
+    <a href="<?= BASE_URL ?>mod/dashmod" style="color:#ffc107; text-decoration:none; margin-right:15px; font-weight:700;">
+        <i class="fa-solid fa-lock"></i> ورود به پنل
+    </a>
+</div>
+<?php endif; ?>
+
 <header class="header">
     <div class="mohtava-container">
         <div class="header-dakhel">
@@ -408,18 +417,11 @@ $site_title = $general_settings['site_title'] ?? 'مهراد سام';
             </button>
 
             <!-- منو -->
-            <nav class="nav">
-                <ul>
-                    <li><a href="<?= BASE_URL ?>/"          class="<?= ($safhe_faali??'') === 'khane'    ? 'faali' : '' ?>">خانه</a></li>
-                    <li><a href="<?= BASE_URL ?>/khadamat"  class="<?= ($safhe_faali??'') === 'khadamat' ? 'faali' : '' ?>">خدمات</a></li>
-                    <li><a href="<?= BASE_URL ?>/tarnegar"  class="<?= ($safhe_faali??'') === 'tarnegar' ? 'faali' : '' ?>">تارنگار</a></li>
-                    <li><a href="<?= BASE_URL ?>/forushgah/sabad" class="cart-link" style="position:relative; padding-left:40px;">
-                        <i class="fa-solid fa-cart-shopping" style="font-size:18px;"></i>
-                        <span class="cart-badge" style="position:absolute; top:-6px; left:-6px; background:var(--rang-asli); color:#fff; font-size:11px; font-weight:700; width:20px; height:20px; border-radius:50%; display:flex; align-items:center; justify-content:center;"><?= sabad_count() ?></span>
-                    </a></li>
-                    <li><a href="<?= BASE_URL ?>/tamas" class="dakmeh dakmeh-asli">تماس با ما</a></li>
-                </ul>
-            </nav>
+            <?php
+            require_once MASIR_RISH . 'mohtava/menu/menu-editor.php';
+            $site_menu_items = menu_get_site_items();
+            menu_render_site($site_menu_items);
+            ?>
 
         </div>
     </div>

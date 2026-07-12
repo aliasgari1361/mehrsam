@@ -314,6 +314,9 @@ function admin_store_product_form($id) {
             if (is_string($up)) $data['tasvir'] = $up;
         }
         $nid = mahsul_save($id, $data);
+        // ساخت خودکار پوشه فایل‌های این محصول
+        require_once __DIR__ . '/../../mohtava/files/file-functions.php';
+        file_create_content_folder('product', $data['slug'] ?: $nid);
         redirect('mod/store/products');
         exit;
     }

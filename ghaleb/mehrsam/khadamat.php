@@ -18,14 +18,29 @@
 <!-- محتوای صفحه خدمات -->
 <section class="bakhsh khadamat-page">
     <div class="mohtava-container">
-        <?php if (!empty($page_data['content'])): ?>
+        <?php if (!empty($khadamat_list)): ?>
             <div class="services-grid">
-                <?= $page_data['content'] ?>
+                <?php foreach ($khadamat_list as $svc): ?>
+                    <a class="service-card" href="<?= BASE_URL ?>khadamat/<?= htmlspecialchars($svc['slug']) ?>">
+                        <div class="service-header">
+                            <div class="service-icon">
+                                <?= $svc['tasvir'] ?>
+                            </div>
+                            <div class="service-header-text">
+                                <h2><?= htmlspecialchars($svc['title']) ?></h2>
+                                <?php if (!empty($svc['subtitle'])): ?>
+                                    <span class="service-sub"><?= htmlspecialchars($svc['subtitle']) ?></span>
+                                <?php endif; ?>
+                                <p><?= htmlspecialchars($svc['kholaseh']) ?></p>
+                            </div>
+                        </div>
+                    </a>
+                <?php endforeach; ?>
             </div>
         <?php else: ?>
             <div class="empty-state">
                 <i class="fa-solid fa-box-open"></i>
-                <p>محتوای صفحه خدمات هنوز وارد نشده است.</p>
+                <p>خدمتی ثبت نشده است.</p>
             </div>
         <?php endif; ?>
     </div>
@@ -45,170 +60,103 @@
 
 <style>
 /* ===== صفحه خدمات ===== */
+.khadamat-page {
+    padding-bottom: 0;
+}
 .khadamat-page .services-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
-    gap: 24px;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 18px;
     margin-top: 8px;
+    align-content: start;
 }
 
-/* ===== المان details (هر خدمت) ===== */
-.services-grid > details {
-    background: #fff;
-    border: 1px solid var(--rang-border, #eef0f4);
-    border-radius: 14px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-    transition: all 0.3s ease;
-    overflow: hidden;
-    position: relative;
-}
-.services-grid > details:hover {
-    box-shadow: 0 8px 24px rgba(0,0,0,0.08);
-    transform: translateY(-3px);
-    border-color: var(--rang-asli, #FF6F00);
-}
-.services-grid > details[open] {
-    box-shadow: 0 12px 32px rgba(0,0,0,0.1);
-    border-color: var(--rang-asli, #FF6F00);
-}
-
-/* ===== summary (هدر کارت) ===== */
-.services-grid > details > summary {
+/* ===== کارت خدمت (لینک مستقیم) ===== */
+.khadamat-page .services-grid > a.service-card {
     display: flex;
-    align-items: flex-start;
-    gap: 16px;
-    padding: 24px;
-    cursor: pointer;
-    list-style: none;
-    background: linear-gradient(135deg, #fafafa 0%, #fff 100%);
-    border-bottom: 1px solid var(--rang-border, #eef0f4);
-    transition: all 0.2s ease;
-    outline: none;
+    flex-direction: column;
+    background: var(--rang-roshan, #fff3e0);
+    border: 1px solid var(--rang-border, #eef0f4);
+    border-radius: 12px;
+    overflow: hidden;
+    text-decoration: none;
+    color: inherit;
+    transition: all 0.3s ease;
 }
-.services-grid > details > summary::-webkit-details-marker { display: none; }
-.services-grid > details > summary::marker { display: none; }
+.khadamat-page .services-grid > a.service-card:hover {
+    background: var(--rang-asli, #FF6F00);
+    border-color: var(--rang-asli, #FF6F00);
+    color: #fff;
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+}
 
-.services-grid > details > summary:hover {
-    background: linear-gradient(135deg, var(--rang-roshan, #fff3e0) 0%, #fff 100%);
+/* هدر کارت */
+.khadamat-page .services-grid > a.service-card > .service-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px 18px;
+    flex: 1;
 }
+.khadamat-page .services-grid > a.service-card:hover .service-header {
+    background: transparent;
+    color: #fff;
+}
+
 
 /* آیکون سرویس */
 .service-icon {
     flex-shrink: 0;
-    width: 56px;
-    height: 56px;
-    border-radius: 14px;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--rang-roshan, #fff3e0);
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #fff;
-    font-size: 22px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    color: var(--rang-asli);
+    font-size: 20px;
     transition: transform 0.3s ease;
 }
-details[open] .service-icon {
-    transform: scale(1.08) rotate(3deg);
+.khadamat-page .services-grid > a.service-card:hover .service-icon {
+    transform: scale(1.08);
+    background: var(--rang-asli, #FF6F00);
+    color: #fff;
 }
 
 /* متن هدر */
-.services-grid > details > summary > div { flex: 1; min-width: 0; }
-.services-grid > details > summary h2 {
-    margin: 0 0 6px;
-    font-size: 1.15rem;
+.service-header > .service-header-text { flex: 1; min-width: 0; }
+.service-header h2 {
+    margin: 0 0 3px;
+    font-size: 1rem;
     font-weight: 700;
     color: var(--rang-matn, #1a1a1a);
-    line-height: 1.4;
+    line-height: 1.35;
 }
-.services-grid > details > summary p {
+.service-header p {
     margin: 0;
-    font-size: 0.92rem;
+    font-size: 0.85rem;
     color: var(--rang-gray, #6c757d);
-    line-height: 1.6;
+    line-height: 1.5;
+}
+.khadamat-page .services-grid > a.service-card:hover .service-header h2,
+.khadamat-page .services-grid > a.service-card:hover .service-header p {
+    color: #fff;
 }
 
-/* فلش باز/بسته */
-.services-grid > details > summary::after {
-    content: '\f078';
-    font-family: 'Font Awesome 6 Free';
-    font-weight: 900;
-    font-size: 1rem;
-    color: var(--rang-asli, #FF6F00);
-    margin-right: auto;
-    transition: transform 0.3s ease;
-    flex-shrink: 0;
-    margin-left: 16px;
-}
-details[open] > summary::after {
-    transform: rotate(180deg);
-}
-
-/* ===== محتوای کامل (داخل details) ===== */
-.services-grid > details > div:last-of-type {
-    padding: 0 24px 24px;
-    animation: slideDown 0.3s ease;
-}
-@keyframes slideDown {
-    from { opacity: 0; transform: translateY(-10px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-.services-grid > details > div:last-of-type > *:first-child {
-    margin-top: 16px;
-}
-.services-grid > details > div:last-of-type h3,
-.services-grid > details > div:last-of-type h4 {
-    color: var(--rang-asli, #FF6F00);
-    margin-top: 1.2rem;
-}
-.services-grid > details > div:last-of-type ul,
-.services-grid > details > div:last-of-type ol {
-    margin: 0.8rem 0;
-    padding-right: 1.5rem;
-}
-.services-grid > details > div:last-of-type li {
-    margin: 0.4rem 0;
-    line-height: 1.8;
-}
-.services-grid > details > div:last-of-type p {
-    margin: 0.8rem 0;
-    line-height: 1.9;
-    color: #444;
-}
-.services-grid > details > div:last-of-type strong {
-    color: var(--rang-matn, #1a1a1a);
-}
-.services-grid > details > div:last-of-type code {
-    background: var(--rang-roshan, #fff3e0);
-    color: var(--rang-asli, #FF6F00);
-    padding: 2px 6px;
-    border-radius: 4px;
-    font-size: 0.9em;
-    font-family: monospace;
-}
-.services-grid > details > div:last-of-type details {
-    margin: 1rem 0;
-    border: 1px solid var(--rang-border, #eef0f4);
-    border-radius: 10px;
-    background: #fafafa;
-}
-.services-grid > details > div:last-of-type details > summary {
-    padding: 12px 16px;
+/* زیرنویس (خط اضافه) */
+.service-sub {
+    display: inline-block;
+    font-size: 0.8rem;
+    color: var(--rang-tira, #E65100);
     font-weight: 600;
-    color: var(--rang-asli, #FF6F00);
-    cursor: pointer;
-    list-style: none;
+    margin-bottom: 3px;
 }
-.services-grid > details > div:last-of-type details > summary::-webkit-details-marker { display: none; }
-.services-grid > details > div:last-of-type details > summary::after {
-    content: '\f078';
-    font-family: 'Font Awesome 6 Free';
-    font-weight: 900;
-    margin-left: 8px;
-    transition: transform 0.2s;
-}
-details[open] > summary::after { transform: rotate(180deg); }
-.services-grid > details > div:last-of-type details > div {
-    padding: 0 16px 16px;
-    animation: slideDown 0.25s ease;
+.khadamat-page .services-grid > a.service-card:hover .service-header h2,
+.khadamat-page .services-grid > a.service-card:hover .service-header p,
+.khadamat-page .services-grid > a.service-card:hover .service-sub {
+    color: #fff;
 }
 
 /* ===== حالت خالی ===== */
@@ -244,51 +192,22 @@ details[open] > summary::after { transform: rotate(180deg); }
 /* ===== ریسپانسیو ===== */
 @media (max-width: 992px) {
     .services-grid {
-        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-        gap: 20px;
+        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+        gap: 14px;
     }
-    .services-grid > details > summary {
-        padding: 20px;
+    .khadamat-page .services-grid > a.service-card > .service-header {
+        padding: 14px 16px;
     }
     .service-icon {
-        width: 48px;
-        height: 48px;
-        font-size: 20px;
+        width: 40px;
+        height: 40px;
+        font-size: 18px;
     }
 }
 @media (max-width: 600px) {
     .services-grid {
         grid-template-columns: 1fr;
     }
-    .services-grid > details > summary {
-        flex-direction: column;
-        align-items: center;
-        text-align: center;
-        gap: 14px;
-        padding: 20px 16px;
-    }
-    .services-grid > details > summary::after {
-        position: absolute;
-        top: 16px;
-        left: 16px;
-        margin: 0;
-    }
-    .service-icon {
-        width: 56px;
-        height: 56px;
-        font-size: 24px;
-    }
-    .services-grid > details > div:last-of-type {
-        padding: 0 16px 20px;
-    }
-}
-
-/* انیمیشن ظریف برای summary در حالت open */
-details[open] > summary {
-    border-bottom-color: var(--rang-asli, #FF6F00);
-}
-details[open] > summary h2 {
-    color: var(--rang-asli, #FF6F00);
 }
 </style>
 

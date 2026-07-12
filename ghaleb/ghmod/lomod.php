@@ -96,6 +96,10 @@ if (file_exists($settings_file)) {
         <form method="post" action="<?php echo BASE_URL; ?>mod/lomod">
             <input type="text" name="username" placeholder="نام کاربری" required>
             <input type="password" name="password" placeholder="رمز عبور" required>
+            <label style="display:flex;align-items:center;gap:6px;margin:8px 0;cursor:pointer;font-size:13px;color:#555;">
+                <input type="checkbox" name="remember_me" value="1" style="width:16px;height:16px;cursor:pointer;">
+                ذخیره پسوورد
+            </label>
             <div class="captcha-container">
                 <div style="flex: 1; background: #fafafa; border: 1px solid #ddd; border-radius: 4px; height: 40px; display: flex; align-items: center; justify-content: center; font-family: monospace; font-size: 18px; letter-spacing: 3px; user-select: none;">
                     <?php echo $captcha_code; ?>

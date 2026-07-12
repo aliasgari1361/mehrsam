@@ -12,6 +12,24 @@ function mod_route($action, $params) {
         return;
     }
 
+    // Auto-login via remember-me cookie
+    if (!isLoggedIn() && isset($_COOKIE['rid']) && isset($_COOKIE['rtok'])) {
+        require_once __DIR__ . '/../../dade/bank.php';
+        $bank = new Bank();
+        $conn = $bank->getConnection();
+        $stmt = $conn->prepare("SELECT id, role FROM users WHERE id = ? AND remember_token = ? AND role = 'admin'");
+        $stmt->bind_param("is", $_COOKIE['rid'], $_COOKIE['rtok']);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        if ($result->num_rows === 1) {
+            $user = $result->fetch_assoc();
+            $_SESSION['user_id'] = $user['id'];
+            $_SESSION['role'] = $user['role'];
+        }
+        $stmt->close();
+        $conn->close();
+    }
+
     if (!isLoggedIn() || !isAdmin()) {
         if ($action === 'lomod') {
             $error = '';
@@ -20,15 +38,37 @@ function mod_route($action, $params) {
                 $password = $_POST['password'] ?? '';
                 $captcha_input = $_POST['captcha'] ?? '';
 
+                require_once __DIR__ . '/../../dade/bank.php';
+                $bank = new Bank();
+                $conn = $bank->getConnection();
+                $ip = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+
+                // ----- بررسی محدودیت تلاش -----
+                $stmt = $conn->prepare("SELECT COUNT(*) AS cnt FROM login_attempts WHERE ip_address = ? AND attempted_at > DATE_SUB(NOW(), INTERVAL 2 MINUTE)");
+                $stmt->bind_param("s", $ip);
+                $stmt->execute();
+                $attempt_count = (int)$stmt->get_result()->fetch_assoc()['cnt'];
+                $stmt->close();
+
+                $too_many = false;
+                if ($attempt_count >= 8) {
+                    $too_many = true;
+                    // محاسبه زمان باقی‌مانده
+                    $stmt = $conn->prepare("SELECT MAX(attempted_at) AS latest FROM login_attempts WHERE ip_address = ? AND attempted_at > DATE_SUB(NOW(), INTERVAL 2 MINUTE)");
+                    $stmt->bind_param("s", $ip);
+                    $stmt->execute();
+                    $latest = $stmt->get_result()->fetch_assoc()['latest'];
+                    $stmt->close();
+                    $remaining = 120 - (time() - strtotime($latest));
+                    if ($remaining < 0) $remaining = 0;
+                    $error = "به دلیل تلاش‌های ناموفق زیاد، به مدت ۲ دقیقه قفل شده‌اید. " . ceil($remaining) . " ثانیه دیگر تلاش کنید.";
+                }
+
                 // Verify CAPTCHA
                 require_once __DIR__ . '/../captcha.php';
-                if (!verify_captcha($captcha_input)) {
+                if (!$too_many && !verify_captcha($captcha_input)) {
                     $error = "کد امنیتی اشتباه است.";
-                } else {
-                    require_once __DIR__ . '/../../dade/bank.php';
-                    $bank = new Bank();
-                    $conn = $bank->getConnection();
-
+                } elseif (!$too_many) {
                     $stmt = $conn->prepare("SELECT id, password, role FROM users WHERE username = ? AND role = 'admin'");
                     $stmt->bind_param("s", $username);
                     $stmt->execute();
@@ -37,26 +77,84 @@ function mod_route($action, $params) {
                     if ($result->num_rows === 1) {
                         $user = $result->fetch_assoc();
                         if (password_verify($password, $user['password'])) {
+                            // ----- ورود موفق: ثبت کوکی ذخیره پسوورد -----
+                            if (!empty($_POST['remember_me'])) {
+                                $token = bin2hex(random_bytes(32));
+                                $stmt2 = $conn->prepare("UPDATE users SET remember_token = ? WHERE id = ?");
+                                $stmt2->bind_param("si", $token, $user['id']);
+                                $stmt2->execute();
+                                $stmt2->close();
+                                setcookie('rid', (string)$user['id'], time() + 86400 * 30, '/', '', false, true);
+                                setcookie('rtok', $token, time() + 86400 * 30, '/', '', false, true);
+                            } else {
+                                // حذف کوکی در صورت عدم تیک
+                                $stmt2 = $conn->prepare("UPDATE users SET remember_token = NULL WHERE id = ?");
+                                $stmt2->bind_param("i", $user['id']);
+                                $stmt2->execute();
+                                $stmt2->close();
+                                setcookie('rid', '', time() - 3600, '/');
+                                setcookie('rtok', '', time() - 3600, '/');
+                            }
+
+                            // پاک کردن تلاش‌های قبلی
+                            $stmt2 = $conn->prepare("DELETE FROM login_attempts WHERE ip_address = ?");
+                            $stmt2->bind_param("s", $ip);
+                            $stmt2->execute();
+                            $stmt2->close();
+
                             $_SESSION['user_id'] = $user['id'];
                             $_SESSION['role'] = $user['role'];
+                            $stmt->close();
+                            $conn->close();
                             redirect('mod/dashmod');
                             exit;
-                        } else {
-                            $error = "نام کاربری یا رمز عبور اشتباه است.";
                         }
+                        $error = "نام کاربری یا رمز عبور اشتباه است.";
                     } else {
                         $error = "نام کاربری یا رمز عبور اشتباه است.";
                     }
                     $stmt->close();
-                    $conn->close();
                 }
 
+                // ----- ثبت تلاش ناموفق -----
+                $stmt = $conn->prepare("INSERT INTO login_attempts (ip_address) VALUES (?)");
+                $stmt->bind_param("s", $ip);
+                $stmt->execute();
+                $stmt->close();
+
+                // ----- بررسی ارسال ایمیل در قفل دوم -----
+                if ($attempt_count === 7) { // هشتمین تلاش = قفل
+                    $stmt = $conn->prepare("SELECT COUNT(DISTINCT FLOOR(UNIX_TIMESTAMP(attempted_at) / 120)) AS periods FROM login_attempts WHERE ip_address = ? AND attempted_at > DATE_SUB(NOW(), INTERVAL 24 HOUR)");
+                    $stmt->bind_param("s", $ip);
+                    $stmt->execute();
+                    $periods = (int)$stmt->get_result()->fetch_assoc()['periods'];
+                    $stmt->close();
+                    if ($periods >= 2) {
+                        // ارسال ایمیل به مدیر
+                        $to = SITE_EMAIL;
+                        $subject = "هشدار امنیتی: تلاش‌های مکرر ورود به پنل مدیریت";
+                        $message = "سلام مدیر,\n\n";
+                        $message .= "تعداد زیادی تلاش ناموفق برای ورود به پنل مدیریت از IP " . $ip . " ثبت شده است.\n";
+                        $message .= "این دومین دوره قفل شدن است.\n\n";
+                        $message .= "زمان: " . date('Y-m-d H:i:s') . "\n";
+                        $message .= "آی‌پی: " . $ip . "\n\n";
+                        $message .= "لطفاً اقدامات امنیتی لازم را انجام دهید.\n";
+                        $headers = "From: " . SITE_NAME . " <noreply@" . ($_SERVER['HTTP_HOST'] ?? 'localhost') . ">\r\n";
+                        $headers .= "Content-Type: text/plain; charset=UTF-8\r\n";
+                        @mail($to, $subject, $message, $headers);
+                    }
+                }
+
+                $conn->close();
             }
 
             include __DIR__ . '/../../ghaleb/ghmod/lomod.php';
             return;
         }
-        redirect('mod/lomod');
+        // آپلود عمومی فایل‌ها برای کاربران لاگین‌شده (نه فقط ادمین) مجاز است
+        if (!($action === 'upload' && isLoggedIn())) {
+            redirect('mod/lomod');
+        }
     }
 
     // نگاشت روت‌های میانبر به تب‌های تنظیمات سایت
@@ -345,12 +443,19 @@ function mod_route($action, $params) {
                 if ($is_edit) {
                     $stmt = $conn->prepare("UPDATE posts SET title=?, slug=?, content=?, template=?, status=? WHERE id=?");
                     $stmt->bind_param("sssssi", $title, $slug, $content, $template, $status, $id);
+                    $stmt->execute();
+                    $stmt->close();
+                    $new_id = $id;
                 } else {
                     $stmt = $conn->prepare("INSERT INTO posts (title, slug, content, type, template, status) VALUES (?, ?, ?, 'page', ?, ?)");
                     $stmt->bind_param("sssss", $title, $slug, $content, $template, $status);
+                    $stmt->execute();
+                    $new_id = $conn->insert_id;
+                    $stmt->close();
                 }
-                $stmt->execute();
-                $stmt->close();
+                // ساخت خودکار پوشه فایل‌های این صفحه
+                require_once MASIR_RISH . 'mohtava/files/file-functions.php';
+                file_create_content_folder('page', $slug ?: $new_id);
                 $conn->close();
                 redirect('mod/pages');
                 exit;
@@ -479,7 +584,7 @@ function mod_route($action, $params) {
 
                 // ذخیره تنظیمات
                 $new_settings = [];
-                foreach (['general', 'social', 'theme'] as $section) {
+                foreach (['general', 'social', 'theme', 'files'] as $section) {
                     if (!empty($_POST[$section]) && is_array($_POST[$section])) {
                         $new_settings[$section] = $_POST[$section];
                     }
@@ -495,6 +600,7 @@ function mod_route($action, $params) {
             $tabs = [
                 'general'   => 'عمومی',
                 'social'    => 'شبکه‌ها',
+                'files'     => 'فایل‌ها',
             ];
             $standalone = in_array($active_tab, ['theme', 'git'], true);
 
@@ -719,6 +825,33 @@ function mod_route($action, $params) {
                     </script>
                 </div>
 
+                <?php elseif ($active_tab === 'files'): ?>
+                <div class="settings-panel">
+                    <h4 class="section-title"><i class="fa-solid fa-folder-open"></i> تنظیمات فایل‌ها</h4>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>حداکثر حجم آپلود کاربر (مگابایت)</label>
+                            <input type="number" name="files[max_upload_size]" value="<?= (int)((int)($current['files']['max_upload_size'] ?? 5242880) / 1048576) ?>" min="1" max="100" step="1" style="width:140px;"> <span>MB</span>
+                        </div>
+                        <div class="form-group">
+                            <label>آپلود عمومی کاربر</label>
+                            <select name="files[user_upload_enabled]">
+                                <option value="0" <?= empty($current['files']['user_upload_enabled']) ? 'selected' : '' ?>>غیرفعال</option>
+                                <option value="1" <?= !empty($current['files']['user_upload_enabled']) ? 'selected' : '' ?>>فعال</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>پسوندهای مجاز (با ویرگول جدا کنید)</label>
+                        <input type="text" name="files[allowed_extensions]" value="<?= htmlspecialchars($current['files']['allowed_extensions'] ?? 'pdf,zip,rar,doc,docx,xls,xlsx,txt,jpg,jpeg,png,gif,webp') ?>" dir="ltr">
+                        <span class="help-text">مثال: pdf,zip,rar,doc,docx,xls,xlsx,txt,jpg,jpeg,png,gif,webp</span>
+                    </div>
+
+                    <p class="help-text">مدیر (ادمین) محدودیت حجم ندارد؛ این محدودیت فقط برای کاربران عادی اعمال می‌شود.</p>
+                </div>
+
                 <?php elseif ($active_tab === 'git'): ?>
                 <div class="settings-panel" id="gitPanel">
                     <h4 class="section-title"><i class="fa-brands fa-github"></i> به‌روزرسانی از گیت</h4>
@@ -800,11 +933,13 @@ function mod_route($action, $params) {
 
         case 'edit_content':
             require_once __DIR__ . '/../../dade/bank.php';
+            require_once MASIR_RISH . 'mohtava/tarnegar/tarnegar-model.php';
             $bank = new Bank();
             $conn = $bank->getConnection();
             $id = $params[0] ?? null;
             $is_edit = false;
-            $post = ['title' => '', 'slug' => '', 'content' => '', 'type' => 'blog', 'status' => 'draft'];
+            $post = ['title' => '', 'slug' => '', 'content' => '', 'kholaseh' => '', 'tasvir' => '', 'type' => 'blog', 'status' => 'draft'];
+            $selected_cats = [];
 
             if ($id) {
                 $stmt = $conn->prepare("SELECT * FROM posts WHERE id = ?");
@@ -814,6 +949,7 @@ function mod_route($action, $params) {
                 if ($result->num_rows === 1) {
                     $post = $result->fetch_assoc();
                     $is_edit = true;
+                    $selected_cats = array_column(tarnegar_get_post_categories($id), 'id');
                 } else {
                     echo "مطلب پیدا نشد.";
                     $conn->close();
@@ -826,23 +962,47 @@ function mod_route($action, $params) {
                 $title   = $_POST['title'] ?? '';
                 $slug    = $_POST['slug'] ?? '';
                 $content = $_POST['content'] ?? '';
+                $kholaseh = $_POST['kholaseh'] ?? '';
+                $tasvir  = $_POST['tasvir'] ?? '';
                 $type    = $_POST['type'] ?? 'blog';
                 $status  = $_POST['status'] ?? 'draft';
                 if (empty($slug)) $slug = trim(preg_replace('/[^a-zA-Z0-9\-]/', '-', $title), '-');
 
                 if ($is_edit) {
-                    $stmt = $conn->prepare("UPDATE posts SET title=?, slug=?, content=?, type=?, status=? WHERE id=?");
-                    $stmt->bind_param("sssssi", $title, $slug, $content, $type, $status, $id);
+                    $stmt = $conn->prepare("UPDATE posts SET title=?, slug=?, content=?, kholaseh=?, tasvir=?, type=?, status=? WHERE id=?");
+                    $stmt->bind_param("sssssssi", $title, $slug, $content, $kholaseh, $tasvir, $type, $status, $id);
+                    $stmt->execute();
+                    $stmt->close();
+                    $new_id = $id;
                 } else {
-                    $stmt = $conn->prepare("INSERT INTO posts (title, slug, content, type, status) VALUES (?, ?, ?, ?, ?)");
-                    $stmt->bind_param("sssss", $title, $slug, $content, $type, $status);
+                    $stmt = $conn->prepare("INSERT INTO posts (title, slug, content, kholaseh, tasvir, type, status) VALUES (?, ?, ?, ?, ?, ?, ?)");
+                    $stmt->bind_param("sssssss", $title, $slug, $content, $kholaseh, $tasvir, $type, $status);
+                    $stmt->execute();
+                    $new_id = $conn->insert_id;
+                    $stmt->close();
                 }
-                $stmt->execute();
-                $stmt->close();
+
+                // دسته‌بندی
+                $cat_ids = $_POST['categories'] ?? [];
+                $conn->query("DELETE FROM post_categories WHERE post_id = $new_id");
+                if (!empty($cat_ids) && is_array($cat_ids)) {
+                    $stmt2 = $conn->prepare("INSERT INTO post_categories (post_id, category_id) VALUES (?, ?)");
+                    foreach ($cat_ids as $cid) {
+                        $cid = (int)$cid;
+                        if ($cid > 0) { $stmt2->bind_param("ii", $new_id, $cid); $stmt2->execute(); }
+                    }
+                    $stmt2->close();
+                }
+
+                // ساخت خودکار پوشه فایل‌های این محتوا
+                require_once MASIR_RISH . 'mohtava/files/file-functions.php';
+                file_create_content_folder($type, $slug ?: $new_id);
                 $conn->close();
                 redirect('mod/content');
                 exit;
             }
+
+            $all_cats = $conn->query("SELECT id, title FROM categories ORDER BY title")->fetch_all(MYSQLI_ASSOC);
             $conn->close();
 
             include __DIR__ . '/../../ghaleb/ghmod/sarsafhe.php';
@@ -856,19 +1016,68 @@ function mod_route($action, $params) {
             include __DIR__ . '/../editor/editor.php';
             ?>
             <form method="post" id="contentForm">
-                <label>عنوان: <input type="text" name="title" value="<?php echo htmlspecialchars($post['title']); ?>" required></label><br><br>
-                <label>نامک (slug): <input type="text" name="slug" value="<?php echo htmlspecialchars($post['slug']); ?>"></label><br><br>
-                <label>نوع: <select name="type">
-                    <option value="blog" <?php echo $post['type']=='blog' ? 'selected' : ''; ?>>وبلاگ</option>
-                    <option value="safhe" <?php echo $post['type']=='safhe' ? 'selected' : ''; ?>>برگه</option>
-                    <option value="maghaleh" <?php echo $post['type']=='maghaleh' ? 'selected' : ''; ?>>مقاله</option>
-                </select></label><br><br>
-                <label>وضعیت: <select name="status">
-                    <option value="draft" <?php echo $post['status']=='draft' ? 'selected' : ''; ?>>پیش‌نویس</option>
-                    <option value="publish" <?php echo $post['status']=='publish' ? 'selected' : ''; ?>>منتشر</option>
-                </select></label><br><br>
-                <button type="submit">ذخیره</button>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin:20px 0;">
+                    <div>
+                        <label style="display:block;font-weight:600;margin-bottom:4px;">عنوان</label>
+                        <input type="text" name="title" value="<?php echo htmlspecialchars($post['title']); ?>" required style="width:100%;padding:10px;border:1.5px solid #dde1e6;border-radius:8px;">
+                    </div>
+                    <div>
+                        <label style="display:block;font-weight:600;margin-bottom:4px;">نامک (slug)</label>
+                        <input type="text" name="slug" value="<?php echo htmlspecialchars($post['slug']); ?>" style="width:100%;padding:10px;border:1.5px solid #dde1e6;border-radius:8px;">
+                    </div>
+                    <div>
+                        <label style="display:block;font-weight:600;margin-bottom:4px;">خلاصه (برای نمایش در لیست)</label>
+                        <textarea name="kholaseh" style="width:100%;padding:10px;border:1.5px solid #dde1e6;border-radius:8px;min-height:60px;"><?php echo htmlspecialchars($post['kholaseh'] ?? ''); ?></textarea>
+                    </div>
+                    <div>
+                        <label style="display:block;font-weight:600;margin-bottom:4px;">تصویر شاخص (کد SVG یا URL)</label>
+                        <input type="text" name="tasvir" value="<?php echo htmlspecialchars($post['tasvir'] ?? ''); ?>" style="width:100%;padding:10px;border:1.5px solid #dde1e6;border-radius:8px;" placeholder="SVG code or image URL">
+                        <button type="button" onclick="document.getElementById('tasvirUpload').click()" style="margin-top:6px;padding:6px 14px;background:#f5f6f8;border:1px solid #dde1e6;border-radius:6px;cursor:pointer;font-size:13px;">آپلود تصویر</button>
+                        <input type="file" id="tasvirUpload" accept="image/*" style="display:none" onchange="previewTasvir(this)">
+                        <div id="tasvirPreview" style="margin-top:8px;"></div>
+                    </div>
+                    <div>
+                        <label style="display:block;font-weight:600;margin-bottom:4px;">دسته‌بندی</label>
+                        <div style="display:flex;flex-wrap:wrap;gap:8px;">
+                            <?php foreach ($all_cats as $c): ?>
+                                <label style="display:flex;align-items:center;gap:4px;font-size:14px;cursor:pointer;">
+                                    <input type="checkbox" name="categories[]" value="<?= $c['id'] ?>" <?= in_array($c['id'], $selected_cats) ? 'checked' : '' ?>>
+                                    <?= htmlspecialchars($c['title']) ?>
+                                </label>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+                    <div>
+                        <label style="display:block;font-weight:600;margin-bottom:4px;">نوع</label>
+                        <select name="type" style="width:100%;padding:10px;border:1.5px solid #dde1e6;border-radius:8px;">
+                            <option value="blog" <?php echo $post['type']=='blog' ? 'selected' : ''; ?>>وبلاگ</option>
+                            <option value="maghaleh" <?php echo $post['type']=='maghaleh' ? 'selected' : ''; ?>>مقاله</option>
+                            <option value="safhe" <?php echo $post['type']=='safhe' ? 'selected' : ''; ?>>برگه</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="display:block;font-weight:600;margin-bottom:4px;">وضعیت</label>
+                        <select name="status" style="width:100%;padding:10px;border:1.5px solid #dde1e6;border-radius:8px;">
+                            <option value="draft" <?php echo $post['status']=='draft' ? 'selected' : ''; ?>>پیش‌نویس</option>
+                            <option value="publish" <?php echo $post['status']=='publish' ? 'selected' : ''; ?>>منتشر</option>
+                        </select>
+                    </div>
+                </div>
+                <button type="submit" style="padding:12px 32px;background:var(--rang-asli);color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:15px;">ذخیره مطلب</button>
             </form>
+            <script>
+            function previewTasvir(input) {
+                var preview = document.getElementById('tasvirPreview');
+                var file = input.files && input.files[0];
+                if (!file) return;
+                var reader = new FileReader();
+                reader.onload = function(e) {
+                    preview.innerHTML = '<img src="' + e.target.result + '" style="max-width:100px;max-height:60px;border-radius:6px;">';
+                    document.querySelector('[name="tasvir"]').value = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+            </script>
             <?php
             include __DIR__ . '/../../ghaleb/ghmod/panevis.php';
             break;
@@ -1003,6 +1212,16 @@ function mod_route($action, $params) {
             redirect('mod/chat');
             break;
 
+        case 'menu_editor':
+            require_once MASIR_RISH . 'mohtava/menu/menu-editor.php';
+            $menu_type = $params[0] ?? 'site';
+            if ($menu_type === 'admin') {
+                menu_editor_admin();
+            } else {
+                menu_editor_site();
+            }
+            break;
+
         case 'logout':
             session_destroy();
             redirect('mod/lomod');
@@ -1034,6 +1253,26 @@ function mod_route($action, $params) {
                 builder_route($builder_action, $builder_params);
             }
             break;
+
+        case 'files':
+            require_once MASIR_RISH . 'mohtava/files/file-manager.php';
+            $files_action = $params[0] ?? '';
+            $files_params = array_slice($params, 1);
+            admin_files_route($files_action, $files_params);
+            break;
+
+        case 'upload':
+            require_once MASIR_RISH . 'mohtava/files/file-manager.php';
+            public_upload_route();
+            break;
+
+
+        case 'backup':
+            require_once MASIR_RISH . 'mohtava/backup/backup-admin.php';
+            $backup_action = $params[0] ?? '';
+            admin_backup_route($backup_action);
+            break;
+
 
         case 'git_pull':
             header('Content-Type: application/json');
