@@ -268,24 +268,20 @@ function block_services_render($data) {
     $title = htmlspecialchars($data['title'] ?? 'خدمات ما');
     $bank = new Bank();
     $conn = $bank->getConnection();
-    $stmt = $conn->prepare("SELECT title, slug, kholaseh, tasvir FROM posts WHERE page_section='khadamat' AND type='safhe' AND status='publish' ORDER BY display_order ASC LIMIT ?");
+    $stmt = $conn->prepare("SELECT title, slug, kholaseh, subtitle, tasvir FROM khadamat WHERE vaziat = 1 ORDER BY display_order ASC LIMIT ?");
     $stmt->bind_param("i", $count);
     $stmt->execute();
     $services = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     $stmt->close();
     $conn->close();
-    if (!$services) return '';
-    $html = '<section style="padding:60px 0;"><div class="mohtava-container">';
+    if (empty($services)) return '';
+
+    $html = '<section style="padding:50px 0;"><div class="mohtava-container">';
     if ($title) $html .= '<div class="onvan-bakhsh"><h2>' . $title . '</h2></div>';
     $html .= '<div class="gerid-3">';
     foreach ($services as $s) {
-        $html .= '<a href="' . BASE_URL . 'khadamat/' . htmlspecialchars($s['slug']) . '" style="text-decoration:none;color:inherit;"><div class="kart-khadamat"><div class="icon" style="background:var(--rang-asli);">';
-        if (!empty($s['tasvir'])) {
-            $html .= '<img src="' . htmlspecialchars($s['tasvir']) . '" alt="" style="width:32px;height:32px;object-fit:contain;filter:brightness(0) invert(1);">';
-        } else {
-            $html .= '<i class="fa-solid fa-tools"></i>';
-        }
-        $html .= '</div><h3>' . htmlspecialchars($s['title']) . '</h3><p>' . htmlspecialchars($s['kholaseh'] ?? '') . '</p></div></a>';
+        $sub = !empty($s['subtitle']) ? '<span style="display:block;font-size:0.8rem;color:var(--rang-tira);font-weight:600;margin-bottom:6px;">' . htmlspecialchars($s['subtitle']) . '</span>' : '';
+        $html .= '<a href="' . BASE_URL . 'khadamat/' . htmlspecialchars($s['slug']) . '" style="text-decoration:none;color:inherit;"><div style="background:#fff;border:1px solid var(--rang-border);border-radius:12px;padding:24px;text-align:center;transition:all 0.3s;" onmouseover="this.style.borderColor=\'var(--rang-asli)\'" onmouseout="this.style.borderColor=\'var(--rang-border)\'"><div style="width:52px;height:52px;border-radius:50%;background:var(--rang-roshan);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;color:var(--rang-asli);font-size:22px;">' . $s['tasvir'] . '</div><h3 style="font-size:16px;margin-bottom:6px;color:#1a1a1a;">' . htmlspecialchars($s['title']) . '</h3>' . $sub . '<p style="color:#777;font-size:14px;line-height:1.7;">' . htmlspecialchars($s['kholaseh']) . '</p></div></a>';
     }
     $html .= '</div></div></section>';
     return $html;
@@ -337,4 +333,32 @@ function block_counter_render($data) {
     $label = htmlspecialchars($data['label'] ?? '');
     $icon = htmlspecialchars($data['icon'] ?? 'fa-users');
     return '<div style="text-align:center;padding:20px;"><div style="width:60px;height:60px;background:var(--rang-asli,#FF6F00);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;color:#fff;font-size:24px;"><i class="fa-solid ' . $icon . '"></i></div><div style="font-size:1.8rem;font-weight:700;color:var(--rang-asli,#FF6F00);">' . $number . '</div><div style="font-size:13px;color:#888;">' . $label . '</div></div>';
+}
+
+function render_block_admin($block) {
+    $types = get_block_types();
+    $type = $block['type'] ?? 'text';
+    $data = $block['data'] ?? [];
+    $bt = $types[$type] ?? ['label' => $type, 'icon' => 'fa-cube', 'color' => '#888'];
+    $color = $bt['color'];
+    $icon = $bt['icon'];
+    $label = htmlspecialchars($bt['label']);
+
+    $preview = '';
+    switch ($type) {
+        case 'heading': $preview = '<' . ($data['level'] ?? 'h2') . '>' . htmlspecialchars(mb_substr($data['text'] ?? '', 0, 50)) . '</' . ($data['level'] ?? 'h2') . '>'; break;
+        case 'text': $preview = htmlspecialchars(mb_substr(strip_tags($data['content'] ?? ''), 0, 80)); break;
+        case 'image': $preview = $data['src'] ? '<img src="' . htmlspecialchars($data['src']) . '" style="max-width:80px;max-height:30px;">' : '(بدون تصویر)'; break;
+        case 'button': $preview = '[ دکمه: ' . htmlspecialchars($data['text'] ?? '') . ' ]'; break;
+        case 'services': $preview = 'نمایش ' . ($data['count'] ?? 6) . ' خدمت'; break;
+        case 'products': $preview = 'نمایش ' . ($data['count'] ?? 8) . ' محصول'; break;
+        case 'custom': $preview = 'HTML سفارشی (' . mb_strlen($data['html'] ?? '') . ' کاراکتر)'; break;
+        case 'columns': $preview = ($data['columns'] ?? 2) . ' ستونی'; break;
+        case 'divider': $preview = 'جداکننده'; break;
+        default: $preview = '...'; break;
+    }
+
+    $data_json = htmlspecialchars(json_encode($data, JSON_UNESCAPED_UNICODE));
+
+    return '<div class="block-header"><div class="block-title"><span style="display:inline-block;width:28px;height:28px;border-radius:6px;background:' . $color . ';color:#fff;text-align:center;line-height:28px;margin-left:8px;font-size:13px;"><i class="fa-solid ' . $icon . '"></i></span>' . $label . '</div></div><div class="block-content-preview" style="font-size:13px;color:#666;max-height:60px;overflow:hidden;">' . $preview . '</div><div class="block-footer"><button onclick="editBlock(this)" title="ویرایش"><i class="fa-solid fa-pen"></i> ویرایش</button><button class="danger" onclick="removeBlock(this)" title="حذف"><i class="fa-solid fa-trash"></i> حذف</button></div><div class="block-data" style="display:none;">' . $data_json . '</div>';
 }
