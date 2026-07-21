@@ -43,6 +43,12 @@ function mahsul_tan($slug) {
         include MASIR_GHALEB . '404.php';
         return;
     }
+    $builder_content = '';
+    require_once __DIR__ . '/../builder/builder.php';
+    $bp_info = builder_get_page_id('mahsul', $slug);
+    if ($bp_info && $bp_info['bp_id']) {
+        $builder_content = builder_render_page($bp_info['bp_id']);
+    }
     $onvan_safhe = $mahsul['onvan'] . ' | ' . SITE_NAME;
     $meta_sharh = $mahsul['tozih'] ? mb_substr(strip_tags($mahsul['tozih']), 0, 160) : 'خرید ' . $mahsul['onvan'];
     $safhe_faali = 'forushgah';

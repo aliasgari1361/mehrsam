@@ -31,8 +31,8 @@ function safhe_khane() {
 
     // استفاده از صفحه‌ساز اگر تم home فعال باشد
     $GLOBALS['khane_builder_html'] = '';
-    if (file_exists(MASIR_RISH . 'mohtava/builder/builder.php')) {
-        require_once MASIR_RISH . 'mohtava/builder/builder.php';
+    if (file_exists(MASIR_RISH . 'mohtava/sakhtar/builder.php')) {
+        require_once MASIR_RISH . 'mohtava/sakhtar/builder.php';
         $GLOBALS['khane_builder_html'] = builder_render_for('home');
     }
 
@@ -79,6 +79,16 @@ function khadamat_tan($slug) {
         $safhe_faali  = 'khadamat';
         // متغیر $service در khadamat-tan.php استفاده می‌شود
         $GLOBALS['khadamat_service'] = $service;
+
+        $builder_content = '';
+        if (file_exists(MASIR_RISH . 'mohtava/sakhtar/builder.php')) {
+            require_once MASIR_RISH . 'mohtava/sakhtar/builder.php';
+            $bp_info = builder_get_page_id('khadamat', $slug);
+            if ($bp_info && $bp_info['bp_id']) {
+                $builder_content = builder_render_page($bp_info['bp_id']);
+            }
+        }
+        $GLOBALS['khadamat_builder_content'] = $builder_content;
     }
 
     include MASIR_GHALEB . 'khadamat-tan.php';

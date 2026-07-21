@@ -221,6 +221,9 @@ function mahsul_all($search = '', $dasteh_id = 0, $brand_id = 0) {
 function mahsul_save($id, $data) {
     $bank = new Bank();
     $conn = $bank->getConnection();
+    // تبدیل ۰ به NULL برای رعایت محدودیت کلید خارجی (دسته/برند انتخاب نشده)
+    $data['dasteh_id'] = empty($data['dasteh_id']) ? null : (int)$data['dasteh_id'];
+    $data['brand_id']  = empty($data['brand_id']) ? null : (int)$data['brand_id'];
     if ($id) {
         $stmt = $conn->prepare("UPDATE mahsulat SET onvan=?, slug=?, dasteh_id=?, brand_id=?, gheymat=?, gheymat_takhfif=?, tozih=?, virayesh=?, tasvir=?, mojood=?, vaziat=? WHERE id=?");
         $stmt->bind_param("ssiiidsssiii", 

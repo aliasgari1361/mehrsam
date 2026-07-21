@@ -26,11 +26,11 @@ function mohtava_route($action, $params) {
                 }
                 if ($block_html) {
                     $onvan_safhe = htmlspecialchars($post['title']);
-                    include __DIR__ . '/../ghaleb/' . $template . '/sarsafhe.php';
+                    include __DIR__ . '/../ghaleb/' . $template . '/sarfaraz.php';
                     echo $block_html;
                     include __DIR__ . '/../ghaleb/' . $template . '/panevis.php';
                 } else {
-                    include __DIR__ . '/../ghaleb/' . $template . '/sarsafhe.php';
+                    include __DIR__ . '/../ghaleb/' . $template . '/sarfaraz.php';
                     echo "<h1>" . htmlspecialchars($post['title']) . "</h1>";
                     echo "<div>" . $post['content'] . "</div>";
                     include __DIR__ . '/../ghaleb/' . $template . '/panevis.php';

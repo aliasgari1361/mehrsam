@@ -57,7 +57,7 @@ function masiryab_kon($url) {
         // ---- چت ----
         case 'chat':
             require_once MASIR_DADE . 'bank.php';
-            require_once MASIR_RISH . 'mohtava/chat/chat-kontrol.php';
+            require_once MASIR_RISH . 'mohtava/gheychat/chat-kontrol.php';
             chat_route($amaliat, $paramha);
             break;
 

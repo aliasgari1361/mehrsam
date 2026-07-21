@@ -4,7 +4,7 @@
  */
 
 require_once MASIR_DADE . 'bank.php';
-require_once MASIR_RISH . 'haste/site_settings.php';
+require_once MASIR_RISH . 'haste/tanzimat.php';
 
 function tamas_route($amaliat, $paramha) {
     if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
@@ -63,7 +63,7 @@ function tamas_zakhire() {
         $stmt->close();
         $conn->close();
 
-        require_once MASIR_RISH . 'afzuneh/notification/Notifier.php';
+        require_once MASIR_RISH . 'afzuneh/elpayaagh/Notifier.php';
         Notifier::newContactMessage($nam, $telefon, $mozoo);
 
         $mofagh = 'پیام شما با موفقیت ارسال شد. به‌زودی با شما تماس می‌گیریم.';

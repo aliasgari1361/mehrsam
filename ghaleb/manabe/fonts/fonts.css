@@ -1,8 +1,15 @@
-/* تعریف فونت وزیر */
+/* فونت فارسی وزیر */
 @font-face {
     font-family: 'Vazir';
-    src: url('fonts/Vazirmatn-RD-Bold.woff2') format('woff2'),
-         url('Vazirmatn-RD-Regular.woff2') format('woff2');
-    font-weight: normal;
+    src: url('Vazirmatn-RD-Regular.woff2') format('woff2');
+    font-weight: 400;
     font-style: normal;
+    font-display: swap;
+}
+@font-face {
+    font-family: 'Vazir';
+    src: url('Vazirmatn-RD-Bold.woff2') format('woff2');
+    font-weight: 700;
+    font-style: normal;
+    font-display: swap;
 }

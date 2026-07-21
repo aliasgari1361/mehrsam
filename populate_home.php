@@ -1,10 +1,10 @@
-<?php
+﻿<?php
 define('BASE_URL', 'http://site.test/');
 define('DB_HOST', '127.0.0.1');
 define('DB_USER', 'root');
 define('DB_PASS', '');
 define('DB_NAME', 'mehrsamdb');
-require_once __DIR__ . '/haste/site_settings.php';
+require_once __DIR__ . '/haste/tanzimat.php';
 require_once __DIR__ . '/dade/bank.php';
 
 $bank = new Bank();
@@ -239,11 +239,11 @@ $cta_section = <<<'CTA'
                 <i class="fa-solid fa-envelope"></i>
                 ارسال پیام
             </a>
-            <a href="tel:989105921358" style="background:transparent; color:#fff; padding:14px 32px; border-radius:8px; font-weight:700; font-size:15px; border:2px solid rgba(255,255,255,0.6); display:inline-flex; align-items:center; gap:8px; transition:all 0.3s;"
+            <a href="tel:<?= htmlspecialchars(SITE_TEL_EN) ?>" style="background:transparent; color:#fff; padding:14px 32px; border-radius:8px; font-weight:700; font-size:15px; border:2px solid rgba(255,255,255,0.6); display:inline-flex; align-items:center; gap:8px; transition:all 0.3s;"
                onmouseover="this.style.borderColor='#fff'; this.style.background='rgba(255,255,255,0.1)'"
                onmouseout="this.style.borderColor='rgba(255,255,255,0.6)'; this.style.background='transparent'">
                 <i class="fa-solid fa-phone"></i>
-                989105921358
+                <?= to_persian_num(SITE_TEL_EN) ?>
             </a>
         </div>
     </div>

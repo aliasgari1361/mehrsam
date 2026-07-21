@@ -32,15 +32,33 @@ if (isLoggedIn() && isAdmin()) {
     $elapsed   = microtime(true) - PAGE_START_TIME;
     $seconds   = number_format($elapsed, 4, '.', '');
     $ms        = number_format($elapsed * 1000, 1, '.', '');
-    $badge = '<div id="load-time-badge" style="position:fixed; top:8px; left:8px; z-index:99999;'
-        . ' background:rgba(20,20,30,0.85); color:#0f0; font:12px/1.4 monospace;'
-        . ' padding:6px 10px; border-radius:6px; direction:ltr; text-align:left;'
-        . ' box-shadow:0 2px 8px rgba(0,0,0,0.3); pointer-events:none;">'
-        . '⏱ ' . $seconds . ' s (' . $ms . ' ms)</div>';
-    $page_output = str_ireplace('</body>', $badge . '</body>', $page_output, $count);
-    if ($count === 0) {
-        $page_output .= $badge;
+    // تبدیل اعداد به فارسی
+    $fa = function($n) { return strtr($n, ['0'=>'۰','1'=>'۱','2'=>'۲','3'=>'۳','4'=>'۴','5'=>'۵','6'=>'۶','7'=>'۷','8'=>'۸','9'=>'۹','.'=>'٫']); };
+    $badge_js = '<script>'
+        . 'var b=document.createElement("div");'
+        . 'b.id="load-time-badge";'
+        . 'b.style.cssText="background:rgba(20,20,30,0.85);color:#0f0;font:12px/1.4 Vazir,sans-serif;'
+        . 'padding:5px 12px;border-radius:0 0 8px 8px;direction:rtl;text-align:center;'
+        . 'display:inline-block;pointer-events:none;font-weight:600;";'
+        . 'b.textContent="⏱ ' . $fa($seconds) . ' ث (' . $fa($ms) . ' میلی‌ثانیه)";'
+        . 'document.body.insertBefore(b, document.body.firstChild);'
+        . '</script>';
+    if (stripos($page_output, '</body>') !== false) {
+        $page_output = str_ireplace('</body>', $badge_js . '</body>', $page_output);
+    } else {
+        $page_output .= $badge_js;
     }
+    // فارسی کردن تمام اعداد صفحه
+    $page_output .= '<script>'
+        . '(function(){'
+        . 'var map={"0":"۰","1":"۱","2":"۲","3":"۳","4":"۴","5":"۵","6":"۶","7":"۷","8":"۸","9":"۹"};'
+        . 'function fa(n){return n.replace(/[0-9]/g,function(d){return map[d]});}'
+        . 'var walk=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT,null,false);'
+        . 'var nodes=[];while(walk.nextNode())nodes.push(walk.currentNode);'
+        . 'nodes.forEach(function(n){'
+        . 'if(n.nodeValue && /[0-9]/.test(n.nodeValue)&&!n.parentNode.closest("script,style,input,textarea")){'
+        . 'n.nodeValue=fa(n.nodeValue);}});'
+        . '})();</script>';
 }
 
 echo $page_output;

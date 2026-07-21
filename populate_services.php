@@ -1,10 +1,10 @@
-<?php
+﻿<?php
 define('BASE_URL', 'http://site.test/');
 define('DB_HOST', '127.0.0.1');
 define('DB_USER', 'root');
 define('DB_PASS', '');
 define('DB_NAME', 'mehrsamdb');
-require_once __DIR__ . '/haste/site_settings.php';
+require_once __DIR__ . '/haste/tanzimat.php';
 require_once __DIR__ . '/dade/bank.php';
 
 $bank = new Bank();

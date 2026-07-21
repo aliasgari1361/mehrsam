@@ -171,7 +171,7 @@ function mod_route($action, $params) {
         case 'dashmod':
     $onvan_safhe = 'داشبورد مدیریت';
     $meta_sharh = 'پنل مدیریت سایت';
-    require_once __DIR__ . '/../site_settings.php';
+    require_once __DIR__ . '/../tanzimat.php';
     require_once __DIR__ . '/../../dade/bank.php';
     $bank = new Bank();
     $conn = $bank->getConnection();
@@ -212,56 +212,56 @@ function mod_route($action, $params) {
     $conn->close();
     ?>
 
-    <?php include __DIR__ . '/../../ghaleb/ghmod/sarsafhe.php'; ?>
+    <?php include __DIR__ . '/../../ghaleb/ghmod/sarfaraz.php'; ?>
     <style>
-    .dash { font-family:system-ui,sans-serif; direction:rtl; }
+    @import url('https://cdn.jsdelivr.net/npm/vazirmatn@33.0.3/Vazirmatn-font-face.css');
+    .dash { font-family:'Vazirmatn','Tahoma',sans-serif; direction:rtl; }
     .dash h3 { font-size:1.4rem; margin-bottom:4px; color:#1a1a1a; }
-    .dash .sub { color:#666; font-size:13px; margin-bottom:24px; }
-    .dash-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:16px; margin-bottom:32px; }
-    .dash-card { background:#fff; border-radius:12px; padding:20px; box-shadow:0 1px 4px rgba(0,0,0,0.06); border:1px solid #eef0f4; display:flex; align-items:center; gap:16px; transition:all 0.2s; }
-    .dash-card:hover { box-shadow:0 4px 16px rgba(0,0,0,0.08); transform:translateY(-2px); }
-    .dash-card .icon { width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;color:#fff;flex-shrink:0; }
+    .dash .sub { color:#666; font-size:14px; margin-bottom:24px; }
+    .dash-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(155px,1fr)); gap:14px; margin-bottom:32px; }
+    .dash-card { position:relative; background:#fff; border-radius:12px; padding:16px; box-shadow:0 1px 4px rgba(0,0,0,0.06); border:1px solid #eef0f4; display:flex; align-items:center; gap:12px; transition:all 0.2s; overflow:hidden; }
+    .dash-card::before { content:''; position:absolute; inset:0 auto 0 0; width:4px; background:var(--c,#FF6F00); opacity:0.85; }
+    .dash-card:hover { box-shadow:0 6px 20px rgba(0,0,0,0.10); transform:translateY(-3px); }
+    .dash-card .icon { width:50px;height:50px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;color:#fff;flex-shrink:0; background:var(--c,#FF6F00); }
     .dash-card .info { flex:1; min-width:0; }
-    .dash-card .num { font-size:1.5rem; font-weight:700; line-height:1.2; }
-    .dash-card .lbl { font-size:12px; color:#888; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .dash-card .num { font-size:1.9rem; font-weight:800; line-height:1.15; color:#1a1a1a; }
+    .dash-card .lbl { font-size:13px; color:#666; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:2px; font-weight:500; }
     .dash-card .badge { display:inline-block; font-size:10px; padding:2px 8px; border-radius:10px; font-weight:600; }
     .dash-row { display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:32px; }
-    .dash-panel { background:#fff; border-radius:12px; box-shadow:0 1px 4px rgba(0,0,0,0.06); border:1px solid #eef0f4; overflow:hidden; }
-    .dash-panel h4 { font-size:14px; padding:16px 20px; margin:0; border-bottom:1px solid #eef0f4; display:flex; align-items:center; gap:8px; }
-    .dash-panel .empty { padding:32px; text-align:center; color:#aaa; font-size:13px; }
+    .dash-panel { background:#fff; border-radius:14px; box-shadow:0 1px 4px rgba(0,0,0,0.06); border:1px solid #eef0f4; overflow:hidden; }
+    .dash-panel h4 { font-size:16px; padding:16px 20px; margin:0; border-bottom:1px solid #eef0f4; display:flex; align-items:center; gap:8px; font-weight:700; }
+    .dash-panel h4 .view-all { margin-right:auto; margin-left:0; font-size:13px; font-weight:400; color:var(--rang-asli,#FF6F00); padding-right:12px; }
+    .dash-panel .empty { padding:32px; text-align:center; color:#aaa; font-size:15px; }
     .dash-panel table { width:100%; border-collapse:collapse; }
-    .dash-panel th { text-align:right; padding:10px 16px; font-size:12px; color:#888; font-weight:600; border-bottom:1px solid #eef0f4; }
-    .dash-panel td { padding:10px 16px; font-size:13px; border-bottom:1px solid #f5f6f8; }
+    .dash-panel th { text-align:right; padding:12px 16px; font-size:14px; color:#888; font-weight:600; border-bottom:1px solid #eef0f4; }
+    .dash-panel td { padding:12px 16px; font-size:16px; border-bottom:1px solid #f5f6f8; }
     .dash-panel tr:last-child td { border-bottom:none; }
-    .dash-panel td a { color:var(--rang-asli,#FF6F00); text-decoration:none; }
+    .dash-panel td a { color:var(--rang-asli,#FF6F00); text-decoration:none; font-weight:500; }
     .dash-panel td a:hover { text-decoration:underline; }
-    .status-b { display:inline-block; padding:2px 10px; border-radius:10px; font-size:11px; font-weight:600; }
+    .status-b { display:inline-block; padding:3px 12px; border-radius:10px; font-size:13px; font-weight:600; }
     .status-b.pending { background:#fff3e0; color:#e65100; }
     .status-b.processing { background:#e3f2fd; color:#1565c0; }
     .status-b.publish { background:#e8f5e9; color:#2e7d32; }
     .status-b.draft { background:#f5f5f5; color:#757575; }
     .dash-actions { display:flex; flex-wrap:wrap; gap:8px; }
-    .dash-actions a { display:inline-flex;align-items:center;gap:6px; padding:10px 18px; border-radius:8px; font-size:13px; font-weight:600; text-decoration:none; transition:all 0.2s; background:#f5f6f8; color:#333; }
+    .dash-actions a { display:inline-flex;align-items:center;gap:6px; padding:10px 18px; border-radius:8px; font-size:14px; font-weight:600; text-decoration:none; transition:all 0.2s; background:#f5f6f8; color:#333; }
     .dash-actions a:hover { background:var(--rang-asli,#FF6F00); color:#fff; transform:translateY(-1px); }
     @media (max-width:768px) { .dash-row { grid-template-columns:1fr; } }
     </style>
 
     <div class="dash">
-    <h3>داشبورد مدیریت</h3>
-    <p class="sub">خلاصه وضعیت سایت — <?= date('Y/m/d') ?></p>
-
-    <div class="dash-grid">
-        <div class="dash-card"><div class="icon" style="background:#FF6F00;"><i class="fa-solid fa-file-lines"></i></div><div class="info"><div class="num"><?= $posts_count ?></div><div class="lbl">کل مطالب</div></div></div>
-        <div class="dash-card"><div class="icon" style="background:#E65100;"><i class="fa-solid fa-copy"></i></div><div class="info"><div class="num"><?= $pages_count ?></div><div class="lbl">برگه‌ها</div></div></div>
-        <div class="dash-card"><div class="icon" style="background:#BF360C;"><i class="fa-solid fa-newspaper"></i></div><div class="info"><div class="num"><?= $articles_count ?></div><div class="lbl">مقالات</div></div></div>
-        <div class="dash-card"><div class="icon" style="background:#6C5CE7;"><i class="fa-solid fa-headset"></i></div><div class="info"><div class="num"><?= $services_count ?></div><div class="lbl">خدمات فعال</div></div></div>
-        <div class="dash-card"><div class="icon" style="background:#00B894;"><i class="fa-solid fa-cube"></i></div><div class="info"><div class="num"><?= $products_count ?></div><div class="lbl">محصولات</div></div></div>
-        <div class="dash-card"><div class="icon" style="background:#0984E3;"><i class="fa-solid fa-tags"></i></div><div class="info"><div class="num"><?= $categories_count ?></div><div class="lbl">دسته‌بندی‌ها</div></div></div>
-        <div class="dash-card"><div class="icon" style="background:#E17055;"><i class="fa-solid fa-shopping-cart"></i></div><div class="info"><div class="num"><?= $orders_count ?> <span class="badge" style="background:#fff3e0;color:#e65100;"><?= $orders_pending ?> در انتظار</span></div><div class="lbl"><?= $orders_processing ?> در حال پردازش</div></div></div>
-        <div class="dash-card"><div class="icon" style="background:#FDCB6E;color:#333;"><i class="fa-solid fa-coin"></i></div><div class="info"><div class="num"><?= number_format($orders_revenue) ?></div><div class="lbl">تومان فروش</div></div></div>
-        <a href="<?= BASE_URL ?>mod/messages" class="dash-card" style="text-decoration:none;color:inherit;"><div class="icon" style="background:#00B894;"><i class="fa-solid fa-comment-dots"></i></div><div class="info"><div class="num"><?= $messages_count ?></div><div class="lbl">پیام‌های تماس</div></div></a>
-        <div class="dash-card"><div class="icon" style="background:#6C5CE7;"><i class="fa-solid fa-comments"></i></div><div class="info"><div class="num"><?= $chat_active ?> <span class="badge" style="background:#ffe0e0;color:#c62828;"><?= $chat_unread ?> جدید</span></div><div class="lbl">چت فعال</div></div></div>
-        <div class="dash-card"><div class="icon" style="background:#0984E3;"><i class="fa-solid fa-users"></i></div><div class="info"><div class="num"><?= $users_count ?></div><div class="lbl">کاربران</div></div></div>
+        <div class="dash-grid">
+        <div class="dash-card" style="--c:#FF6F00;"><div class="icon"><i class="fa-solid fa-file-lines"></i></div><div class="info"><div class="num"><?= $posts_count ?></div><div class="lbl">کل مطالب</div></div></div>
+        <div class="dash-card" style="--c:#E65100;"><div class="icon"><i class="fa-solid fa-copy"></i></div><div class="info"><div class="num"><?= $pages_count ?></div><div class="lbl">برگه‌ها</div></div></div>
+        <div class="dash-card" style="--c:#BF360C;"><div class="icon"><i class="fa-solid fa-newspaper"></i></div><div class="info"><div class="num"><?= $articles_count ?></div><div class="lbl">مقالات</div></div></div>
+        <div class="dash-card" style="--c:#6C5CE7;"><div class="icon"><i class="fa-solid fa-headset"></i></div><div class="info"><div class="num"><?= $services_count ?></div><div class="lbl">خدمات فعال</div></div></div>
+        <div class="dash-card" style="--c:#00B894;"><div class="icon"><i class="fa-solid fa-cube"></i></div><div class="info"><div class="num"><?= $products_count ?></div><div class="lbl">محصولات</div></div></div>
+        <div class="dash-card" style="--c:#0984E3;"><div class="icon"><i class="fa-solid fa-tags"></i></div><div class="info"><div class="num"><?= $categories_count ?></div><div class="lbl">دسته‌بندی‌ها</div></div></div>
+        <div class="dash-card" style="--c:#E17055;"><div class="icon"><i class="fa-solid fa-shopping-cart"></i></div><div class="info"><div class="num"><?= $orders_count ?> <span class="badge" style="background:#fff3e0;color:#e65100;"><?= $orders_pending ?> در انتظار</span></div><div class="lbl"><?= $orders_processing ?> در حال پردازش</div></div></div>
+        <div class="dash-card" style="--c:#FDCB6E;"><div class="icon"><i class="fa-solid fa-coins"></i></div><div class="info"><div class="num"><?= number_format($orders_revenue) ?></div><div class="lbl">تومان فروش</div></div></div>
+        <a href="<?= BASE_URL ?>mod/messages" class="dash-card" style="--c:#00B894;text-decoration:none;color:inherit;"><div class="icon"><i class="fa-solid fa-comment-dots"></i></div><div class="info"><div class="num"><?= $messages_count ?></div><div class="lbl">پیام‌های تماس</div></div></a>
+        <div class="dash-card" style="--c:#6C5CE7;"><div class="icon"><i class="fa-solid fa-comments"></i></div><div class="info"><div class="num"><?= $chat_active ?> <span class="badge" style="background:#ffe0e0;color:#c62828;"><?= $chat_unread ?> جدید</span></div><div class="lbl">چت فعال</div></div></div>
+        <div class="dash-card" style="--c:#0984E3;"><div class="icon"><i class="fa-solid fa-users"></i></div><div class="info"><div class="num"><?= $users_count ?></div><div class="lbl">کاربران</div></div></div>
     </div>
 
     <div class="dash-row">
@@ -276,7 +276,7 @@ function mod_route($action, $params) {
             <?php else: ?><div class="empty">هیچ سفارشی ثبت نشده</div><?php endif; ?>
         </div>
         <div class="dash-panel">
-            <h4><a href="<?= BASE_URL ?>mod/messages" style="text-decoration:none;color:inherit;"><i class="fa-solid fa-envelope" style="color:#00B894;"></i> آخرین پیام‌های تماس <span style="font-size:11px;font-weight:400;color:var(--rang-asli,#FF6F00);float:left;">مشاهده همه ←</span></a></h4>
+            <h4><a href="<?= BASE_URL ?>mod/messages" style="text-decoration:none;color:inherit;display:flex;align-items:center;gap:8px;width:100%;"><i class="fa-solid fa-envelope" style="color:#00B894;"></i> آخرین پیام‌های تماس <span class="view-all" style="margin-right:auto;margin-left:0;padding-right:12px;">مشاهده همه ←</span></a></h4>
             <?php if ($recent_messages && $recent_messages->num_rows > 0): ?>
             <table><thead><tr><th>نام</th><th>موضوع</th><th>تاریخ</th></tr></thead><tbody>
             <?php while ($m = $recent_messages->fetch_assoc()): ?>
@@ -344,7 +344,7 @@ function mod_route($action, $params) {
     break;
 
         case 'content':
-            require_once __DIR__ . '/../site_settings.php';
+            require_once __DIR__ . '/../tanzimat.php';
             require_once __DIR__ . '/../../dade/bank.php';
             $bank = new Bank();
             $conn = $bank->getConnection();
@@ -353,7 +353,7 @@ function mod_route($action, $params) {
             if ($result) while ($row = $result->fetch_assoc()) $posts_list[] = $row;
             $conn->close();
 
-            include __DIR__ . '/../../ghaleb/ghmod/sarsafhe.php';
+            include __DIR__ . '/../../ghaleb/ghmod/sarfaraz.php';
             ?>
             <h3>مدیریت محتوا</h3>
             <p><a href="<?php echo BASE_URL; ?>mod/edit_content">+ مطلب جدید</a></p>
@@ -367,6 +367,7 @@ function mod_route($action, $params) {
                     <td><?php echo $p['created_at']; ?><br><span style="color:var(--rang-asli,#FF6F00);"><?php echo to_jalali($p['created_at'], 'Y/m/d H:i'); ?></span></td>
                     <td>
                         <a href="<?php echo BASE_URL; ?>mod/edit_content/<?php echo $p['id']; ?>">ویرایش</a> |
+                        <a href="<?php echo BASE_URL; ?>mod/builder/edit_post/<?php echo $p['type']; ?>/<?php echo $p['id']; ?>">صفحه‌ساز</a> |
                         <a href="<?php echo BASE_URL; ?>mod/delete_content/<?php echo $p['id']; ?>" onclick="return confirm('مطمئنی؟')">حذف</a>
                     </td>
                 </tr>
@@ -385,7 +386,7 @@ function mod_route($action, $params) {
             if ($result) while ($row = $result->fetch_assoc()) $pages[] = $row;
             $conn->close();
 
-            include __DIR__ . '/../../ghaleb/ghmod/sarsafhe.php';
+            include __DIR__ . '/../../ghaleb/ghmod/sarfaraz.php';
             ?>
             <h3>مدیریت صفحات</h3>
             <p><a href="<?php echo BASE_URL; ?>mod/edit_page">+ صفحه جدید</a></p>
@@ -399,6 +400,7 @@ function mod_route($action, $params) {
                     <td><?php echo $p['status']; ?></td>
                     <td>
                         <a href="<?php echo BASE_URL; ?>mod/edit_page/<?php echo $p['id']; ?>">ویرایش</a> |
+                        <a href="<?php echo BASE_URL; ?>mod/builder/edit_post/<?php echo $p['type']; ?>/<?php echo $p['id']; ?>">صفحه‌ساز</a> |
                         <a href="<?php echo BASE_URL; ?>mod/delete_page/<?php echo $p['id']; ?>" onclick="return confirm('مطمئنی؟')">حذف</a>
                     </td>
                 </tr>
@@ -454,7 +456,7 @@ function mod_route($action, $params) {
                     $stmt->close();
                 }
                 // ساخت خودکار پوشه فایل‌های این صفحه
-                require_once MASIR_RISH . 'mohtava/files/file-functions.php';
+                require_once MASIR_RISH . 'mohtava/file/file-functions.php';
                 file_create_content_folder('page', $slug ?: $new_id);
                 $conn->close();
                 redirect('mod/pages');
@@ -462,7 +464,7 @@ function mod_route($action, $params) {
             }
             $conn->close();
 
-            include __DIR__ . '/../../ghaleb/ghmod/sarsafhe.php';
+            include __DIR__ . '/../../ghaleb/ghmod/sarfaraz.php';
             ?>
             <h3><?php echo $is_edit ? 'ویرایش صفحه' : 'صفحه جدید'; ?></h3>
             <form method="post">
@@ -509,7 +511,7 @@ function mod_route($action, $params) {
             break;
 
         case 'panel_settings':
-            require_once __DIR__ . '/../settings.php';
+            require_once __DIR__ . '/../tanzimat.php';
             $admin_settings = json_decode(file_get_contents(ADMIN_SETTINGS_FILE), true) ?: ['bg_color' => '#f0f2f5', 'font' => 'Tahoma', 'favicon' => ''];
             if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
                 $new_settings = [
@@ -525,7 +527,7 @@ function mod_route($action, $params) {
                 $admin_settings = json_decode(file_get_contents(ADMIN_SETTINGS_FILE), true) ?: $new_settings;
                 $message = "تنظیمات پنل ذخیره شد.";
             }
-            include __DIR__ . '/../../ghaleb/ghmod/sarsafhe.php';
+            include __DIR__ . '/../../ghaleb/ghmod/sarfaraz.php';
             ?>
             <h3>تنظیمات پنل مدیریت</h3>
             <?php if (isset($message)) echo "<p style='color:green;'>$message</p>"; ?>
@@ -557,7 +559,7 @@ function mod_route($action, $params) {
             break;
 
         case 'settings':
-            require_once __DIR__ . '/../site_settings.php';
+            require_once __DIR__ . '/../tanzimat.php';
             global $site_settings;
             $current = $site_settings;
 
@@ -604,7 +606,7 @@ function mod_route($action, $params) {
             ];
             $standalone = in_array($active_tab, ['theme', 'git'], true);
 
-            include __DIR__ . '/../../ghaleb/ghmod/sarsafhe.php';
+            include __DIR__ . '/../../ghaleb/ghmod/sarfaraz.php';
             ?>
             <style>
                 .settings-tabs { display:flex; gap:4px; margin-bottom:20px; border-bottom:2px solid var(--rang-border); padding-bottom:4px; }
@@ -961,7 +963,6 @@ function mod_route($action, $params) {
             if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
                 $title   = $_POST['title'] ?? '';
                 $slug    = $_POST['slug'] ?? '';
-                $content = $_POST['content'] ?? '';
                 $kholaseh = $_POST['kholaseh'] ?? '';
                 $tasvir  = $_POST['tasvir'] ?? '';
                 $type    = $_POST['type'] ?? 'blog';
@@ -969,14 +970,14 @@ function mod_route($action, $params) {
                 if (empty($slug)) $slug = trim(preg_replace('/[^a-zA-Z0-9\-]/', '-', $title), '-');
 
                 if ($is_edit) {
-                    $stmt = $conn->prepare("UPDATE posts SET title=?, slug=?, content=?, kholaseh=?, tasvir=?, type=?, status=? WHERE id=?");
-                    $stmt->bind_param("sssssssi", $title, $slug, $content, $kholaseh, $tasvir, $type, $status, $id);
+                    $stmt = $conn->prepare("UPDATE posts SET title=?, slug=?, kholaseh=?, tasvir=?, type=?, status=? WHERE id=?");
+                    $stmt->bind_param("ssssssi", $title, $slug, $kholaseh, $tasvir, $type, $status, $id);
                     $stmt->execute();
                     $stmt->close();
                     $new_id = $id;
                 } else {
-                    $stmt = $conn->prepare("INSERT INTO posts (title, slug, content, kholaseh, tasvir, type, status) VALUES (?, ?, ?, ?, ?, ?, ?)");
-                    $stmt->bind_param("sssssss", $title, $slug, $content, $kholaseh, $tasvir, $type, $status);
+                    $stmt = $conn->prepare("INSERT INTO posts (title, slug, kholaseh, tasvir, type, status) VALUES (?, ?, ?, ?, ?, ?)");
+                    $stmt->bind_param("ssssss", $title, $slug, $kholaseh, $tasvir, $type, $status);
                     $stmt->execute();
                     $new_id = $conn->insert_id;
                     $stmt->close();
@@ -995,7 +996,7 @@ function mod_route($action, $params) {
                 }
 
                 // ساخت خودکار پوشه فایل‌های این محتوا
-                require_once MASIR_RISH . 'mohtava/files/file-functions.php';
+                require_once MASIR_RISH . 'mohtava/file/file-functions.php';
                 file_create_content_folder($type, $slug ?: $new_id);
                 $conn->close();
                 redirect('mod/content');
@@ -1005,16 +1006,23 @@ function mod_route($action, $params) {
             $all_cats = $conn->query("SELECT id, title FROM categories ORDER BY title")->fetch_all(MYSQLI_ASSOC);
             $conn->close();
 
-            include __DIR__ . '/../../ghaleb/ghmod/sarsafhe.php';
+            include __DIR__ . '/../../ghaleb/ghmod/sarfaraz.php';
             ?>
             <h3><?php echo $is_edit ? 'ویرایش مطلب' : 'ایجاد مطلب جدید'; ?></h3>
 
-            <?php
-            $edr_value = htmlspecialchars($post['content']);
-            $edr_name = 'content';
-            $edr_id = 'contentArea';
-            include __DIR__ . '/../editor/editor.php';
-            ?>
+            <?php if ($is_edit): ?>
+            <div style="margin:0 0 20px;padding:16px 20px;background:#fff3e0;border:1px solid #ffd9a0;border-radius:12px;display:flex;align-items:center;justify-content:space-between;gap:16px;">
+                <div>
+                    <strong style="color:#b25e00;">محتوا با صفحه‌ساز ویرایش می‌شود</strong>
+                    <div style="font-size:13px;color:#8a6d3b;margin-top:4px;">ویرایشگر HTML قدیمی غیرفعال شد. برای ساخت و چیدمان بلاک‌ها از صفحه‌ساز استفاده کنید.</div>
+                </div>
+                <a href="<?= BASE_URL ?>mod/builder/edit_post/<?= htmlspecialchars($post['type']) ?>/<?= $id ?>" class="dakmeh dakmeh-asli" style="display:inline-flex;align-items:center;gap:8px;padding:10px 20px;border-radius:8px;background:var(--rang-asli,#FF6F00);color:#fff;font-weight:700;text-decoration:none;white-space:nowrap;"><i class="fa-solid fa-layer-group"></i> ویرایش با صفحه‌ساز</a>
+            </div>
+            <?php else: ?>
+            <div style="margin:0 0 20px;padding:16px 20px;background:#eef6ff;border:1px solid #cfe3ff;border-radius:12px;font-size:13px;color:#3d5a80;">
+                پس از ذخیره، از دکمه «ویرایش با صفحه‌ساز» در لیست محتواها برای افزودن بلاک‌ها استفاده کنید.
+            </div>
+            <?php endif; ?>
             <form method="post" id="contentForm">
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin:20px 0;">
                     <div>
@@ -1098,14 +1106,14 @@ function mod_route($action, $params) {
             break;
 
         case 'chat':
-            require_once __DIR__ . '/../../mohtava/chat/chat-model.php';
-            include __DIR__ . '/../../ghaleb/ghmod/sarsafhe.php';
-            include __DIR__ . '/../../ghaleb/ghmod/chat/admin-chat.php';
+            require_once __DIR__ . '/../../mohtava/gheychat/chat-model.php';
+            include __DIR__ . '/../../ghaleb/ghmod/sarfaraz.php';
+            include __DIR__ . '/../../ghaleb/ghmod/gheychat/admin-chat.php';
             include __DIR__ . '/../../ghaleb/ghmod/panevis.php';
             break;
 
         case 'messages':
-            require_once __DIR__ . '/../site_settings.php';
+            require_once __DIR__ . '/../tanzimat.php';
             require_once __DIR__ . '/../../dade/bank.php';
             $bank = new Bank();
             $conn = $bank->getConnection();
@@ -1121,7 +1129,7 @@ function mod_route($action, $params) {
                 $msg = $stmt->get_result()->fetch_assoc();
                 $stmt->close();
                 $conn->close();
-                include __DIR__ . '/../../ghaleb/ghmod/sarsafhe.php';
+                include __DIR__ . '/../../ghaleb/ghmod/sarfaraz.php';
                 ?>
                 <h3>مشاهده پیام تماس</h3>
                 <p><a href="<?= BASE_URL ?>mod/messages" style="color:var(--rang-asli,#FF6F00);">&larr; بازگشت به لیست</a></p>
@@ -1146,7 +1154,7 @@ function mod_route($action, $params) {
             $messages_list = [];
             if ($result) while ($row = $result->fetch_assoc()) $messages_list[] = $row;
             $conn->close();
-            include __DIR__ . '/../../ghaleb/ghmod/sarsafhe.php';
+            include __DIR__ . '/../../ghaleb/ghmod/sarfaraz.php';
             ?>
             <h3>پیام‌های تماس با ما</h3>
             <p style="color:#888;margin-bottom:16px;">پیام‌های ارسالی از فرم تماس با ما</p>
@@ -1171,16 +1179,16 @@ function mod_route($action, $params) {
             break;
 
         case 'chat_view':
-            require_once __DIR__ . '/../../mohtava/chat/chat-model.php';
+            require_once __DIR__ . '/../../mohtava/gheychat/chat-model.php';
             $chat_session = chat_get_session($params[0] ?? 0);
             $chat_messages = $chat_session ? chat_get_all_messages($chat_session['id']) : [];
-            include __DIR__ . '/../../ghaleb/ghmod/sarsafhe.php';
-            include __DIR__ . '/../../ghaleb/ghmod/chat/admin-chat-view.php';
+            include __DIR__ . '/../../ghaleb/ghmod/sarfaraz.php';
+            include __DIR__ . '/../../ghaleb/ghmod/gheychat/admin-chat-view.php';
             include __DIR__ . '/../../ghaleb/ghmod/panevis.php';
             break;
 
         case 'chat_poll_admin':
-            require_once __DIR__ . '/../../mohtava/chat/chat-model.php';
+            require_once __DIR__ . '/../../mohtava/gheychat/chat-model.php';
             header('Content-Type: application/json');
             $session_id = (int)($params[0] ?? 0);
             $since_id = (int)($_GET['since'] ?? 0);
@@ -1189,7 +1197,7 @@ function mod_route($action, $params) {
             break;
 
         case 'chat_reply':
-            require_once __DIR__ . '/../../mohtava/chat/chat-model.php';
+            require_once __DIR__ . '/../../mohtava/gheychat/chat-model.php';
             $session_id = $params[0] ?? 0;
             $message = $_POST['message'] ?? '';
             if ($session_id && $message) {
@@ -1199,14 +1207,14 @@ function mod_route($action, $params) {
             break;
 
         case 'chat_close':
-            require_once __DIR__ . '/../../mohtava/chat/chat-model.php';
+            require_once __DIR__ . '/../../mohtava/gheychat/chat-model.php';
             $session_id = $params[0] ?? 0;
             if ($session_id) chat_close_session($session_id);
             redirect('mod/chat');
             break;
 
         case 'chat_delete':
-            require_once __DIR__ . '/../../mohtava/chat/chat-model.php';
+            require_once __DIR__ . '/../../mohtava/gheychat/chat-model.php';
             $session_id = $params[0] ?? 0;
             if ($session_id) chat_delete_session($session_id);
             redirect('mod/chat');
@@ -1223,6 +1231,8 @@ function mod_route($action, $params) {
             break;
 
         case 'logout':
+            if (isset($_COOKIE['rid'])) setcookie('rid', '', time() - 3600, '/');
+            if (isset($_COOKIE['rtok'])) setcookie('rtok', '', time() - 3600, '/');
             session_destroy();
             redirect('mod/lomod');
             break;
@@ -1242,33 +1252,35 @@ function mod_route($action, $params) {
             break;
 
         case 'builder':
-            require_once MASIR_RISH . 'mohtava/builder/builder.php';
+            require_once MASIR_RISH . 'mohtava/sakhtar/builder.php';
             $builder_action = $params[0] ?? '';
             $builder_params = array_slice($params, 1);
             if ($builder_action === 'save') {
                 builder_save_blocks();
             } elseif ($builder_action === 'clear_cache') {
                 builder_clear_cache($builder_params[0] ?? 0);
+            } elseif ($builder_action === 'render_blocks') {
+                builder_render_blocks_api();
             } else {
                 builder_route($builder_action, $builder_params);
             }
             break;
 
         case 'files':
-            require_once MASIR_RISH . 'mohtava/files/file-manager.php';
+            require_once MASIR_RISH . 'mohtava/file/file-manager.php';
             $files_action = $params[0] ?? '';
             $files_params = array_slice($params, 1);
             admin_files_route($files_action, $files_params);
             break;
 
         case 'upload':
-            require_once MASIR_RISH . 'mohtava/files/file-manager.php';
+            require_once MASIR_RISH . 'mohtava/file/file-manager.php';
             public_upload_route();
             break;
 
 
         case 'backup':
-            require_once MASIR_RISH . 'mohtava/backup/backup-admin.php';
+            require_once MASIR_RISH . 'mohtava/poshtyban/backup-admin.php';
             $backup_action = $params[0] ?? '';
             admin_backup_route($backup_action);
             break;

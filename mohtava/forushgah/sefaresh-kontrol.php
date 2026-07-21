@@ -3,7 +3,7 @@
 require_once MASIR_DADE . 'bank.php';
 require_once __DIR__ . '/sefaresh-model.php';
 require_once __DIR__ . '/sabad-model.php';
-require_once MASIR_RISH . 'afzuneh/pardakht-darbe/GatewayManager.php';
+require_once MASIR_RISH . 'afzuneh/pardakht/GatewayManager.php';
 
 function karbar_get($karbar_id) {
     $bank = new Bank();
@@ -109,7 +109,7 @@ function checkout_process() {
     $total = sabad_total();
 
     // هزینه ارسال از تنظیمات فروشگاه
-    require_once MASIR_RISH . 'haste/site_settings.php';
+    require_once MASIR_RISH . 'haste/tanzimat.php';
     $store_settings = get_site_setting('store') ?? [];
     $free_threshold = (int)($store_settings['free_shipping_threshold'] ?? 0);
     $default_shipping = (int)($store_settings['default_shipping_cost'] ?? 0);
@@ -138,7 +138,7 @@ function checkout_process() {
     ]);
 
     if ($sefaresh_id) {
-        require_once MASIR_RISH . 'afzuneh/notification/Notifier.php';
+        require_once MASIR_RISH . 'afzuneh/elpayaagh/Notifier.php';
         Notifier::newOrder($sefaresh_id, $majmoo, $onvan_girande);
     } else {
         if (isAjax()) {
@@ -180,7 +180,7 @@ function checkout_process() {
  * پردازش بازگشت از درگاه پرداخت
  */
 function checkout_gateway_callback($gateway_key) {
-    require_once MASIR_RISH . 'haste/site_settings.php';
+    require_once MASIR_RISH . 'haste/tanzimat.php';
     $gateway = GatewayManager::get($gateway_key);
 
     if (!$gateway) {

@@ -1,6 +1,6 @@
 <?php
 // عنوان سایت را از تنظیمات عمومی می‌خوانیم
-require_once __DIR__ . '/../../haste/site_settings.php';
+require_once __DIR__ . '/../../haste/tanzimat.php';
 $siteTitle = get_site_setting('site_title') ?? 'پنل مدیریت';
 
 // Ensure session is started

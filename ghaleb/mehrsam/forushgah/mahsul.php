@@ -1,4 +1,4 @@
-<?php include MASIR_GHALEB . 'sarsafhe.php'; ?>
+﻿<?php include MASIR_GHALEB . 'sarfaraz.php'; ?>
 
 <div class="sarsafhe-safhe">
     <div class="mohtava-container">
@@ -45,7 +45,11 @@
                     </span>
                 </div>
 
-                <?php if (!empty($mahsul['tozih'])): ?>
+                <?php if (!empty($builder_content)): ?>
+                <div style="line-height:2; color:#444; margin-bottom:24px;">
+                    <?= $builder_content ?>
+                </div>
+                <?php elseif (!empty($mahsul['tozih'])): ?>
                 <div style="line-height:2; color:#444; margin-bottom:24px;">
                     <?= nl2br(htmlspecialchars($mahsul['tozih'])) ?>
                 </div>

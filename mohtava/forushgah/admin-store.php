@@ -2,8 +2,8 @@
 
 require_once __DIR__ . '/mahsul-model.php';
 require_once MASIR_DADE . 'bank.php';
-require_once MASIR_RISH . 'haste/settings.php';
-require_once MASIR_RISH . 'haste/site_settings.php';
+require_once MASIR_RISH . 'haste/tanzimat.php';
+require_once MASIR_RISH . 'haste/tanzimat.php';
 
 function admin_store_route($action, $params) {
     $sub = $params[0] ?? '';
@@ -60,8 +60,9 @@ function admin_store_dashboard() {
     $r = $conn->query("SELECT COUNT(*) AS cnt FROM mahsul_brand");
     if ($r) $brands = $r->fetch_assoc()['cnt'] ?? 0;
     $orders = $conn->query("SELECT COUNT(*) AS cnt FROM sefaresh")->fetch_assoc()['cnt'] ?? 0;
+    $recent = $conn->query("SELECT id, onvan, slug, gheymat, vaziat FROM mahsulat ORDER BY id DESC LIMIT 8")->fetch_all(MYSQLI_ASSOC);
     $conn->close();
-    include __DIR__ . '/../../ghaleb/ghmod/sarsafhe.php';
+    include __DIR__ . '/../../ghaleb/ghmod/sarfaraz.php';
     ?>
     <h3>مدیریت فروشگاه</h3>
     <p style="color:#888; margin-bottom:24px;">داشبورد فروشگاه — مدیریت محصولات، دسته‌بندی‌ها، برندها و سفارشات</p>
@@ -87,6 +88,35 @@ function admin_store_dashboard() {
         <a href="<?= BASE_URL ?>mod/store/brands/edit" class="dakmeh" style="display:inline-flex;align-items:center;gap:8px;padding:10px 20px;border-radius:8px;background:#f5f6f8;color:#333;font-weight:700;font-size:14px;text-decoration:none;"><i class="fa-solid fa-plus"></i> برند جدید</a>
         <a href="<?= BASE_URL ?>mod/store/settings" class="dakmeh" style="display:inline-flex;align-items:center;gap:8px;padding:10px 20px;border-radius:8px;background:#f5f6f8;color:#333;font-weight:700;font-size:14px;text-decoration:none;"><i class="fa-solid fa-gear"></i> تنظیمات</a>
     </div>
+
+    <h3 style="margin:36px 0 16px;">آخرین محصولات ایجاد شده</h3>
+    <?php if (empty($recent)): ?>
+        <p style="color:#888;background:#fff;border:1px solid #eef0f4;border-radius:12px;padding:24px;">هنوز محصولی ایجاد نشده است. دکمهٔ «محصول جدید» را بزنید.</p>
+    <?php else: ?>
+        <div style="background:#fff;border:1px solid #eef0f4;border-radius:12px;overflow:hidden;">
+            <table border="0" cellpadding="12" cellspacing="0" width="100%" style="border-collapse:collapse;">
+                <tr style="background:#f8f9fa;color:#666;font-size:13px;">
+                    <th style="text-align:right;">عنوان محصول</th>
+                    <th style="text-align:right;">قیمت</th>
+                    <th style="text-align:right;">وضعیت</th>
+                    <th style="text-align:right;">عملیات</th>
+                </tr>
+                <?php foreach ($recent as $rp): ?>
+                <tr style="border-top:1px solid #f0f2f5;">
+                    <td><a href="<?= BASE_URL ?>mod/store/products/edit/<?= $rp['id'] ?>" style="color:var(--rang-asli,#FF6F00);font-weight:600;"><?= htmlspecialchars($rp['onvan']) ?></a></td>
+                    <td><?= number_format((float)$rp['gheymat']) ?> تومان</td>
+                    <td><span style="display:inline-block;padding:2px 10px;border-radius:10px;font-size:11px;font-weight:600;background:<?= $rp['vaziat'] ? '#e8f5e9' : '#f5f5f5' ?>;color:<?= $rp['vaziat'] ? '#2e7d32' : '#757575' ?>;"><?= $rp['vaziat'] ? 'فعال' : 'غیرفعال' ?></span></td>
+                    <td style="white-space:nowrap;">
+                        <?php if (!empty($rp['slug'])): ?><a href="<?= BASE_URL ?>forushgah/<?= urlencode($rp['slug']) ?>" target="_blank" style="color:#00B894;margin-left:8px;"><i class="fa-solid fa-eye"></i> نمایش</a><?php endif; ?>
+                        <a href="<?= BASE_URL ?>mod/builder/edit_post/mahsul/<?= $rp['id'] ?>" style="margin-left:8px;">صفحه‌ساز</a>
+                        <a href="<?= BASE_URL ?>mod/store/products/edit/<?= $rp['id'] ?>">ویرایش</a>
+                    </td>
+                </tr>
+                <?php endforeach; ?>
+            </table>
+        </div>
+        <p style="margin-top:12px;"><a href="<?= BASE_URL ?>mod/store/products" style="color:var(--rang-asli,#FF6F00);font-weight:700;">مشاهده همهٔ محصولات ←</a></p>
+    <?php endif; ?>
     <?php
     include __DIR__ . '/../../ghaleb/ghmod/panevis.php';
 }
@@ -112,7 +142,7 @@ function admin_store_settings() {
         'idpay'    => ['enabled'=>false,'title'=>'آی‌دی‌پی','api_key'=>'','sandbox'=>true],
         'zibal'    => ['enabled'=>false,'title'=>'زیبال','merchant'=>'','sandbox'=>true],
     ];
-    include __DIR__ . '/../../ghaleb/ghmod/sarsafhe.php';
+    include __DIR__ . '/../../ghaleb/ghmod/sarfaraz.php';
     ?>
     <h3>تنظیمات فروشگاه</h3>
     <p><a href="<?= BASE_URL ?>mod/store" style="color:var(--rang-asli,#FF6F00);">&larr; بازگشت به داشبورد</a></p>
@@ -231,7 +261,7 @@ function admin_store_product_list() {
     $products = mahsul_all($search, $dasteh_id, $brand_id);
     $categories = mahsul_categories_list();
     $brands = mahsul_brand_list();
-    include __DIR__ . '/../../ghaleb/ghmod/sarsafhe.php';
+    include __DIR__ . '/../../ghaleb/ghmod/sarfaraz.php';
     ?>
     <h3>مدیریت محصولات</h3>
     <p><a href="<?= BASE_URL ?>mod/store/products/edit" style="color:var(--rang-asli,#FF6F00);font-weight:700;">+ محصول جدید</a></p>
@@ -277,7 +307,9 @@ function admin_store_product_list() {
                 </form>
             </td>
             <td>
+                <?php if (!empty($p['slug'])): ?><a href="<?= BASE_URL ?>forushgah/<?= urlencode($p['slug']) ?>" target="_blank" style="color:#00B894;">نمایش</a> |<?php endif; ?>
                 <a href="<?= BASE_URL ?>mod/store/products/edit/<?= $p['id'] ?>">ویرایش</a> |
+                <a href="<?= BASE_URL ?>mod/builder/edit_post/mahsul/<?= $p['id'] ?>">صفحه‌ساز</a> |
                 <a href="<?= BASE_URL ?>mod/store/products/delete/<?= $p['id'] ?>" onclick="return confirm('حذف شود؟')">حذف</a>
             </td>
         </tr>
@@ -288,7 +320,7 @@ function admin_store_product_list() {
 }
 
 function admin_store_product_form($id) {
-    require_once __DIR__ . '/../../haste/site_settings.php';
+    require_once __DIR__ . '/../../haste/tanzimat.php';
     $product = ['onvan' => '', 'slug' => '', 'dasteh_id' => 0, 'brand_id' => 0, 'gheymat' => 0, 'gheymat_takhfif' => null, 'tozih' => '', 'virayesh' => '', 'tasvir' => '', 'mojood' => 0, 'vaziat' => 1];
     if ($id) $product = mahsul_get($id) ?: $product;
     $categories = mahsul_categories_list();
@@ -309,18 +341,18 @@ function admin_store_product_form($id) {
             'vaziat' => (int)($_POST['vaziat'] ?? 1),
         ];
         if (!empty($_FILES['tasvir']['name']) && $_FILES['tasvir']['error'] === UPLOAD_ERR_OK) {
-            require_once __DIR__ . '/../../haste/site_settings.php';
+            require_once __DIR__ . '/../../haste/tanzimat.php';
             $up = upload_site_image('tasvir', 'products/');
             if (is_string($up)) $data['tasvir'] = $up;
         }
         $nid = mahsul_save($id, $data);
         // ساخت خودکار پوشه فایل‌های این محصول
-        require_once __DIR__ . '/../../mohtava/files/file-functions.php';
+        require_once __DIR__ . '/../../mohtava/file/file-functions.php';
         file_create_content_folder('product', $data['slug'] ?: $nid);
         redirect('mod/store/products');
         exit;
     }
-    include __DIR__ . '/../../ghaleb/ghmod/sarsafhe.php';
+    include __DIR__ . '/../../ghaleb/ghmod/sarfaraz.php';
     ?>
     <h3><?= $is_edit ? 'ویرایش محصول' : 'محصول جدید' ?></h3>
     <form method="post" enctype="multipart/form-data" style="max-width:800px;">
@@ -410,7 +442,7 @@ function admin_store_product_delete($id) {
 
 function admin_store_category_list() {
     $cats = mahsul_categories_list();
-    include __DIR__ . '/../../ghaleb/ghmod/sarsafhe.php';
+    include __DIR__ . '/../../ghaleb/ghmod/sarfaraz.php';
     ?>
     <h3>مدیریت دسته‌بندی‌ها</h3>
     <p><a href="<?= BASE_URL ?>mod/store/categories/edit" style="color:var(--rang-asli,#FF6F00);font-weight:700;">+ دسته جدید</a></p>
@@ -443,7 +475,7 @@ function admin_store_category_form($id) {
         redirect('mod/store/categories');
         exit;
     }
-    include __DIR__ . '/../../ghaleb/ghmod/sarsafhe.php';
+    include __DIR__ . '/../../ghaleb/ghmod/sarfaraz.php';
     ?>
     <h3><?= $id ? 'ویرایش دسته‌بندی' : 'دسته‌بندی جدید' ?></h3>
     <form method="post" style="max-width:500px;">
@@ -472,7 +504,7 @@ function admin_store_category_delete($id) {
 
 function admin_store_brand_list() {
     $brands = mahsul_brand_list();
-    include __DIR__ . '/../../ghaleb/ghmod/sarsafhe.php';
+    include __DIR__ . '/../../ghaleb/ghmod/sarfaraz.php';
     ?>
     <h3>مدیریت برندها</h3>
     <p><a href="<?= BASE_URL ?>mod/store/brands/edit" style="color:var(--rang-asli,#FF6F00);font-weight:700;">+ برند جدید</a></p>
@@ -507,7 +539,7 @@ function admin_store_brand_form($id) {
             'vaziat' => (int)($_POST['vaziat'] ?? 1),
         ];
         if (!empty($_FILES['logo']['name']) && $_FILES['logo']['error'] === UPLOAD_ERR_OK) {
-            require_once __DIR__ . '/../../haste/site_settings.php';
+            require_once __DIR__ . '/../../haste/tanzimat.php';
             $up = upload_site_image('logo', 'brands/');
             if (is_string($up)) $data['logo'] = $up;
         }
@@ -515,7 +547,7 @@ function admin_store_brand_form($id) {
         redirect('mod/store/brands');
         exit;
     }
-    include __DIR__ . '/../../ghaleb/ghmod/sarsafhe.php';
+    include __DIR__ . '/../../ghaleb/ghmod/sarfaraz.php';
     ?>
     <h3><?= $id ? 'ویرایش برند' : 'برند جدید' ?></h3>
     <form method="post" enctype="multipart/form-data" style="max-width:500px;">
@@ -579,7 +611,7 @@ function admin_store_order_list() {
     $orders = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     $stmt->close();
     $conn->close();
-    include __DIR__ . '/../../ghaleb/ghmod/sarsafhe.php';
+    include __DIR__ . '/../../ghaleb/ghmod/sarfaraz.php';
     ?>
     <h3>مدیریت سفارشات</h3>
     <form method="get" style="margin:16px 0;">
@@ -618,7 +650,7 @@ function admin_store_order_view($id) {
     $order = sefaresh_get($id);
     $items = sefaresh_get_items($id);
     if (!$order) {
-        include __DIR__ . '/../../ghaleb/ghmod/sarsafhe.php';
+        include __DIR__ . '/../../ghaleb/ghmod/sarfaraz.php';
         echo "<h3>سفارش یافت نشد</h3>";
         include __DIR__ . '/../../ghaleb/ghmod/panevis.php';
         return;
@@ -633,7 +665,7 @@ function admin_store_order_view($id) {
         $conn->close();
         $order['vaziat'] = $_POST['vaziat'];
     }
-    include __DIR__ . '/../../ghaleb/ghmod/sarsafhe.php';
+    include __DIR__ . '/../../ghaleb/ghmod/sarfaraz.php';
     ?>
     <h3>سفارش #<?= $order['id'] ?></h3>
     <p><a href="<?= BASE_URL ?>mod/store/orders" style="color:var(--rang-asli,#FF6F00);">&larr; بازگشت به لیست</a></p>

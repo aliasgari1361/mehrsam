@@ -1,4 +1,21 @@
-<!-- پاصفحه -->
+﻿<!-- پاصفحه -->
+<?php
+$builder_footer_html = '';
+if (!function_exists('builder_render_part')) {
+    if (file_exists(MASIR_RISH . 'mohtava/sakhtar/builder.php')) {
+        require_once MASIR_RISH . 'mohtava/sakhtar/builder.php';
+    }
+}
+if (function_exists('builder_render_part')) {
+    $bf_ctx = [];
+    if (!empty($GLOBALS['page_slug'])) $bf_ctx['slug'] = $GLOBALS['page_slug'];
+    if (!empty($GLOBALS['page_type'])) $bf_ctx['type'] = $GLOBALS['page_type'];
+    $builder_footer_html = builder_render_part('footer', $bf_ctx);
+}
+?>
+<?php if ($builder_footer_html): ?>
+<div class="builder-part builder-part-footer"><?= $builder_footer_html ?></div>
+<?php else: ?>
 <footer style="background:var(--rang-makm1); color:#ccc; margin-top:0;">
 
     <div class="mohtava-container" style="padding-top:60px; padding-bottom:40px;">
@@ -88,6 +105,7 @@
     </div>
 
 </footer>
+<?php endif; ?>
 
 <?php include __DIR__ . '/chat/widget.php'; ?>
 

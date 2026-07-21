@@ -1,9 +1,9 @@
-<?php
+﻿<?php
 // دریافت خدمت از متغیر سراسری
 $service = $GLOBALS['khadamat_service'] ?? null;
 
 if (!$service) {
-    include MASIR_GHALEB . 'sarsafhe.php';
+    include MASIR_GHALEB . 'sarfaraz.php';
     ?>
     <!-- سرصفحه -->
     <div class="sarsafhe-safhe">
@@ -51,7 +51,7 @@ $onvan_safhe  = $service['title'] . ' | ' . SITE_NAME;
 $meta_sharh   = strip_tags($service['kholaseh'] ?? 'خدمات پشتیبانی کامپیوتر');
 $safhe_faali  = 'khadamat';
 
-include MASIR_GHALEB . 'sarsafhe.php';
+include MASIR_GHALEB . 'sarfaraz.php';
 ?>
 
 <!-- سرصفحه -->
@@ -83,6 +83,12 @@ include MASIR_GHALEB . 'sarsafhe.php';
                 <?php endif; ?>
                 <p class="service-excerpt"><?= htmlspecialchars($service['kholaseh']) ?></p>
             </div>
+
+            <?php if (!empty($GLOBALS['khadamat_builder_content'])): ?>
+            <div class="service-builder-content" style="margin:24px 0 32px;">
+                <?= $GLOBALS['khadamat_builder_content'] ?>
+            </div>
+            <?php endif; ?>
 
             <div class="service-detail-content">
                 <div class="service-img"><?= $service['tasvir'] ?></div>

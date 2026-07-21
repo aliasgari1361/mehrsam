@@ -2,8 +2,8 @@
 
 require_once MASIR_DADE . 'bank.php';
 require_once __DIR__ . '/tarnegar-model.php';
-require_once __DIR__ . '/../builder/builder.php';
-require_once MASIR_RISH . 'haste/site_settings.php';
+require_once __DIR__ . '/../sakhtar/builder.php';
+require_once MASIR_RISH . 'haste/tanzimat.php';
 
 function tarnegar_route($amaliat, $paramha) {
     if (empty($amaliat) || ctype_digit($amaliat)) {
@@ -19,7 +19,7 @@ function tarnegar_fehrest($page = 1) {
     if ($theme_html) {
         $onvan_safhe = 'تارنگار | ' . SITE_NAME;
         $meta_sharh = 'تازه‌ترین مطالب آموزشی';
-        include MASIR_GHALEB . 'sarsafhe.php';
+        include MASIR_GHALEB . 'sarfaraz.php';
         echo $theme_html;
         include MASIR_GHALEB . 'panevis.php';
         return;
@@ -46,7 +46,7 @@ function tarnegar_neveshteh($slug) {
     $theme_html = builder_render_for('single', 'post', $slug);
     if ($theme_html) {
         $onvan_safhe = $slug . ' | ' . SITE_NAME;
-        include MASIR_GHALEB . 'sarsafhe.php';
+        include MASIR_GHALEB . 'sarfaraz.php';
         echo $theme_html;
         include MASIR_GHALEB . 'panevis.php';
         return;

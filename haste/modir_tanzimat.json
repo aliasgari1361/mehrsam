@@ -1,0 +1,317 @@
+{
+    "bg_color": "#0080c0",
+    "font": "Vazir",
+    "favicon": "",
+    "font_size": 15,
+    "menu_font_size": 16,
+    "table_font_size": 15,
+    "title_font_size": 18,
+    "menu": [
+        {
+            "label": "داشبورد",
+            "url": "mod\/dashmod",
+            "icon": "fa-gauge-high",
+            "target": "",
+            "parent": -1,
+            "desc": "",
+            "_id": "s0"
+        },
+        {
+            "label": "محتوا",
+            "url": "",
+            "icon": "fa-file-lines",
+            "target": "",
+            "parent": -1,
+            "desc": "",
+            "_id": "s1"
+        },
+        {
+            "label": "مقالات",
+            "url": "mod\/content",
+            "icon": "fa-file-lines",
+            "target": "",
+            "parent": "s1",
+            "desc": "",
+            "_id": "s2"
+        },
+        {
+            "label": "برگه‌ها",
+            "url": "mod\/pages",
+            "icon": "fa-file-lines",
+            "target": "",
+            "parent": "s1",
+            "desc": "",
+            "_id": "s3"
+        },
+        {
+            "label": "فروشگاه",
+            "url": "",
+            "icon": "fa-store",
+            "target": "",
+            "parent": -1,
+            "desc": "",
+            "_id": "s4"
+        },
+        {
+            "label": "محصول جدید",
+            "url": "mod\/store\/products\/edit",
+            "icon": "fa-plus",
+            "target": "",
+            "parent": "s4",
+            "desc": "",
+            "_id": "s5"
+        },
+        {
+            "label": "لیست محصولات",
+            "url": "mod\/store\/products",
+            "icon": "fa-cube",
+            "target": "",
+            "parent": "s4",
+            "desc": "",
+            "_id": "s6"
+        },
+        {
+            "label": "دسته‌بندی‌ها",
+            "url": "mod\/store\/categories",
+            "icon": "fa-folder",
+            "target": "",
+            "parent": "s4",
+            "desc": "",
+            "_id": "s7"
+        },
+        {
+            "label": "برندها",
+            "url": "mod\/store\/brands",
+            "icon": "fa-tag",
+            "target": "",
+            "parent": "s4",
+            "desc": "",
+            "_id": "s8"
+        },
+        {
+            "label": "سفارشات",
+            "url": "mod\/store\/orders",
+            "icon": "fa-truck",
+            "target": "",
+            "parent": "s4",
+            "desc": "",
+            "_id": "s9"
+        },
+        {
+            "label": "تنظیمات فروشگاه",
+            "url": "mod\/store\/settings",
+            "icon": "fa-gear",
+            "target": "",
+            "parent": "s4",
+            "desc": "",
+            "_id": "s10"
+        },
+        {
+            "label": "قالب",
+            "url": "",
+            "icon": "fa-palette",
+            "target": "",
+            "parent": -1,
+            "desc": "",
+            "_id": "s11"
+        },
+        {
+            "label": "بخش‌های محتوا",
+            "url": "mod\/theme\/sections",
+            "icon": "fa-puzzle-piece",
+            "target": "",
+            "parent": "s11",
+            "desc": "",
+            "_id": "s12"
+        },
+        {
+            "label": "ویرایش فایل‌ها",
+            "url": "mod\/theme\/files",
+            "icon": "fa-file-code",
+            "target": "",
+            "parent": "s11",
+            "desc": "",
+            "_id": "s13"
+        },
+        {
+            "label": "سفارشی‌سازی",
+            "url": "mod\/theme\/custom",
+            "icon": "fa-paint-brush",
+            "target": "",
+            "parent": "s11",
+            "desc": "",
+            "_id": "s14"
+        },
+        {
+            "label": "تنظیمات ظاهری",
+            "url": "mod\/settings?tab=theme",
+            "icon": "fa-gear",
+            "target": "",
+            "parent": "s11",
+            "desc": "",
+            "_id": "s15"
+        },
+        {
+            "label": "منو سایت",
+            "url": "mod\/menu_editor\/site",
+            "icon": "fa-bars",
+            "target": "",
+            "parent": "s11",
+            "desc": "",
+            "_id": "s16"
+        },
+        {
+            "label": "مدیریت قالب",
+            "url": "mod\/theme",
+            "icon": "fa-palette",
+            "target": "",
+            "parent": "s11",
+            "desc": "ساخت، انتخاب و حذف قالب",
+            "_id": "s17"
+        },
+        {
+            "label": "آیکن‌ها",
+            "url": "mod\/theme\/icons",
+            "icon": "fa-icons",
+            "target": "",
+            "parent": "s11",
+            "desc": "لیست آیکن‌های FontAwesome",
+            "_id": "s18"
+        },
+        {
+            "label": "صفحه‌ساز",
+            "url": "",
+            "icon": "fa-layer-group",
+            "target": "",
+            "parent": -1,
+            "desc": "",
+            "_id": "s19"
+        },
+        {
+            "label": "مدیریت صفحات",
+            "url": "mod\/builder\/pages",
+            "icon": "fa-layer-group",
+            "target": "",
+            "parent": "s19",
+            "desc": "",
+            "_id": "s20"
+        },
+        {
+            "label": "فایل‌ها",
+            "url": "",
+            "icon": "fa-folder-open",
+            "target": "",
+            "parent": -1,
+            "desc": "",
+            "_id": "s21"
+        },
+        {
+            "label": "مدیریت فایل‌ها",
+            "url": "mod\/files",
+            "icon": "fa-folder-tree",
+            "target": "",
+            "parent": "s21",
+            "desc": "",
+            "_id": "s22"
+        },
+        {
+            "label": "آپلود عمومی",
+            "url": "mod\/upload",
+            "icon": "fa-upload",
+            "target": "",
+            "parent": "s21",
+            "desc": "",
+            "_id": "s23"
+        },
+        {
+            "label": "پیام‌ها",
+            "url": "mod\/messages",
+            "icon": "fa-envelope",
+            "target": "",
+            "parent": -1,
+            "desc": "",
+            "_id": "s24"
+        },
+        {
+            "label": "چت",
+            "url": "mod\/chat",
+            "icon": "fa-comments",
+            "target": "",
+            "parent": -1,
+            "desc": "",
+            "_id": "s25"
+        },
+        {
+            "label": "تنظیمات",
+            "url": "",
+            "icon": "fa-gear",
+            "target": "",
+            "parent": -1,
+            "desc": "",
+            "_id": "s26"
+        },
+        {
+            "label": "تنظیمات سایت",
+            "url": "mod\/settings",
+            "icon": "fa-sliders",
+            "target": "",
+            "parent": "s26",
+            "desc": "",
+            "_id": "s27"
+        },
+        {
+            "label": "تنظیمات پنل",
+            "url": "mod\/panel_settings",
+            "icon": "fa-palette",
+            "target": "",
+            "parent": "s26",
+            "desc": "",
+            "_id": "s28"
+        },
+        {
+            "label": "منو پنل مدیریت",
+            "url": "mod\/menu_editor\/admin",
+            "icon": "fa-bars",
+            "target": "",
+            "parent": "s26",
+            "desc": "",
+            "_id": "s29"
+        },
+        {
+            "label": "به‌روزرسانی",
+            "url": "mod\/settings?tab=git",
+            "icon": "fa-github",
+            "target": "",
+            "parent": "s26",
+            "desc": "",
+            "_id": "s30"
+        },
+        {
+            "label": "بکاپ و بازگردانی",
+            "url": "mod\/backup",
+            "icon": "fa-shield-halved",
+            "target": "",
+            "parent": "s26",
+            "desc": "",
+            "_id": "s31"
+        },
+        {
+            "label": "مشاهده سایت",
+            "url": "http:\/\/site.test\/",
+            "icon": "fa-eye",
+            "target": "_blank",
+            "parent": -1,
+            "desc": "",
+            "_id": "s32"
+        },
+        {
+            "label": "خروج",
+            "url": "mod\/logout",
+            "icon": "fa-sign-out-alt",
+            "target": "",
+            "parent": -1,
+            "desc": "",
+            "_id": "s33"
+        }
+    ]
+}

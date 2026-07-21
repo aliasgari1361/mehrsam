@@ -1,0 +1,115 @@
+راهنمای قوانین و قراردادهای پروژه (Project Rules & Conventions)
+================================================================
+
+این فایل منبع حقیقی (Source of Truth) برای قراردادهای پروژه است.
+قبل از هر تغییری در کد، نام‌گذاری یا منو، این فایل را بخوان و دقیقاً از آن اطاعت کن.
+اگر کاربر قانونی را تغییر داد، همین فایل را آپدیت کن.
+
+
+۱. زبان برچسب‌های منوی پنل ادمین
+─────────────────────────────────
+- برچسب‌های منوی کناری پنل ادمین باید **فارسی** بمانند (نه فینگلیش، نه انگلیسی).
+- منبع حقیقی منو: فایل `modir_tanzimat.json` (کلید `menu[]`).
+- تابع `menu_get_default_admin_items` فقط وقتی استفاده می‌شود که فایل
+  `modir_tanzimat.json` وجود نداشته باشد؛ پس هرگز منو را از روی تابع پیش‌فرض
+  ویرایش نکن — فقط فایل JSON را ویرایش کن.
+- هر تغییر در منو (اضافه/حذف/تغییر نام) فقط در `modir_tanzimat.json` اعمال شود.
+- زیرمنوی «فروشگاه» (والد `s4`) شامل این موارد است:
+    • محصول جدید  → mod/store/products/edit   (آیکون fa-plus، والد s4، _id s31)
+    • لیست محصولات → mod/store/products        (والد s4، _id s5)
+    • دسته‌بندی‌ها / برندها / سفارشات / تنظیمات فروشگاه
+- ادیتور منو (drag-and-drop با ماوس):
+    • مسیرهای درست (یکپارچه):
+        - منوی پنل ادمین  → mod/menu_editor/admin
+        - منوی سایت         → mod/menu_editor/site
+    • مسیرهای قدیمی (منسوخ — دیگر استفاده نشوند): mod/theme/menu ، mod/menu_editor/admin
+    • فایل ادیتور: mohtava/menu/menu-editor.php
+        - تابع منوی پنل:  menu_editor_admin()
+        - تابع منوی سایت: menu_editor_site()
+    • کتابخانهٔ جابجایی: ghaleb/manabe/Sortable.min.js (لوکال — نه CDN)
+        - نکته: قبلاً از CDN (cdn.jsdelivr.net) لود می‌شد که روی لاراگون/آفلاین کار
+          نمی‌کرد؛ حتماً نسخهٔ لوکال را نگه دارید و لینک CDN را برنگردانید.
+    • اگر آیتم جدیدی به منو اضافه می‌کنید، هم در default
+      (menu_get_default_admin_items در menu-editor.php) و هم در modir_tanzimat.json
+      لینک را با مسیر درست (mod/menu_editor/...) بنویسید.
+
+
+۲. قرارداد نام‌گذاری فایل‌ها (فینگلیش)
+──────────────────────────────────────
+- نام فایل‌های پروژه باید **فینگلیش** باشد: کلمات فارسی نوشته‌شده به حروف لاتین
+  (مثل tanzimat، nasb، modir) — نه انگلیسیِ معمول (settings، install) و نه فارسیِ
+  اسکریپت.
+- نمونه‌های جایگزینی‌شده (نام فعلی معتبر):
+    • settings.php        → tanzimat.php                 (تنظیمات — همه‌چیز: هسته + تنظیمات سایت + توابع + پنل)
+    • install.php         → nasb.php                     (نصب)
+    • admin_settings.json → modir_tanzimat.json         (تنظیمات مدیر — منوی پنل + نمایش پنل)
+    • config.php         → pikan_tanzimat.php           (پیکان‌تنظیمات — فقط alias که tanzimat.php را لود می‌کند)
+    • router.php         → masiryab.php                 (مسیریاب — حذف شد، مستقیم به masiryab.php اشاره شود)
+    • helpers.php        → tavabe.php                   (توابع — حذف شد، مستقیم به tavabe.php اشاره شود)
+    • site_settings.php   → ادغام در tanzimat.php       (حذف شد؛ تنظیمات سایت و توابع کمکی در tanzimat.php هستند)
+    • cp.php             → panel.php                    (پنل — اسکریپت مدیریت ادمین)
+    • autoload.php      → bargozari.php                (بارگذاری خودکار کلاس‌ها)
+    • admin/           → modir/  (پوشه پنل؛ controllers/admin.php → modir/controllers/modir.php)
+    • database/         → payegah_dade/  (پوشه مایگریشن‌ها؛ refs در nasb.php)
+    • backups/          → poshtyban/  (پوشه پشتیبان‌گیری)
+    • payegah/          → حذف شد (کپی اضافی migrationها؛ اصلی در payegah_dade/migrations/ است)
+    • content/          → حذف شد (پوشه خالی)
+    • afzuneh/notification/config.php → afzuneh/notification/elpayaagh_tanzimat.php (تنظیمات اطلاع‌رسانی)
+    • sarsafhe.php (ghmod + mehrsam) → sarfaraz.php  (سرصفحه/هدر قالب)
+    • mohtava/seo-settings.php → mohtava/seo_tanzimat.php  (تنظیمات SEO؛ در bargozari.php classMap)
+    • کانال‌های اطلاع‌رسانی (afzuneh/notification/channels/):
+        BaleChannel→kanal_bale ، PushChannel→kanal_push ، SmsChannel→kanal_payamak ،
+        TelegramChannel→kanal_telegram ، WhatsAppChannel→kanal_whatsapp
+    • درگاه‌های پرداخت (afzuneh/pardakht-darbe/):
+        PaymentGateway→darbe_pardakht ، ZarinPalGateway→darbe_zarinpal ،
+        IdPayGateway→darbe_idpay ، ZibalGateway→darbe_zibal
+- فایل‌هایی که عمداً انگلیسی نگه داشته شدند (نام برند/معمول):
+    • zarinpal.php (زرین‌پال فینگلیشه = zarin+pal) + helpers/payment/zarinpal.php (alias)
+    • index-en.php (نسخه انگلیسی سایت — طبق قرارداد قبلی)
+- نکته: فایل‌های انگلیسی `config.php` / `router.php` / `helpers.php` فقط alias (پیوند) بودند
+  و حذف شدند. نام فایل اصلیِ فینگلیش را بکار ببر:
+    - tanzimat.php  (بجای config.php)
+    - masiryab.php (بجای router.php)
+    - tavabe.php    (بجای helpers.php)
+- اگر فایل جدیدی می‌سازی یا فایلی را تغییر نام می‌دهی، از همین فرمت فینگلیش استفاده کن.
+
+
+۳. چک‌لیست تغییر نام فایل (OBLIGATORY)
+──────────────────────────────────────
+وقتی فایلی را تغییر نام می‌دهی، حتماً موارد زیر را انجام بده وگرنه سایت می‌شکند:
+1. با grep کل پروژه را جستجو کن و تمام ارجاع‌ها را پیدا کن:
+     گردونه‌های require / require_once / include / include_once
+     تعریف‌های define(...) که مسیر فایل را می‌سازند
+     رشته‌های مسیر در اسکریپت نصب (nasb.php) و هر جای دیگر
+2. همهٔ ارجاع‌ها را به نام جدید آپدیت کن.
+3. اسکریپت نصب (`nasb.php`) را فراموش نکن: ممکن است فایل را با
+   file_put_contents بنویسد یا به آن ارجاع دهد.
+4. بعد از تغییر، حتماً تست کن:
+     php -l روی فایل‌های تغییر‌یافته
+     اجرای یک اسکریپت کوچک که فایل را require می‌کند و ثابت‌ها/منو بارگذاری می‌شود.
+5. چک کن هیچ ارجاعی به نام قدیمی باقی نمانده باشد.
+
+
+۴. نکات فنی مهم (از اشتباهات تکراری جلوگیری کن)
+──────────────────────────────────────────────
+- منوی پنل: تابع پیش‌فرض را ویرایش نکن؛ فایل `modir_tanzimat.json` را ویرایش کن.
+- صفحه‌ساز (builder): محتوای بوم از ستون `blocks_data` خوانده می‌شود
+  (در فایل `builder.php`: `var blocksData = json_encode($blocks)`).
+  اگر `blocks_data` خالی باشد ولی `cached_html` پر، بوم خالی می‌ماند در حالی که
+  پیش‌نمایش محتوا را نشان می‌دهد.
+- ذخیره‌سازی هوش مصنوعی‌های مختلف: چون ممکن است چند AI روی یک فایل تغییر بدهند،
+  همیشه ابتدا فایل فعلی را بخوان و با منبع حقیقی (این راهنما + فایل‌های ذکر شده)
+  هماهنگ کن. از بازنویسی کورکورانهٔ تغییرات دیگران پرهیز کن.
+- به‌روزرسانی (git / تب «Be-Rooz Resani»): مراقب باش که نسخهٔ ریموت فایل‌ها را
+  با نام‌های قدیمی بازنویسی نکند. بعد از اعمال تغییرات، تغییرات را کامیت کن.
+
+
+۵. اولویت منبع حقیقی
+─────────────────────
+هنگام تضاد اطلاعات، به این ترتیب عمل کن:
+1. این فایل راهنما (rahnamay.txt)
+2. فایل‌های پیکربندی پروژه (modir_tanzimat.json و tanzimat.php)
+3. کد موجود در پروژه
+4. صحبت‌های گذشته (ممکن است منسوخ شده باشند)
+================================================================
+آخرین به‌روزرسانی: جلسهٔ بازسازی صفحه‌ساز و منوی پنل ادمین

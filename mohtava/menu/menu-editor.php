@@ -1,7 +1,7 @@
 <?php
 
-require_once MASIR_RISH . 'haste/site_settings.php';
-require_once MASIR_RISH . 'haste/settings.php';
+require_once MASIR_RISH . 'haste/tanzimat.php';
+require_once MASIR_RISH . 'haste/tanzimat.php';
 
 function menu_get_site_items() {
     global $site_settings;
@@ -44,7 +44,7 @@ function menu_editor_site() {
         $message = "منوی سایت ذخیره شد.";
     }
 
-    include __DIR__ . '/../../ghaleb/ghmod/sarsafhe.php';
+    include __DIR__ . '/../../ghaleb/ghmod/sarfaraz.php';
     ?>
     <style>
         .menu-editor { max-width:800px; }
@@ -55,6 +55,8 @@ function menu_editor_site() {
         .menu-editor .btn-del { background:#dc3545; color:#fff; border:none; border-radius:6px; padding:6px 14px; cursor:pointer; font-size:13px; }
         .menu-editor .btn-add { background:var(--rang-asli,#FF6F00); color:#fff; border:none; border-radius:8px; padding:10px 20px; cursor:pointer; font-weight:700; margin-top:12px; }
         .menu-editor .btn-save { background:#28a745; color:#fff; border:none; border-radius:8px; padding:12px 30px; cursor:pointer; font-weight:700; font-size:1rem; }
+        .menu-editor .btn-move { background:#6c757d; color:#fff; border:none; border-radius:6px; padding:6px 9px; cursor:pointer; font-size:13px; line-height:1; }
+        .menu-editor .btn-move:hover { background:#5a6268; }
         .menu-editor .sort-handle { cursor:grab; color:#999; font-size:18px; user-select:none; }
         .menu-editor .empty-msg { color:var(--rang-gray,#666); padding:30px; text-align:center; }
     </style>
@@ -65,15 +67,19 @@ function menu_editor_site() {
         <form method="post" id="menuForm">
             <table>
                 <thead>
-                    <tr><th style="width:40px;"></th><th>عنوان</th><th>پیوند (URL)</th><th style="width:60px;"></th></tr>
+                    <tr><th style="width:40px;"></th><th style="width:100px;">جابه‌جایی</th><th>عنوان</th><th>پیوند (URL)</th><th style="width:60px;"></th></tr>
                 </thead>
                 <tbody id="menuItems">
                     <?php if (empty($items)): ?>
-                    <tr class="empty-row"><td colspan="4" class="empty-msg">هنوز هیچ آیتمی اضافه نشده است.</td></tr>
+                    <tr class="empty-row"><td colspan="5" class="empty-msg">هنوز هیچ آیتمی اضافه نشده است.</td></tr>
                     <?php else: ?>
                     <?php foreach ($items as $i => $item): ?>
                     <tr>
                         <td><span class="sort-handle">☰</span></td>
+                        <td>
+                            <button type="button" class="btn-move" title="بالا" onclick="moveSiteItem(this, 'up')">▲</button>
+                            <button type="button" class="btn-move" title="پایین" onclick="moveSiteItem(this, 'down')">▼</button>
+                        </td>
                         <td><input type="text" name="label[]" value="<?= htmlspecialchars($item['label'] ?? '') ?>"></td>
                         <td><input type="text" name="url[]" value="<?= htmlspecialchars($item['url'] ?? '') ?>" placeholder="<?= BASE_URL ?>khadamat"></td>
                         <td><button type="button" class="btn-del" onclick="this.closest('tr').remove()">✕</button></td>
@@ -87,6 +93,7 @@ function menu_editor_site() {
             <button type="submit" class="btn-save"><i class="fa-solid fa-save"></i> ذخیره منو</button>
         </form>
     </div>
+    <script src="<?= BASE_URL ?>ghaleb/manabe/Sortable.min.js"></script>
     <script>
     function addMenuItem() {
         var tbody = document.getElementById('menuItems');
@@ -94,10 +101,20 @@ function menu_editor_site() {
         if (empty) empty.remove();
         var tr = document.createElement('tr');
         tr.innerHTML = '<td><span class="sort-handle">☰</span></td>' +
+            '<td><button type="button" class="btn-move" title="بالا" onclick="moveSiteItem(this, \'up\')">▲</button>' +
+            '<button type="button" class="btn-move" title="پایین" onclick="moveSiteItem(this, \'down\')">▼</button></td>' +
             '<td><input type="text" name="label[]" value=""></td>' +
             '<td><input type="text" name="url[]" value="" placeholder="<?= BASE_URL ?>"></td>' +
             '<td><button type="button" class="btn-del" onclick="this.closest(\'tr\').remove()">✕</button></td>';
         tbody.appendChild(tr);
+    }
+    function moveSiteItem(btn, dir) {
+        var tr = btn.closest('tr');
+        var tbody = document.getElementById('menuItems');
+        var rows = Array.prototype.slice.call(tbody.querySelectorAll('tr')).filter(function(r){ return r.querySelector('input[name="label[]"]'); });
+        var i = rows.indexOf(tr);
+        if (dir === 'up' && i > 0) tbody.insertBefore(tr, rows[i-1]);
+        if (dir === 'down' && i < rows.length-1) tbody.insertBefore(tr, rows[i+1].nextSibling);
     }
     // Drag sorting
     (function() {
@@ -105,7 +122,6 @@ function menu_editor_site() {
         new Sortable(tbody, { handle: '.sort-handle', animation: 150 });
     })();
     </script>
-    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     <?php
     include __DIR__ . '/../../ghaleb/ghmod/panevis.php';
 }
@@ -120,14 +136,21 @@ function menu_admin_render_tree($nodes) {
         $label  = htmlspecialchars($item['label'] ?? '', ENT_QUOTES);
         $url    = htmlspecialchars($item['url'] ?? '', ENT_QUOTES);
         $icon   = htmlspecialchars($item['icon'] ?? '', ENT_QUOTES);
+        $desc   = htmlspecialchars($item['desc'] ?? '', ENT_QUOTES);
         $target = $item['target'] ?? '';
         $tSel   = $target === '_blank' ? 'selected' : '';
         $html .= '<div class="menu-card" data-idx="' . $id . '" data-parent="' . htmlspecialchars($parent) . '">';
         $html .= '<div class="menu-card-row">';
         $html .= '<span class="sort-handle">☰</span>';
+        $html .= '<button type="button" class="btn-move" title="بالا" onclick="moveAdminItem(this, \'up\')">▲</button>';
+        $html .= '<button type="button" class="btn-move" title="پایین" onclick="moveAdminItem(this, \'down\')">▼</button>';
+        $html .= '<button type="button" class="btn-move" title="یک سطح بیرون (چپ)" onclick="moveAdminItem(this, \'out\')">◀</button>';
+        $html .= '<button type="button" class="btn-move" title="زیر آیتم قبلی (راست)" onclick="moveAdminItem(this, \'in\')">▶</button>';
         $html .= '<input type="text" class="f-label" name="label[]" value="' . $label . '" placeholder="عنوان">';
         $html .= '<input type="text" class="f-url" name="url[]" value="' . $url . '" placeholder="mod/dashmod">';
-        $html .= '<input type="text" class="f-icon" name="icon[]" value="' . $icon . '" placeholder="fa-...">';
+        $html .= '<input type="text" class="f-icon" name="icon[]" value="' . $icon . '" placeholder="fa-..." title="نام آیکن FontAwesome مثلاً fa-home، fa-cog، fa-palette">';
+        $html .= '<div class="help-icon">نام آیکن FontAwesome (مثلاً <code>fa-home</code>، <code>fa-cog</code>) — لیست آیکن‌ها: <a href="https://fontawesome.com/v6/icons" target="_blank" style="color:var(--rang-asli);">fontawesome.com</a></div>';
+        $html .= '<input type="text" class="f-desc" name="desc[]" value="' . $desc . '" placeholder="توضیحات (زیر عنوان نوار نارنجی)" style="flex:2 1 180px;min-width:140px;">';
         $html .= '<select class="f-target" name="target[]"><option value="">خود</option><option value="_blank" ' . $tSel . '>صفحه جدید</option></select>';
         $html .= '<select class="f-parent" name="parent[]"></select>';
         $html .= '<input type="hidden" name="oid[]" value="' . htmlspecialchars($id) . '">';
@@ -154,6 +177,7 @@ function menu_editor_admin() {
         $icons   = $_POST['icon']   ?? [];
         $parents = $_POST['parent'] ?? [];
         $targets = $_POST['target'] ?? [];
+        $descs   = $_POST['desc']   ?? [];
         $oids    = $_POST['oid']    ?? [];
         $old_to_new = [];
         $raw = [];
@@ -170,6 +194,7 @@ function menu_editor_admin() {
                 'icon'   => trim($icons[$k] ?? ''),
                 'target' => trim($targets[$k] ?? ''),
                 'parent' => $parents[$k] ?? '-1',
+                'desc'   => trim($descs[$k] ?? ''),
                 '_id'    => $new_id,
             ];
             $raw[] = $it;
@@ -191,7 +216,7 @@ function menu_editor_admin() {
 
     $tree = menu_build_admin_tree($items);
 
-    include __DIR__ . '/../../ghaleb/ghmod/sarsafhe.php';
+    include __DIR__ . '/../../ghaleb/ghmod/sarfaraz.php';
     ?>
     <style>
         .menu-editor { max-width:920px; }
@@ -205,10 +230,13 @@ function menu_editor_admin() {
         .menu-editor .f-icon { flex:1 1 110px; min-width:100px; direction:ltr; text-align:left; }
         .menu-editor .f-target { flex:0 1 90px; }
         .menu-editor .f-parent { flex:1 1 130px; min-width:120px; }
+        .menu-editor .f-desc { flex:2 1 180px; min-width:140px; }
         .menu-editor .help-icon { font-size:11px; color:var(--rang-gray,#999); flex-basis:100%; }
         .menu-editor .btn-del { background:#dc3545; color:#fff; border:none; border-radius:6px; padding:6px 12px; cursor:pointer; font-size:13px; }
         .menu-editor .btn-add { background:var(--rang-asli,#FF6F00); color:#fff; border:none; border-radius:8px; padding:10px 20px; cursor:pointer; font-weight:700; margin-top:6px; }
         .menu-editor .btn-save { background:#28a745; color:#fff; border:none; border-radius:8px; padding:12px 30px; cursor:pointer; font-weight:700; font-size:1rem; }
+        .menu-editor .btn-move { background:#6c757d; color:#fff; border:none; border-radius:6px; padding:6px 9px; cursor:pointer; font-size:13px; line-height:1; }
+        .menu-editor .btn-move:hover { background:#5a6268; }
         .menu-editor .empty-msg { color:var(--rang-gray,#666); padding:30px; text-align:center; }
     </style>
     <div class="menu-editor">
@@ -227,6 +255,7 @@ function menu_editor_admin() {
             <button type="submit" class="btn-save"><i class="fa-solid fa-save"></i> ذخیره منو</button>
         </form>
     </div>
+    <script src="<?= BASE_URL ?>ghaleb/manabe/Sortable.min.js"></script>
     <script>
     function escapeAttr(s){ s = (s==null?'':s).toString(); return s.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
     function menuCardHtml(idx, label, url, icon, target, parent, oid) {
@@ -234,9 +263,14 @@ function menu_editor_admin() {
         return '<div class="menu-card" data-idx="'+escapeAttr(idx)+'" data-parent="'+escapeAttr(parent)+'">' +
             '<div class="menu-card-row">' +
                 '<span class="sort-handle">☰</span>' +
+                '<button type="button" class="btn-move" title="بالا" onclick="moveAdminItem(this, \'up\')">▲</button>' +
+                '<button type="button" class="btn-move" title="پایین" onclick="moveAdminItem(this, \'down\')">▼</button>' +
+                '<button type="button" class="btn-move" title="یک سطح بیرون (چپ)" onclick="moveAdminItem(this, \'out\')">◀</button>' +
+                '<button type="button" class="btn-move" title="زیر آیتم قبلی (راست)" onclick="moveAdminItem(this, \'in\')">▶</button>' +
                 '<input type="text" class="f-label" name="label[]" value="'+escapeAttr(label)+'" placeholder="عنوان">' +
                 '<input type="text" class="f-url" name="url[]" value="'+escapeAttr(url)+'" placeholder="mod/dashmod">' +
-                '<input type="text" class="f-icon" name="icon[]" value="'+escapeAttr(icon)+'" placeholder="fa-...">' +
+                '<input type="text" class="f-icon" name="icon[]" value="'+escapeAttr(icon)+'" placeholder="fa-..." title="نام آیکن FontAwesome مثلاً fa-home، fa-cog، fa-palette">' +
+                '<div class="help-icon">نام آیکن FontAwesome (مثلاً <code>fa-home</code>، <code>fa-cog</code>) — لیست آیکن‌ها: <a href="https://fontawesome.com/v6/icons" target="_blank" style="color:var(--rang-asli);">fontawesome.com</a></div>' +
                 '<select class="f-target" name="target[]"><option value="">خود</option><option value="_blank" '+tSel+'>صفحه جدید</option></select>' +
                 '<select class="f-parent" name="parent[]"></select>' +
                 '<input type="hidden" name="oid[]" value="'+escapeAttr(oid)+'">' +
@@ -244,6 +278,28 @@ function menu_editor_admin() {
             '</div>' +
             '<div class="menu-children"></div>' +
         '</div>';
+    }
+    function moveAdminItem(btn, dir) {
+        var card = btn.closest('.menu-card');
+        if (dir === 'up' || dir === 'down') {
+            var siblings = Array.prototype.slice.call(card.parentElement.children).filter(function(c){ return c.classList.contains('menu-card'); });
+            var i = siblings.indexOf(card);
+            if (dir === 'up' && i > 0) card.parentElement.insertBefore(card, siblings[i-1]);
+            if (dir === 'down' && i < siblings.length-1) card.parentElement.insertBefore(card, siblings[i+1].nextSibling);
+        } else if (dir === 'out') {
+            var pCard = card.parentElement.closest('.menu-card');
+            if (pCard) pCard.parentElement.insertBefore(card, pCard.nextSibling);
+        } else if (dir === 'in') {
+            var sibs = Array.prototype.slice.call(card.parentElement.children).filter(function(c){ return c.classList.contains('menu-card'); });
+            var idx = sibs.indexOf(card);
+            if (idx > 0) {
+                var prev = sibs[idx-1];
+                var ch = prev.querySelector(':scope > .menu-children');
+                if (!ch) { ch = document.createElement('div'); ch.className='menu-children'; prev.appendChild(ch); }
+                ch.appendChild(card);
+            }
+        }
+        syncParentFromDom();
     }
     function addAdminMenuItem() {
         var root = document.getElementById('menuTree');
@@ -306,9 +362,8 @@ function menu_editor_admin() {
                 onEnd: function(){ setTimeout(syncParentFromDom, 0); } });
         });
     }
-    refreshParentOptions();
+        refreshParentOptions();
     </script>
-    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     <?php
     include __DIR__ . '/../../ghaleb/ghmod/panevis.php';
 }
@@ -372,37 +427,38 @@ function menu_render_site($items) {
 
 function menu_get_default_admin_items() {
     $defs = [
-        ['label' => 'داشبورد', 'url' => 'mod/dashmod', 'icon' => 'fa-gauge-high', 'parent' => -1],
-        ['label' => 'محتوا', 'url' => '', 'icon' => 'fa-file-lines', 'parent' => -1],
-        ['label' => 'مقالات', 'url' => 'mod/content', 'icon' => 'fa-file-lines', 'parent' => 1],
-        ['label' => 'برگه‌ها', 'url' => 'mod/pages', 'icon' => 'fa-file-lines', 'parent' => 1],
-        ['label' => 'فروشگاه', 'url' => '', 'icon' => 'fa-store', 'parent' => -1],
-        ['label' => 'محصولات', 'url' => 'mod/store/products', 'icon' => 'fa-cube', 'parent' => 4],
-        ['label' => 'دسته‌بندی‌ها', 'url' => 'mod/store/categories', 'icon' => 'fa-folder', 'parent' => 4],
-        ['label' => 'برندها', 'url' => 'mod/store/brands', 'icon' => 'fa-tag', 'parent' => 4],
-        ['label' => 'سفارشات', 'url' => 'mod/store/orders', 'icon' => 'fa-truck', 'parent' => 4],
-        ['label' => 'تنظیمات فروشگاه', 'url' => 'mod/store/settings', 'icon' => 'fa-gear', 'parent' => 4],
-        ['label' => 'قالب', 'url' => '', 'icon' => 'fa-palette', 'parent' => -1],
-        ['label' => 'بخش‌های محتوا', 'url' => 'mod/theme/sections', 'icon' => 'fa-puzzle-piece', 'parent' => 10],
-        ['label' => 'ویرایش فایل‌ها', 'url' => 'mod/theme/files', 'icon' => 'fa-file-code', 'parent' => 10],
-        ['label' => 'سفارشی‌سازی', 'url' => 'mod/theme/custom', 'icon' => 'fa-paint-brush', 'parent' => 10],
-        ['label' => 'تنظیمات ظاهری', 'url' => 'mod/settings?tab=theme', 'icon' => 'fa-gear', 'parent' => 10],
-        ['label' => 'منو سایت', 'url' => 'mod/theme/menu', 'icon' => 'fa-bars', 'parent' => 10],
-        ['label' => 'صفحه‌ساز', 'url' => '', 'icon' => 'fa-layer-group', 'parent' => -1],
-        ['label' => 'مدیریت صفحات', 'url' => 'mod/builder/pages', 'icon' => 'fa-layer-group', 'parent' => 16],
-        ['label' => 'چت', 'url' => 'mod/chat', 'icon' => 'fa-comments', 'parent' => -1],
-        ['label' => 'پیام‌ها', 'url' => 'mod/messages', 'icon' => 'fa-envelope', 'parent' => -1],
-        ['label' => 'تنظیمات', 'url' => '', 'icon' => 'fa-gear', 'parent' => -1],
-        ['label' => 'تنظیمات سایت', 'url' => 'mod/settings', 'icon' => 'fa-sliders', 'parent' => 20],
-        ['label' => 'تنظیمات پنل', 'url' => 'mod/panel_settings', 'icon' => 'fa-palette', 'parent' => 20],
-        ['label' => 'منو پنل مدیریت', 'url' => 'mod/menu_editor/admin', 'icon' => 'fa-bars', 'parent' => 20],
-        ['label' => 'به‌روزرسانی', 'url' => 'mod/settings?tab=git', 'icon' => 'fa-github', 'parent' => 20],
-        ['label' => 'بکاپ و بازگردانی', 'url' => 'mod/backup', 'icon' => 'fa-shield-halved', 'parent' => 20],
-        ['label' => 'مشاهده سایت', 'url' => BASE_URL, 'icon' => 'fa-eye', 'parent' => -1, 'target' => '_blank'],
-        ['label' => 'خروج', 'url' => 'mod/logout', 'icon' => 'fa-sign-out-alt', 'parent' => -1],
-        ['label' => 'فایل‌ها', 'url' => '', 'icon' => 'fa-folder-open', 'parent' => -1],
-        ['label' => 'مدیریت فایل‌ها', 'url' => 'mod/files', 'icon' => 'fa-folder-tree', 'parent' => 28],
-        ['label' => 'آپلود عمومی', 'url' => 'mod/upload', 'icon' => 'fa-upload', 'parent' => 28],
+        ['label' => 'داشبورد', 'url' => 'mod/dashmod', 'icon' => 'fa-gauge-high', 'parent' => -1, 'desc' => 'خلاصه وضعیت و فعالیت‌های سایت در یک نگاه'],
+        ['label' => 'محتوا', 'url' => '', 'icon' => 'fa-file-lines', 'parent' => -1, 'desc' => ''],
+        ['label' => 'مقالات', 'url' => 'mod/content', 'icon' => 'fa-file-lines', 'parent' => 1, 'desc' => 'مدیریت مقالات و نوشته‌ها'],
+        ['label' => 'برگه‌ها', 'url' => 'mod/pages', 'icon' => 'fa-file-lines', 'parent' => 1, 'desc' => 'مدیریت برگه‌های ثابت سایت'],
+        ['label' => 'فروشگاه', 'url' => '', 'icon' => 'fa-store', 'parent' => -1, 'desc' => ''],
+        ['label' => 'لیست محصولات', 'url' => 'mod/store/products', 'icon' => 'fa-cube', 'parent' => 4, 'desc' => 'مشاهده و مدیریت محصولات'],
+        ['label' => 'دسته‌بندی‌ها', 'url' => 'mod/store/categories', 'icon' => 'fa-folder', 'parent' => 4, 'desc' => 'مدیریت دسته‌بندی محصولات'],
+        ['label' => 'برندها', 'url' => 'mod/store/brands', 'icon' => 'fa-tag', 'parent' => 4, 'desc' => 'مدیریت برندها'],
+        ['label' => 'سفارشات', 'url' => 'mod/store/orders', 'icon' => 'fa-truck', 'parent' => 4, 'desc' => 'مشاهده و پیگیری سفارشات'],
+        ['label' => 'تنظیمات فروشگاه', 'url' => 'mod/store/settings', 'icon' => 'fa-gear', 'parent' => 4, 'desc' => 'تنظیمات پرداخت و ارسال'],
+        ['label' => 'قالب', 'url' => '', 'icon' => 'fa-palette', 'parent' => -1, 'desc' => ''],
+        ['label' => 'بخش‌های محتوا', 'url' => 'mod/theme/sections', 'icon' => 'fa-puzzle-piece', 'parent' => 10, 'desc' => 'مدیریت بخش‌های صفحه اصلی'],
+        ['label' => 'ویرایش فایل‌ها', 'url' => 'mod/theme/files', 'icon' => 'fa-file-code', 'parent' => 10, 'desc' => 'ویرایش کدهای قالب'],
+        ['label' => 'سفارشی‌سازی', 'url' => 'mod/theme/custom', 'icon' => 'fa-paint-brush', 'parent' => 10, 'desc' => 'تنظیمات ظاهری سایت'],
+        ['label' => 'تنظیمات ظاهری', 'url' => 'mod/settings?tab=theme', 'icon' => 'fa-gear', 'parent' => 10, 'desc' => 'رنگ، فونت و استایل سایت'],
+        ['label' => 'منو سایت', 'url' => 'mod/menu_editor/site', 'icon' => 'fa-bars', 'parent' => 10, 'desc' => 'ویرایش منوی هدر سایت'],
+        ['label' => 'صفحه‌ساز', 'url' => '', 'icon' => 'fa-layer-group', 'parent' => -1, 'desc' => ''],
+        ['label' => 'مدیریت صفحات', 'url' => 'mod/builder/pages', 'icon' => 'fa-layer-group', 'parent' => 16, 'desc' => 'ساخت و ویرایش صفحات با بلاک‌ها'],
+        ['label' => 'چت', 'url' => 'mod/chat', 'icon' => 'fa-comments', 'parent' => -1, 'desc' => 'گفتگوی آنلاین با کاربران'],
+        ['label' => 'پیام‌ها', 'url' => 'mod/messages', 'icon' => 'fa-envelope', 'parent' => -1, 'desc' => 'پیام‌های تماس با ما'],
+        ['label' => 'تنظیمات', 'url' => '', 'icon' => 'fa-gear', 'parent' => -1, 'desc' => ''],
+        ['label' => 'تنظیمات سایت', 'url' => 'mod/settings', 'icon' => 'fa-sliders', 'parent' => 20, 'desc' => 'تنظیمات عمومی و پایه سایت'],
+        ['label' => 'تنظیمات پنل', 'url' => 'mod/panel_settings', 'icon' => 'fa-palette', 'parent' => 20, 'desc' => 'ظاهر و رنگ پنل مدیریت'],
+        ['label' => 'منو پنل مدیریت', 'url' => 'mod/menu_editor/admin', 'icon' => 'fa-bars', 'parent' => 20, 'desc' => 'ویرایش منوی پنل مدیریت'],
+        ['label' => 'به‌روزرسانی', 'url' => 'mod/settings?tab=git', 'icon' => 'fa-github', 'parent' => 20, 'desc' => 'بروزرسانی کدهای سایت'],
+        ['label' => 'بکاپ و بازگردانی', 'url' => 'mod/backup', 'icon' => 'fa-shield-halved', 'parent' => 20, 'desc' => 'پشتیبان‌گیری و بازگردانی'],
+        ['label' => 'مشاهده سایت', 'url' => BASE_URL, 'icon' => 'fa-eye', 'parent' => -1, 'target' => '_blank', 'desc' => 'مشاهده سایت در مرورگر'],
+        ['label' => 'خروج', 'url' => 'mod/logout', 'icon' => 'fa-sign-out-alt', 'parent' => -1, 'desc' => 'خروج از پنل مدیریت'],
+        ['label' => 'فایل‌ها', 'url' => '', 'icon' => 'fa-folder-open', 'parent' => -1, 'desc' => ''],
+        ['label' => 'مدیریت فایل‌ها', 'url' => 'mod/files', 'icon' => 'fa-folder-tree', 'parent' => 28, 'desc' => 'مشاهده و مدیریت فایل‌های آپلود شده'],
+        ['label' => 'آپلود عمومی', 'url' => 'mod/upload', 'icon' => 'fa-upload', 'parent' => 28, 'desc' => 'آپلود فایل توسط کاربران'],
+        ['label' => 'محصول جدید', 'url' => 'mod/store/products/edit', 'icon' => 'fa-plus', 'parent' => 4, 'desc' => 'افزودن محصول جدید به فروشگاه'],
     ];
     foreach ($defs as $i => &$d) {
         $d['_id'] = (string)$i;
