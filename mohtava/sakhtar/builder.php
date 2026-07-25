@@ -322,7 +322,7 @@ function builder_import_content_to_blocks($type, $id) {
     $bank = new Bank();
     $conn = $bank->getConnection();
     $stmt = $conn->prepare("SELECT $col FROM $table WHERE id = ?");
-    $stmt->bind_param("i", (int)$id);
+    $stmt->bind_param("i", $id);
     $stmt->execute();
     $row = $stmt->get_result()->fetch_assoc();
     $stmt->close();
@@ -434,21 +434,32 @@ function builder_page_edit($block_page_id) {
         $stmt->execute();
         $post = $stmt->get_result()->fetch_assoc();
         $stmt->close();
-        $conn->close();
         if ($post) {
             $blocks_data = '[]';
             $imported = builder_import_content_to_blocks($post['type'], $post['id']);
             if ($imported !== null) {
                 $blocks_data = $imported;
             }
-            $bp = [
-                'id' => 0,
-                'page_id' => $post['id'],
-                'page_type' => $post['type'],
-                'blocks_data' => $blocks_data,
-                'cached_html' => null,
-            ];
+            // رکورد واقعی بساز در block_pages
+            $name = $post['title'] ?: ("صفحه #" . $post['id']);
+            $stmt = $conn->prepare("INSERT INTO block_pages (page_id, page_type, name, condition_type, condition_value, part, blocks_data, position_mode, mobile_mode) VALUES (?, ?, ?, 'single', ?, '', ?, 0, 'auto')");
+            $stmt->bind_param("issss", $post['id'], $post['type'], $name, $post['type'], $blocks_data);
+            $stmt->execute();
+            $new_bp_id = $stmt->insert_id;
+            $stmt->close();
+            $conn->close();
+
+            // بازخوانی رکورد کامل
+            $bank2 = new Bank();
+            $conn2 = $bank2->getConnection();
+            $stmt2 = $conn2->prepare("SELECT * FROM block_pages WHERE id = ?");
+            $stmt2->bind_param("i", $new_bp_id);
+            $stmt2->execute();
+            $bp = $stmt2->get_result()->fetch_assoc();
+            $stmt2->close();
+            $conn2->close();
         } else {
+            $conn->close();
             include __DIR__ . '/../../ghaleb/ghmod/sarfaraz.php';
             echo "<h3>صفحه یافت نشد</h3>";
             include __DIR__ . '/../../ghaleb/ghmod/panevis.php';
