@@ -180,7 +180,7 @@ function mod_route($action, $params) {
     $pages_count    = $conn->query("SELECT COUNT(*) AS cnt FROM posts WHERE type='safhe'")->fetch_assoc()['cnt'] ?? 0;
     $articles_count = $conn->query("SELECT COUNT(*) AS cnt FROM posts WHERE type='maghaleh'")->fetch_assoc()['cnt'] ?? 0;
     $users_count    = $conn->query("SELECT COUNT(*) AS cnt FROM users")->fetch_assoc()['cnt'] ?? 0;
-    $services_count = $conn->query("SELECT COUNT(*) AS cnt FROM posts WHERE page_section='khadamat' AND type='safhe' AND status='publish'")->fetch_assoc()['cnt'] ?? 0;
+    $services_count = $conn->query("SELECT COUNT(*) AS cnt FROM posts WHERE type='khadamat' AND status='publish'")->fetch_assoc()['cnt'] ?? 0;
 
     $orders_count     = $conn->query("SELECT COUNT(*) AS cnt FROM sefaresh")->fetch_assoc()['cnt'] ?? 0;
     $orders_pending   = $conn->query("SELECT COUNT(*) AS cnt FROM sefaresh WHERE vaziat='pending'")->fetch_assoc()['cnt'] ?? 0;
@@ -508,6 +508,161 @@ function mod_route($action, $params) {
                 $conn->close();
             }
             redirect('mod/pages');
+            break;
+
+        case 'services':
+            require_once __DIR__ . '/../../dade/bank.php';
+            $bank = new Bank();
+            $conn = $bank->getConnection();
+            $result = $conn->query("SELECT id, title, slug, subtitle, kholaseh, display_order, status, created_at FROM posts WHERE type='khadamat' ORDER BY display_order ASC, id DESC");
+            $services_list = [];
+            if ($result) while ($row = $result->fetch_assoc()) $services_list[] = $row;
+            $conn->close();
+
+            include __DIR__ . '/../../ghaleb/ghmod/sarfaraz.php';
+            ?>
+            <h3>مدیریت خدمات</h3>
+            <p><a href="<?php echo BASE_URL; ?>mod/add_service">+ خدمت جدید</a></p>
+            <table border="1" cellpadding="5" cellspacing="0" width="100%">
+                <tr><th>عنوان</th><th>زیرعنوان</th><th>ترتیب</th><th>وضعیت</th><th>عملیات</th></tr>
+                <?php foreach ($services_list as $s): ?>
+                <tr>
+                    <td><?php echo htmlspecialchars($s['title']); ?></td>
+                    <td><?php echo htmlspecialchars($s['subtitle'] ?? ''); ?></td>
+                    <td><?php echo $s['display_order']; ?></td>
+                    <td><?php echo $s['status'] === 'publish' ? 'منتشر' : 'پیش‌نویس'; ?></td>
+                    <td>
+                        <a href="<?php echo BASE_URL; ?>mod/edit_service/<?php echo $s['id']; ?>">ویرایش</a> |
+                        <a href="<?php echo BASE_URL; ?>mod/builder/edit_post/khadamat/<?php echo $s['id']; ?>">صفحه‌ساز</a> |
+                        <a href="<?php echo BASE_URL; ?>mod/delete_service/<?php echo $s['id']; ?>" onclick="return confirm('مطمئنی؟')">حذف</a>
+                    </td>
+                </tr>
+                <?php endforeach; ?>
+            </table>
+            <?php
+            include __DIR__ . '/../../ghaleb/ghmod/panevis.php';
+            break;
+
+        case 'add_service':
+        case 'edit_service':
+            require_once __DIR__ . '/../../dade/bank.php';
+            $bank = new Bank();
+            $conn = $bank->getConnection();
+            $id = $params[0] ?? null;
+            $is_edit = ($action === 'edit_service' && $id);
+            $service = ['title' => '', 'slug' => '', 'subtitle' => '', 'kholaseh' => '', 'tasvir' => '', 'content' => '', 'display_order' => 0, 'status' => 'publish'];
+
+            if ($is_edit) {
+                $stmt = $conn->prepare("SELECT * FROM posts WHERE id = ? AND type = 'khadamat'");
+                $stmt->bind_param("i", $id);
+                $stmt->execute();
+                $result = $stmt->get_result();
+                if ($result->num_rows === 1) {
+                    $service = $result->fetch_assoc();
+                } else {
+                    echo "خدمت پیدا نشد.";
+                    $conn->close();
+                    break;
+                }
+                $stmt->close();
+            }
+
+            if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
+                $title   = $_POST['title'] ?? '';
+                $slug    = $_POST['slug'] ?? '';
+                $subtitle = $_POST['subtitle'] ?? '';
+                $kholaseh = $_POST['kholaseh'] ?? '';
+                $tasvir  = $_POST['tasvir'] ?? '';
+                $display_order = (int)($_POST['display_order'] ?? 0);
+                $status  = $_POST['status'] ?? 'publish';
+                if (empty($slug)) $slug = trim(preg_replace('/[^a-zA-Z0-9\-]/', '-', $title), '-');
+
+                if ($is_edit) {
+                    $stmt = $conn->prepare("UPDATE posts SET title=?, slug=?, subtitle=?, kholaseh=?, tasvir=?, display_order=?, status=? WHERE id=? AND type='khadamat'");
+                    $stmt->bind_param("ssssssii", $title, $slug, $subtitle, $kholaseh, $tasvir, $display_order, $status, $id);
+                    $stmt->execute();
+                    $stmt->close();
+                } else {
+                    $stmt = $conn->prepare("INSERT INTO posts (title, slug, subtitle, kholaseh, tasvir, display_order, type, status) VALUES (?, ?, ?, ?, ?, ?, 'khadamat', ?)");
+                    $stmt->bind_param("sssssis", $title, $slug, $subtitle, $kholaseh, $tasvir, $display_order, $status);
+                    $stmt->execute();
+                    $id = $conn->insert_id;
+                    $stmt->close();
+                }
+
+                require_once MASIR_RISH . 'mohtava/file/file-functions.php';
+                file_create_content_folder('khadamat', $slug ?: $id);
+                $conn->close();
+                redirect('mod/services');
+                exit;
+            }
+            $conn->close();
+
+            include __DIR__ . '/../../ghaleb/ghmod/sarfaraz.php';
+            ?>
+            <h3><?php echo $is_edit ? 'ویرایش خدمت' : 'افزودن خدمت جدید'; ?></h3>
+            <?php if ($is_edit): ?>
+            <div style="margin:0 0 20px;padding:16px 20px;background:#fff3e0;border:1px solid #ffd9a0;border-radius:12px;display:flex;align-items:center;justify-content:space-between;gap:16px;">
+                <div>
+                    <strong style="color:#b25e00;">محتوای جزئیات خدمت با صفحه‌ساز ویرایش می‌شود</strong>
+                    <div style="font-size:13px;color:#8a6d3b;margin-top:4px;">از دکمه زیر برای ویرایش محتوای صفحه‌ساز استفاده کنید.</div>
+                </div>
+                <a href="<?php echo BASE_URL; ?>mod/builder/edit_post/khadamat/<?php echo $id; ?>" style="display:inline-flex;align-items:center;gap:8px;padding:10px 20px;border-radius:8px;background:var(--rang-asli,#FF6F00);color:#fff;font-weight:700;text-decoration:none;white-space:nowrap;"><i class="fa-solid fa-layer-group"></i> ویرایش با صفحه‌ساز</a>
+            </div>
+            <?php endif; ?>
+            <form method="post">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin:20px 0;">
+                    <div>
+                        <label style="display:block;font-weight:600;margin-bottom:4px;">عنوان خدمت</label>
+                        <input type="text" name="title" value="<?php echo htmlspecialchars($service['title']); ?>" required style="width:100%;padding:10px;border:1.5px solid #dde1e6;border-radius:8px;">
+                    </div>
+                    <div>
+                        <label style="display:block;font-weight:600;margin-bottom:4px;">نامک (slug)</label>
+                        <input type="text" name="slug" value="<?php echo htmlspecialchars($service['slug']); ?>" style="width:100%;padding:10px;border:1.5px solid #dde1e6;border-radius:8px;">
+                    </div>
+                    <div>
+                        <label style="display:block;font-weight:600;margin-bottom:4px;">زیرعنوان</label>
+                        <input type="text" name="subtitle" value="<?php echo htmlspecialchars($service['subtitle'] ?? ''); ?>" style="width:100%;padding:10px;border:1.5px solid #dde1e6;border-radius:8px;" placeholder="مثلاً: پشتیبانی تخصصی">
+                    </div>
+                    <div>
+                        <label style="display:block;font-weight:600;margin-bottom:4px;">ترتیب نمایش</label>
+                        <input type="number" name="display_order" value="<?php echo (int)($service['display_order'] ?? 0); ?>" style="width:100%;padding:10px;border:1.5px solid #dde1e6;border-radius:8px;">
+                    </div>
+                    <div style="grid-column:span 2;">
+                        <label style="display:block;font-weight:600;margin-bottom:4px;">خلاصه خدمت (نمایش در لیست)</label>
+                        <textarea name="kholaseh" style="width:100%;padding:10px;border:1.5px solid #dde1e6;border-radius:8px;min-height:60px;"><?php echo htmlspecialchars($service['kholaseh'] ?? ''); ?></textarea>
+                    </div>
+                    <div>
+                        <label style="display:block;font-weight:600;margin-bottom:4px;">آیکون (کد SVG یا آیکون فا)</label>
+                        <input type="text" name="tasvir" value="<?php echo htmlspecialchars($service['tasvir'] ?? ''); ?>" style="width:100%;padding:10px;border:1.5px solid #dde1e6;border-radius:8px;" placeholder="<i class='fa-solid fa-wifi'></i>">
+                    </div>
+                    <div>
+                        <label style="display:block;font-weight:600;margin-bottom:4px;">وضعیت</label>
+                        <select name="status" style="width:100%;padding:10px;border:1.5px solid #dde1e6;border-radius:8px;">
+                            <option value="publish" <?php echo ($service['status'] ?? '')=='publish' ? 'selected' : ''; ?>>منتشر</option>
+                            <option value="draft" <?php echo ($service['status'] ?? '')=='draft' ? 'selected' : ''; ?>>پیش‌نویس</option>
+                        </select>
+                    </div>
+                </div>
+                <button type="submit" style="padding:12px 32px;background:var(--rang-asli);color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:15px;">ذخیره خدمت</button>
+            </form>
+            <?php
+            include __DIR__ . '/../../ghaleb/ghmod/panevis.php';
+            break;
+
+        case 'delete_service':
+            $id = $params[0] ?? null;
+            if ($id) {
+                require_once __DIR__ . '/../../dade/bank.php';
+                $bank = new Bank();
+                $conn = $bank->getConnection();
+                $stmt = $conn->prepare("DELETE FROM posts WHERE id = ? AND type = 'khadamat'");
+                $stmt->bind_param("i", $id);
+                $stmt->execute();
+                $stmt->close();
+                $conn->close();
+            }
+            redirect('mod/services');
             break;
 
         case 'panel_settings':

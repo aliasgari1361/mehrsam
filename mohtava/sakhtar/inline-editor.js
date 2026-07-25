@@ -1,9 +1,13 @@
 /* ویرایش درجا در iframe پیش‌نمایش صفحه‌ساز
  * ارتباط با پنجرهٔ والد از طریق postMessage.
+ * - متن: contenteditable inline
+ * - عکس: کلیک → تغییر آدرس
+ * - دکمه: کلیک → تغییر متن/لینک
+ * - هر بلاک: کلیک → باز شدن فرم ویرایش
  */
 (function () {
     'use strict';
-    var contentMap = {};   // index -> کلید فیلد متنی
+    var contentMap = {};
     var selected = -1;
     var toolbar = null;
     var dragEl = null;
@@ -38,7 +42,7 @@
             toolbar = document.createElement('div');
             toolbar.className = 'builder-inline-toolbar';
             toolbar.innerHTML =
-                '<button data-act="edit" title="ویرایش"><i class="fa-solid fa-pen"></i></button>' +
+                '<button data-act="edit" title="ویرایش بلاک"><i class="fa-solid fa-pen"></i></button>' +
                 '<button data-act="up" title="بالا"><i class="fa-solid fa-arrow-up"></i></button>' +
                 '<button data-act="down" title="پایین"><i class="fa-solid fa-arrow-down"></i></button>' +
                 '<button data-act="del" title="حذف" class="danger"><i class="fa-solid fa-trash"></i></button>';
@@ -70,7 +74,7 @@
     }
 
     function onDragStart(e) {
-        dragEl = this.parentNode; // المنت بلاک
+        dragEl = this.parentNode;
         try { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', this.getAttribute('data-block-index')); } catch (_) {}
         if (dragEl) dragEl.style.opacity = '0.4';
     }
@@ -100,6 +104,40 @@
         postOrder();
     }
 
+    /* ویرایش سریع عکس: کلیک روی img → تغییر src */
+    function handleImageClick(e, blockIndex) {
+        var img = e.target;
+        if (!img || img.tagName !== 'IMG') return false;
+        e.preventDefault();
+        e.stopPropagation();
+        var currentSrc = img.getAttribute('src') || '';
+        var alt = img.getAttribute('alt') || '';
+        var newSrc = prompt('آدرس تصویر:', currentSrc);
+        if (newSrc !== null && newSrc !== currentSrc) {
+            img.setAttribute('src', newSrc);
+            post({ type: 'builderImageEdit', index: blockIndex, src: newSrc, alt: alt });
+        }
+        return true;
+    }
+
+    /* ویرایش سریع دکمه: کلیک روی دکمه → تغییر متن/لینک */
+    function handleButtonClick(e, blockIndex) {
+        var btn = e.target.closest('a.dakmeh, a.btn');
+        if (!btn) return false;
+        e.preventDefault();
+        e.stopPropagation();
+        var currentText = btn.innerText.trim();
+        var currentHref = btn.getAttribute('href') || '';
+        var newText = prompt('متن دکمه:', currentText);
+        if (newText === null) return true;
+        var newHref = prompt('لینک دکمه:', currentHref);
+        if (newHref === null) return true;
+        if (newText !== currentText) btn.innerText = newText;
+        if (newHref !== currentHref) btn.setAttribute('href', newHref);
+        post({ type: 'builderButtonEdit', index: blockIndex, text: newText, href: newHref });
+        return true;
+    }
+
     function init() {
         var root = document.querySelector('.builder-edit-root');
         var blocks = root ? root.querySelectorAll('[data-block-index]') : document.querySelectorAll('[data-block-index]');
@@ -108,13 +146,20 @@
             if (isNaN(index)) return;
             el.classList.add('builder-live-block');
             el.addEventListener('click', function (e) {
-                e.stopPropagation();
-                selectBlock(index, el);
+                /* اول بررسی کن آیا روی عکس کلیک شده */
+                if (handleImageClick(e, index)) return;
+                /* بررسی کن آیا روی دکمه کلیک شده */
+                if (handleButtonClick(e, index)) return;
+                /* بلاک رو انتخاب کن (فقط اگر روی drag handle نبود) */
+                if (!e.target.closest('.builder-drag-handle') && !e.target.closest('.builder-inline-toolbar')) {
+                    e.stopPropagation();
+                    selectBlock(index, el);
+                }
             });
             el.addEventListener('dragover', onDragOver);
             el.addEventListener('dragleave', onDragLeave);
             el.addEventListener('drop', onDrop);
-            // دستهٔ درگ برای جابجایی بلاک (بدون تداخل با ویرایش متن)
+            /* دسته درگ */
             var handle = document.createElement('div');
             handle.className = 'builder-drag-handle';
             handle.title = 'جابجایی';
@@ -123,7 +168,7 @@
             handle.addEventListener('dragstart', onDragStart);
             handle.addEventListener('dragend', onDragEnd);
             el.insertBefore(handle, el.firstChild);
-            // اولین عنصر متنی را برای ویرایش درجا آماده کن
+            /* اولین عنصر متنی را برای ویرایش درجا آماده کن */
             var txt = el.querySelector('h1, h2, h3, h4, p, .builder-text');
             if (txt) makeEditable(txt, index);
         });
@@ -154,4 +199,3 @@
         init();
     }
 })();
-

@@ -44,7 +44,7 @@ function khadamat_fehrest() {
     $bank     = new Bank();
     $conn     = $bank->getConnection();
 
-    $result = $conn->query("SELECT id, title, slug, kholaseh, tasvir, subtitle, display_order FROM khadamat WHERE vaziat=1 ORDER BY display_order ASC");
+    $result = $conn->query("SELECT id, title, slug, kholaseh, tasvir, subtitle, display_order FROM posts WHERE type='khadamat' AND status='publish' ORDER BY display_order ASC");
     $khadamat_list = $result ? $result->fetch_all(MYSQLI_ASSOC) : [];
     $conn->close();
 
@@ -62,7 +62,7 @@ function khadamat_tan($slug) {
     $bank = new Bank();
     $conn = $bank->getConnection();
 
-    $stmt = $conn->prepare("SELECT * FROM khadamat WHERE slug = ? AND vaziat = 1 LIMIT 1");
+    $stmt = $conn->prepare("SELECT * FROM posts WHERE slug = ? AND type = 'khadamat' AND status = 'publish' LIMIT 1");
     $stmt->bind_param("s", $slug);
     $stmt->execute();
     $service = $stmt->get_result()->fetch_assoc();
@@ -77,7 +77,6 @@ function khadamat_tan($slug) {
         $onvan_safhe  = $service['title'] . ' | ' . SITE_NAME;
         $meta_sharh   = strip_tags($service['kholaseh'] ?? 'خدمات پشتیبانی کامپیوتر');
         $safhe_faali  = 'khadamat';
-        // متغیر $service در khadamat-tan.php استفاده می‌شود
         $GLOBALS['khadamat_service'] = $service;
 
         $builder_content = '';

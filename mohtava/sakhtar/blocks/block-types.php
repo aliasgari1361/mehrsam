@@ -268,7 +268,7 @@ function block_services_render($data) {
     $title = htmlspecialchars($data['title'] ?? 'خدمات ما');
     $bank = new Bank();
     $conn = $bank->getConnection();
-    $stmt = $conn->prepare("SELECT title, slug, kholaseh, subtitle, tasvir FROM khadamat WHERE vaziat = 1 ORDER BY display_order ASC LIMIT ?");
+    $stmt = $conn->prepare("SELECT title, slug, kholaseh, subtitle, tasvir FROM posts WHERE type = 'khadamat' AND status = 'publish' ORDER BY display_order ASC LIMIT ?");
     $stmt->bind_param("i", $count);
     $stmt->execute();
     $services = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);

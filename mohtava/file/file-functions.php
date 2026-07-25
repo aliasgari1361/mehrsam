@@ -147,13 +147,11 @@ function file_scan_all_usages() {
             }
         }
     }
-    // خدمات (اگر وجود داشته باشد)
-    if ($conn->query("SHOW TABLES LIKE 'khadamat'")->num_rows) {
-        $res = $conn->query("SELECT id, title, content FROM khadamat");
-        while ($row = $res->fetch_assoc()) {
-            foreach (file_extract_refs(($row['content'] ?? '')) as $rel) {
-                $add($map, $rel, 'khadamat', (int)$row['id'], $row['title']);
-            }
+    // خدمات (از posts با type='khadamat')
+    $res = $conn->query("SELECT id, title, content FROM posts WHERE type='khadamat'");
+    if ($res) while ($row = $res->fetch_assoc()) {
+        foreach (file_extract_refs(($row['content'] ?? '')) as $rel) {
+            $add($map, $rel, 'khadamat', (int)$row['id'], $row['title']);
         }
     }
     $conn->close();
@@ -320,7 +318,7 @@ function file_resolve_title($type, $id) {
     } elseif ($type === 'product' || $type === 'mahsul') {
         $stmt = $conn->prepare("SELECT onvan FROM mahsulat WHERE id = ?");
     } elseif ($type === 'khadamat') {
-        $stmt = $conn->prepare("SELECT title FROM khadamat WHERE id = ?");
+        $stmt = $conn->prepare("SELECT title FROM posts WHERE id = ? AND type='khadamat'");
     } else {
         $conn->close();
         return '';
@@ -344,7 +342,7 @@ function file_content_edit_url($type, $id) {
         return BASE_URL . 'mod/store/products';
     }
     if ($type === 'khadamat') {
-        return BASE_URL . 'mod/content';
+        return BASE_URL . 'mod/services';
     }
     return '';
 }

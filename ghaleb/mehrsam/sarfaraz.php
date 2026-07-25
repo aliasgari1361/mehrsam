@@ -397,6 +397,14 @@ $site_title = $general_settings['site_title'] ?? 'مهراد سام';
         .homepage-content .builder-free-canvas [class*="bpos-"] { box-sizing: border-box; }
         .homepage-content .builder-free-canvas img { max-width: 100%; height: auto; }
         .homepage-content [data-block-index] { margin-bottom: 16px; }
+        @media (max-width: 1199px) {
+            .homepage-content .builder-free-canvas [class*="bpos-"] {
+                position: static !important;
+                left: auto !important; top: auto !important;
+                width: 100% !important;
+                margin-bottom: 16px;
+            }
+        }
         @media (max-width: 768px) {
             .homepage-content .builder-free-canvas { min-height: 0 !important; }
             .homepage-content .builder-free-canvas [class*="bpos-"] {

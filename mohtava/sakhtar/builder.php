@@ -314,7 +314,7 @@ function builder_import_content_to_blocks($type, $id) {
         'safhe'    => ['posts', 'content'],
         'page'     => ['posts', 'content'],
         'mahsul'   => ['mahsulat', 'content'],
-        'khadamat' => ['khadamat', 'content'],
+        'khadamat' => ['posts', 'content'],
     ];
     if (!isset($map[$type])) return null;
     list($table, $col) = $map[$type];
@@ -350,14 +350,11 @@ function builder_page_edit_post($type, $id) {
 
     // بررسی وجود موجودیت در جدول مربوطه
     $found = false;
-    if (in_array($type, ['blog', 'maghaleh', 'safhe', 'page'], true)) {
+    if (in_array($type, ['blog', 'maghaleh', 'safhe', 'page', 'khadamat'], true)) {
         $stmt = $conn->prepare("SELECT id FROM posts WHERE id = ? AND type = ?");
         $stmt->bind_param("is", $id, $type);
     } elseif ($type === 'mahsul') {
         $stmt = $conn->prepare("SELECT id FROM mahsulat WHERE id = ?");
-        $stmt->bind_param("i", $id);
-    } elseif ($type === 'khadamat') {
-        $stmt = $conn->prepare("SELECT id FROM khadamat WHERE id = ?");
         $stmt->bind_param("i", $id);
     } else {
         $conn->close();
@@ -968,6 +965,24 @@ function builder_page_edit($block_page_id) {
         else if (d.type === 'builderMove') { moveBlock(d.index, d.dir); }
         else if (d.type === 'builderReorder') { applyReorder(d.order); }
         else if (d.type === 'builderAdd') { addBlockFromIframe(d.btype, d.index); }
+        else if (d.type === 'builderImageEdit') {
+            if (blocksData[d.index]) {
+                if (!blocksData[d.index].data) blocksData[d.index].data = {};
+                blocksData[d.index].data.src = d.src;
+                if (d.alt !== undefined) blocksData[d.index].data.alt = d.alt;
+                refreshPreview();
+                autoSaveBlocks();
+            }
+        }
+        else if (d.type === 'builderButtonEdit') {
+            if (blocksData[d.index]) {
+                if (!blocksData[d.index].data) blocksData[d.index].data = {};
+                blocksData[d.index].data.text = d.text;
+                blocksData[d.index].data.url = d.href;
+                refreshPreview();
+                autoSaveBlocks();
+            }
+        }
         else if (d.type === 'builderReady') {
             var f = document.getElementById('previewFrame');
             if (f && f.contentWindow) f.contentWindow.postMessage({_ns:'builderInline', type:'builderSetContentFields', fields: blockContentFields()}, window.location.origin);
@@ -1504,7 +1519,7 @@ function builder_sync_content($page_type, $page_id, $html) {
         'safhe'    => ['posts', 'content'],
         'page'     => ['posts', 'content'],
         'mahsul'   => ['mahsulat', 'content'],
-        'khadamat' => ['khadamat', 'content'],
+        'khadamat' => ['posts', 'content'],
     ];
     if (!isset($map[$page_type])) return;
     list($table, $col) = $map[$page_type];
@@ -1567,10 +1582,11 @@ function builder_build_positions_css($blocks, $mobile_mode = 'auto') {
         $eff = builder_effective_pos($block);
         $cls = '.bpos-' . $i;
         $hasMobile = !empty($block['pos']['mobile']);
+        $hasTablet = !empty($block['pos']['tablet']);
         foreach (['wide', 'desktop', 'tablet', 'mobile'] as $b) {
             $p = $eff[$b];
             if ($p === null) continue;
-            if ($b === 'mobile' && $mobile_mode === 'auto' && !$hasMobile) {
+            if ($mobile_mode === 'auto' && (($b === 'mobile' && !$hasMobile) || ($b === 'tablet' && !$hasTablet))) {
                 $rule = $cls . '{position:static!important;width:100%!important;margin-bottom:16px;}';
             } else {
                 $rule = $cls . '{position:absolute;left:' . (int)$p['x'] . 'px;top:' . (int)$p['y'] . 'px;width:' . (int)$p['w'] . 'px;z-index:' . (int)($p['z'] ?? 1) . ';}';
@@ -1625,6 +1641,9 @@ function builder_preview_page($block_page_id) {
             .builder-live-block:hover > .builder-drag-handle { display:flex; }
             .builder-live-block { padding-top:6px; }
             .builder-drop-target { outline:2px dashed #00B894 !important; outline-offset:2px; }
+            .builder-live-block img { cursor:pointer; transition:outline .15s; }
+            .builder-live-block img:hover { outline:2px dashed #0984E3; outline-offset:2px; }
+            .builder-live-block a.dakmeh:hover, .builder-live-block a.btn:hover { outline:2px dashed #00B894; outline-offset:2px; }
         ';
         $edit_body = '<script src="' . $site_url . 'mohtava/sakhtar/inline-editor.js"></script>';
     }
@@ -1801,8 +1820,8 @@ function builder_render_blocks_api() {
 function builder_get_page_id($page_type, $page_slug) {
     $bank = new Bank();
     $conn = $bank->getConnection();
-    $table = in_array($page_type, ['blog', 'maghaleh', 'safhe', 'page'], true) ? 'posts'
-           : ($page_type === 'mahsul' ? 'mahsulat' : ($page_type === 'khadamat' ? 'khadamat' : 'posts'));
+    $table = in_array($page_type, ['blog', 'maghaleh', 'safhe', 'page', 'khadamat'], true) ? 'posts'
+           : ($page_type === 'mahsul' ? 'mahsulat' : 'posts');
     if ($page_slug) {
         $stmt = $conn->prepare("SELECT p.id, bp.id AS bp_id FROM $table p LEFT JOIN block_pages bp ON bp.page_id = p.id AND bp.page_type = ? WHERE p.slug = ? LIMIT 1");
         $stmt->bind_param("ss", $page_type, $page_slug);
