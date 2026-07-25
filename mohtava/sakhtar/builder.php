@@ -1647,13 +1647,14 @@ function builder_preview_page($block_page_id) {
         ';
         $edit_body = '<script src="' . $site_url . 'mohtava/sakhtar/inline-editor.js"></script>';
     }
+    $font_css = "<style>"
+        . "@font-face{font-family:'Vazirmatn';src:url({$site_url}ghaleb/manabe/fonts/Vazirmatn-RD-Regular.woff2) format('woff2');font-weight:400;font-display:swap;}"
+        . "@font-face{font-family:'Vazirmatn';src:url({$site_url}ghaleb/manabe/fonts/Vazirmatn-RD-Bold.woff2) format('woff2');font-weight:700;font-display:swap;}"
+        . "</style>";
     echo '<!DOCTYPE html><html lang="fa" dir="rtl"><head>
         <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-        <style>
-            @font-face { font-family:'Vazirmatn'; src:url('{$site_url}ghaleb/manabe/fonts/Vazirmatn-RD-Regular.woff2') format('woff2'); font-weight:400; font-display:swap; }
-            @font-face { font-family:'Vazirmatn'; src:url('{$site_url}ghaleb/manabe/fonts/Vazirmatn-RD-Bold.woff2') format('woff2'); font-weight:700; font-display:swap; }
-        </style>
+        ' . $font_css . '
         <style>
             body { font-family:"Vazirmatn",Tahoma,sans-serif; font-size:15px; line-height:1.8; color:#1a1a1a; margin:0; padding:0; direction:rtl; }
             :root { --rang-asli:#FF6F00; --rang-tira:#E65100; --rang-roshan:#ffffea; --rang-matn:#1a1a1a; --rang-zamin:#fff; --rang-sabz:#f8f9fa; --rang-border:#e9ecef; --rang-gray:#6c757d; --rang-makm1:#2D3436; --rang-makm2:#00B894; --rang-makm3:#6C5CE7; --rang-makm4:#FDCB6E; --rang-makm5:#E17055; }
