@@ -1545,7 +1545,7 @@ function builder_clear_cache($block_page_id) {
     exit;
 }
 
-function builder_render_page($block_page_id) {
+function builder_render_page($block_page_id, $use_cache = true) {
     $bank = new Bank();
     $conn = $bank->getConnection();
     $stmt = $conn->prepare("SELECT * FROM block_pages WHERE id = ?");
@@ -1555,7 +1555,7 @@ function builder_render_page($block_page_id) {
     $stmt->close();
     $conn->close();
     if (!$bp)     return '';
-    if ($bp['cached_html']) return $bp['cached_html'];
+    if ($use_cache && $bp['cached_html']) return $bp['cached_html'];
     $blocks = json_decode($bp['blocks_data'], true) ?: [];
     if (empty($blocks)) {
         if ($bp['page_id']) {
@@ -1601,9 +1601,9 @@ function builder_build_positions_css($blocks, $mobile_mode = 'auto') {
     return $css;
 }
 
-function builder_render_full_page($block_page_id, $context = []) {
+function builder_render_full_page($block_page_id, $context = [], $use_cache = true) {
     $header  = builder_render_part('header', $context);
-    $content = builder_render_page($block_page_id);
+    $content = builder_render_page($block_page_id, $use_cache);
     $footer  = builder_render_part('footer', $context);
     return $header . '<div class="builder-edit-root">' . $content . '</div>' . $footer;
 }
@@ -1620,9 +1620,9 @@ function builder_preview_page($block_page_id) {
 
     if ($bp && (int)$bp['page_id'] > 0 && empty($bp['part'])) {
         $ctx = ['type' => $bp['page_type']];
-        $html = builder_render_full_page($block_page_id, $ctx);
+        $html = builder_render_full_page($block_page_id, $ctx, false);
     } else {
-        $html = builder_render_page($block_page_id);
+        $html = builder_render_page($block_page_id, false);
     }
     $site_url = BASE_URL;
     $edit = ($_GET['edit'] ?? '') === '1';
