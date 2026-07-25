@@ -1651,6 +1651,7 @@ function builder_preview_page($block_page_id) {
         . "@font-face{font-family:'Vazirmatn';src:url({$site_url}ghaleb/manabe/fonts/Vazirmatn-RD-Regular.woff2) format('woff2');font-weight:400;font-display:swap;}"
         . "@font-face{font-family:'Vazirmatn';src:url({$site_url}ghaleb/manabe/fonts/Vazirmatn-RD-Bold.woff2) format('woff2');font-weight:700;font-display:swap;}"
         . "</style>";
+    header('Content-Type: text/html; charset=utf-8');
     echo '<!DOCTYPE html><html lang="fa" dir="rtl"><head>
         <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
