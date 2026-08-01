@@ -186,11 +186,12 @@ function block_heading_render($data) {
     $text = htmlspecialchars($data['text'] ?? '');
     $align = $data['align'] ?? 'right';
     $color = $data['color'] ?? '#1a1a1a';
-    return "<$level style=\"text-align:$align;color:$color;margin:20px 0;\">$text</$level>";
+    return "<$level class=\"builder-editable builder-text\" data-field=\"text\" style=\"text-align:$align;color:$color;margin:20px 0;\">$text</$level>";
 }
 
 function block_text_render($data) {
-    return '<div style="line-height:2;color:#444;font-size:15px;">' . ($data['content'] ?? '') . '</div>';
+    $content = $data['content'] ?? '';
+    return '<div class="builder-editable builder-text" data-field="content" style="line-height:2;color:#444;font-size:15px;">' . $content . '</div>';
 }
 
 function block_image_render($data) {
@@ -199,8 +200,8 @@ function block_image_render($data) {
     $caption = htmlspecialchars($data['caption'] ?? '');
     $width = $data['width'] ?? '100%';
     if (!$src) return '';
-    $html = "<div style=\"text-align:center;margin:20px 0;\"><img src=\"$src\" alt=\"$alt\" style=\"max-width:$width;height:auto;border-radius:10px;box-shadow:0 4px 20px rgba(0,0,0,0.1);\">";
-    if ($caption) $html .= "<p style=\"margin-top:8px;font-size:13px;color:#888;\">$caption</p>";
+    $html = "<div style=\"text-align:center;margin:20px 0;\"><img src=\"$src\" alt=\"$alt\" class=\"builder-editable-image\" data-field=\"src\" style=\"max-width:$width;height:auto;border-radius:10px;box-shadow:0 4px 20px rgba(0,0,0,0.1);\">";
+    if ($caption) $html .= "<p class=\"builder-editable builder-text\" data-field=\"caption\" style=\"margin-top:8px;font-size:13px;color:#888;\">$caption</p>";
     $html .= '</div>';
     return $html;
 }
@@ -225,7 +226,7 @@ function block_button_render($data) {
     if ($style === 'khali') $btn_style = 'background:transparent;color:var(--rang-asli,#FF6F00);border:2px solid var(--rang-asli,#FF6F00);';
     else if ($style === 'sabz') $btn_style = 'background:var(--rang-makm2,#00B894);color:#fff;';
     else $btn_style = 'background:var(--rang-asli,#FF6F00);color:#fff;';
-    return '<div style="text-align:center;margin:20px 0;"><a href="' . htmlspecialchars($url) . '" style="display:inline-flex;align-items:center;gap:8px;padding:12px 28px;border-radius:8px;font-weight:700;font-size:15px;text-decoration:none;transition:all 0.3s;' . $btn_style . '">' . $text . ' <i class="fa-solid fa-arrow-left" style="font-size:12px;"></i></a></div>';
+    return '<div style="text-align:center;margin:20px 0;"><a href="' . htmlspecialchars($url) . '" class="dakmeh builder-editable-link builder-editable" data-field="url" style="display:inline-flex;align-items:center;gap:8px;padding:12px 28px;border-radius:8px;font-weight:700;font-size:15px;text-decoration:none;transition:all 0.3s;' . $btn_style . '"><span class="builder-editable builder-text" data-field="text" style="display:inline;">' . $text . '</span> <i class="fa-solid fa-arrow-left" style="font-size:12px;"></i></a></div>';
 }
 
 function block_divider_render($data) {
@@ -239,7 +240,7 @@ function block_columns_render($data) {
     $html = '<div style="display:grid;grid-template-columns:repeat(' . $cols . ',1fr);gap:24px;margin:20px 0;">';
     for ($i = 1; $i <= $cols; $i++) {
         $content = $data['col' . $i] ?? '';
-        $html .= '<div>' . $content . '</div>';
+        $html .= '<div class="builder-editable builder-text" data-field="col' . $i . '">' . $content . '</div>';
     }
     $html .= '</div>';
     return $html;
@@ -277,7 +278,7 @@ function block_services_render($data) {
     if (empty($services)) return '';
 
     $html = '<section style="padding:50px 0;"><div class="mohtava-container">';
-    if ($title) $html .= '<div class="onvan-bakhsh"><h2>' . $title . '</h2></div>';
+    if ($title) $html .= '<div class="onvan-bakhsh"><h2 class="builder-editable builder-text" data-field="title">' . $title . '</h2></div>';
     $html .= '<div class="gerid-3">';
     foreach ($services as $s) {
         $sub = !empty($s['subtitle']) ? '<span style="display:block;font-size:0.8rem;color:var(--rang-tira);font-weight:600;margin-bottom:6px;">' . htmlspecialchars($s['subtitle']) . '</span>' : '';
@@ -302,7 +303,7 @@ function block_products_render($data) {
     $conn->close();
     if (!$products) return '';
     $html = '<section style="padding:60px 0;background:#f8f9fa;"><div class="mohtava-container">';
-    if ($title) $html .= '<div class="onvan-bakhsh"><h2>' . $title . '</h2></div>';
+    if ($title) $html .= '<div class="onvan-bakhsh"><h2 class="builder-editable builder-text" data-field="title">' . $title . '</h2></div>';
     $html .= '<div class="gerid-4">';
     foreach ($products as $p) {
         $price = $p['gheymat_takhfif'] ?: $p['gheymat'];
@@ -318,7 +319,7 @@ function block_products_render($data) {
 }
 
 function block_custom_render($data) {
-    return $data['html'] ?? '';
+    return '<div class="builder-editable builder-text builder-custom-html" data-field="html">' . ($data['html'] ?? '') . '</div>';
 }
 
 function block_map_render($data) {
@@ -360,7 +361,7 @@ function render_block_admin($block) {
 
     $data_json = htmlspecialchars(json_encode($data, JSON_UNESCAPED_UNICODE));
 
-    return '<div class="block-header"><div class="block-title"><span style="display:inline-block;width:28px;height:28px;border-radius:6px;background:' . $color . ';color:#fff;text-align:center;line-height:28px;margin-left:8px;font-size:13px;"><i class="fa-solid ' . $icon . '"></i></span>' . $label . '</div></div><div class="block-content-preview" style="font-size:13px;color:#666;max-height:60px;overflow:hidden;">' . $preview . '</div><div class="block-footer"><button onclick="openEditModal(parseInt(this.closest(\'.block-item\').dataset.index))" title="ویرایش"><i class="fa-solid fa-pen"></i> ویرایش</button><button class="danger" onclick="removeBlock(this)" title="حذف"><i class="fa-solid fa-trash"></i> حذف</button></div><div class="block-data" style="display:none;">' . $data_json . '</div>';
+    return '<div class="block-header"><div class="block-title"><span style="display:inline-block;width:28px;height:28px;border-radius:6px;background:' . $color . ';color:#fff;text-align:center;line-height:28px;margin-left:8px;font-size:13px;"><i class="fa-solid ' . $icon . '"></i></span>' . $label . '</div></div><div class="block-content-preview" style="font-size:13px;color:#666;max-height:60px;overflow:hidden;">' . $preview . '</div><div class="block-footer"><button onclick="openEditSidebar(parseInt(this.closest(\'.block-item\').dataset.index))" title="ویرایش"><i class="fa-solid fa-pen"></i> ویرایش</button><button class="danger" onclick="removeBlock(this)" title="حذف"><i class="fa-solid fa-trash"></i> حذف</button></div><div class="block-data" style="display:none;">' . $data_json . '</div>';
 }
 
 function render_block_admin_full($block) {
@@ -374,5 +375,5 @@ function render_block_admin_full($block) {
     $content = builder_render_block_inner($block);
     $data_json = htmlspecialchars(json_encode($data, JSON_UNESCAPED_UNICODE));
 
-    return '<div class="block-header"><div class="block-title"><span style="display:inline-block;width:28px;height:28px;border-radius:6px;background:' . $color . ';color:#fff;text-align:center;line-height:28px;margin-left:8px;font-size:13px;"><i class="fa-solid ' . $icon . '"></i></span>' . $label . '</div></div><div class="block-content-preview" style="font-size:14px;color:#333;">' . $content . '</div><div class="block-footer"><button onclick="openEditModal(parseInt(this.closest(\'.block-item\').dataset.index))" title="ویرایش"><i class="fa-solid fa-pen"></i> ویرایش</button><button class="danger" onclick="removeBlock(this)" title="حذف"><i class="fa-solid fa-trash"></i> حذف</button></div><div class="block-data" style="display:none;">' . $data_json . '</div>';
+    return '<div class="block-header"><div class="block-title"><span style="display:inline-block;width:28px;height:28px;border-radius:6px;background:' . $color . ';color:#fff;text-align:center;line-height:28px;margin-left:8px;font-size:13px;"><i class="fa-solid ' . $icon . '"></i></span>' . $label . '</div></div><div class="block-content-preview" style="font-size:14px;color:#333;">' . $content . '</div><div class="block-footer"><button onclick="openEditSidebar(parseInt(this.closest(\'.block-item\').dataset.index))" title="ویرایش"><i class="fa-solid fa-pen"></i> ویرایش</button><button class="danger" onclick="removeBlock(this)" title="حذف"><i class="fa-solid fa-trash"></i> حذف</button></div><div class="block-data" style="display:none;">' . $data_json . '</div>';
 }

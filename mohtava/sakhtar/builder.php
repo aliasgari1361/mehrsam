@@ -555,6 +555,12 @@ function builder_page_edit($block_page_id) {
         .builder-wrap.hide-preview .builder-splitter { display:none; }
         .builder-preview.fullscreen { position:fixed; inset:0; z-index:9999; border-radius:0; }
         .builder-preview.fullscreen iframe { min-height:100vh; }
+        .builder-wrap.layout-stack { flex-direction:column; }
+        .builder-wrap.layout-stack .builder-splitter { width:100%; height:6px; cursor:ns-resize; }
+        .builder-wrap.layout-stack .builder-canvas { padding:20px; }
+        .builder-wrap.layout-stack .builder-preview { height:calc(100vh - 500px); }
+        .builder-wrap.layout-preview .builder-canvas { display:none; }
+        .builder-wrap.layout-preview .builder-splitter { display:none; }
     </style>
 
     <h3>صفحه‌ساز: <?= htmlspecialchars($bp['page_type']) ?> #<?= $bp['page_id'] ?></h3>
@@ -651,11 +657,13 @@ function builder_page_edit($block_page_id) {
                     <?php endforeach; ?>
                 </div>
                 <div class="canvas-actions">
-                    <button onclick="toggleSidebar()" title="نمایش/مخفی چیپس‌های بلاک"><i class="fa-solid fa-layer-group"></i></button>
-                    <button onclick="convertToFree()" title="تبدیل به حالت آزاد"><i class="fa-solid fa-arrows-alt"></i> آزاد</button>
-                    <button onclick="clearCache(<?= $bp['id'] ?>)" title="پاک کردن کش"><i class="fa-solid fa-rotate"></i></button>
-                    <button onclick="refreshPreview()" title="بروزرسانی پیشنمایش"><i class="fa-solid fa-eye"></i></button>
-                    <button onclick="window.open('<?= BASE_URL ?>mod/builder/preview/<?= $bp['id'] ?>','_blank')" title="پیشنمایش در تب جدید"><i class="fa-solid fa-up-right-from-square"></i></button>
+                    <button type="button" onclick="toggleLayout('split')" title="نمایش بوم و پیش‌نمایش کنار هم"><i class="fa-solid fa-grip"></i></button>
+                    <button type="button" onclick="toggleLayout('stack')" title="نمایش عمودی (بوم بالا، پیش‌نمایش پایین)"><i class="fa-solid fa-layer-group"></i></button>
+                    <button type="button" onclick="toggleLayout('preview')" title="تمام صفحه پیش‌نمایش"><i class="fa-solid fa-expand"></button>
+                    <button type="button" onclick="toggleSidebar()" title="نمایش/مخفی چیپس‌های بلاک"><i class="fa-solid fa-layer-group"></i></button>
+                    <button type="button" onclick="toggleCanvas()" title="نمایش/مخفی بلاک‌ها"><i class="fa-solid fa-cubes"></i></button>
+                    <button type="button" onclick="togglePreview()" title="نمایش/مخفی پیش‌نمایش"><i class="fa-solid fa-eye-slash"></i></button>
+                    <button type="button" onclick="fullscreenPreview()" title="تمام‌صفحه پیش‌نمایش"><i class="fa-solid fa-expand"></i></button>
                 </div>
             </div>
             <div id="freeSurface" class="free-surface" style="display:none;"></div>
@@ -697,6 +705,8 @@ function builder_page_edit($block_page_id) {
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+    <script src="https://cdn.tiny.cloud/1/no-api-key/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
+    <script src="https://cdn.ckeditor.com/ckeditor5/44.0.0/inline/ckeditor.js"></script>
     <script>
     var blocksData = <?= json_encode($blocks, JSON_UNESCAPED_UNICODE) ?>;
     var blockTypes = <?= json_encode($available_blocks, JSON_UNESCAPED_UNICODE) ?>;
@@ -837,60 +847,157 @@ function builder_page_edit($block_page_id) {
         }
     }
 
-    function openEditModal(idx) {
-        if (idx === undefined || idx === null || isNaN(idx)) return;
-        editingBlockIndex = idx;
-        var block = blocksData[editingBlockIndex];
-        if (!block) return;
-        var data = block.data || {};
-        var bt = blockTypes[block.type] || {label: block.type};
-        var fields = bt.fields || [];
-        var html = '<div class="builder-edit-modal" style="position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;display:flex;align-items:center;justify-content:center;" onclick="if(event.target===this)this.remove()">';
-        html += '<div style="background:#fff;border-radius:16px;padding:32px;max-width:600px;width:90%;max-height:80vh;overflow-y:auto;">';
-        html += '<h3 style="margin-bottom:16px;">ویرایش «' + bt.label + '»</h3>';
-        if (fields.length === 0) html += '<p style="color:#888;">این بلاک تنظیمات خاصی ندارد.</p>';
-        fields.forEach(function(f) {
-            var val = data[f.key] !== undefined ? data[f.key] : (f.default || '');
-            html += '<div style="margin-bottom:14px;">';
-            html += '<label style="display:block;margin-bottom:4px;font-weight:600;">' + f.label + '</label>';
-            if (f.type === 'textarea' || f.type === 'html') {
-                html += '<textarea class="edit-field" data-key="' + f.key + '" style="width:100%;padding:10px;border:1.5px solid #dde1e6;border-radius:8px;min-height:' + (f.type === 'html' ? '150' : '80') + 'px;">' + val + '</textarea>';
-            } else if (f.type === 'select') {
-                html += '<select class="edit-field" data-key="' + f.key + '" style="width:100%;padding:10px;border:1.5px solid #dde1e6;border-radius:8px;">';
-                (f.options || []).forEach(function(o) { html += '<option value="' + o.value + '" ' + (val == o.value ? 'selected' : '') + '>' + o.label + '</option>'; });
-                html += '</select>';
-            } else if (f.type === 'color') {
-                html += '<input type="color" class="edit-field" data-key="' + f.key + '" value="' + val + '" style="width:60px;height:40px;border:none;border-radius:6px;cursor:pointer;">';
-            } else if (f.type === 'number') {
-                html += '<input type="number" class="edit-field" data-key="' + f.key + '" value="' + val + '" style="width:100%;padding:10px;border:1.5px solid #dde1e6;border-radius:8px;">';
-            } else if (f.type === 'image') {
-                html += '<div style="display:flex;gap:8px;"><input type="text" class="edit-field" data-key="' + f.key + '" value="' + val + '" style="flex:1;padding:10px;border:1.5px solid #dde1e6;border-radius:8px;" placeholder="URL تصویر"><button type="button" onclick="selectImage(this)" style="padding:10px;background:#f5f6f8;border:1px solid #dde1e6;border-radius:8px;cursor:pointer;">انتخاب</button></div>';
-            } else {
-                html += '<input type="text" class="edit-field" data-key="' + f.key + '" value="' + val + '" style="width:100%;padding:10px;border:1.5px solid #dde1e6;border-radius:8px;">';
-            }
-            html += '</div>';
-        });
-        html += '<div style="display:flex;gap:10px;margin-top:20px;">';
-        html += '<button type="button" onclick="saveEdit(this)" style="padding:12px 24px;background:var(--rang-asli,#FF6F00);color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;"><i class="fa-solid fa-check"></i> اعمال</button>';
-        html += '<button type="button" onclick="this.closest(\'.builder-edit-modal\').remove()" style="padding:12px 24px;background:#f5f6f8;border:1px solid #dde1e6;border-radius:8px;cursor:pointer;">انصراف</button>';
-        html += '</div></div></div>';
-        var modal = document.createElement('div');
-        modal.innerHTML = html;
-        document.body.appendChild(modal);
-    }
+     /* ===== سایدبار ویرایش بلاک (جایگزین مودال) ===== */
+     var editingBlockIndex = -1;
 
-    var editingBlockIndex = -1;
+     function openEditSidebar(idx) {
+         if (idx === undefined || idx === null || isNaN(idx)) return;
+         editingBlockIndex = idx;
+         var block = blocksData[editingBlockIndex];
+         if (!block) return;
+         var data = block.data || {};
+         var bt = blockTypes[block.type] || {label: block.type, color: '#888', icon: 'fa-cube'};
+         var fields = bt.fields || [];
 
-    function saveEdit(btn) {
-        var modal = btn.closest('[style*="fixed"]');
-        var fields = modal.querySelectorAll('.edit-field');
-        var data = {};
-        fields.forEach(function(f) { data[f.dataset.key] = f.value; });
-        if (blocksData[editingBlockIndex]) blocksData[editingBlockIndex].data = data;
-        renderAllBlocks();
-        modal.remove();
-        schedulePreviewRefresh();
-    }
+         /* استایل سایدبار اگر اولین بار است */
+         var style = document.getElementById('builderSidebarStyle');
+         if (!style) {
+             style = document.createElement('style');
+             style.id = 'builderSidebarStyle';
+             style.textContent =
+                 '#builderSidebarPanel { position:fixed; top:0; left:0; width:380px; max-width:380px; height:100vh; background:#fff; box-shadow:2px 0 20px rgba(0,0,0,0.12); z-index:2000; display:none; overflow-y:auto; border-left:1px solid #eef0f4; }' +
+                 '#builderSidebarPanel.open { display:block; }' +
+                 '#builderSidebarPanel .sb-header { display:flex; align-items:center; gap:10px; padding:18px 20px; border-bottom:1px solid #eef0f4; }' +
+                 '#builderSidebarPanel .sb-header h3 { margin:0; font-size:16px; font-weight:700; flex:1; }' +
+                 '#builderSidebarPanel .sb-close { padding:8px 14px; background:#f5f6f8; border:1px solid #dde1e6; border-radius:6px; cursor:pointer; font-size:14px; }' +
+                 '#builderSidebarPanel .sb-body { padding:20px; }' +
+                 '#builderSidebarPanel .sb-field { margin-bottom:16px; }' +
+                 '#builderSidebarPanel .sb-field label { display:block; margin-bottom:6px; font-weight:600; font-size:13px; color:#555; }' +
+                 '#builderSidebarPanel .sb-field input[type="text"], #builderSidebarPanel .sb-field input[type="number"], #builderSidebarPanel .sb-field textarea, #builderSidebarPanel .sb-field select { width:100%; padding:10px; border:1.5px solid #dde1e6; border-radius:8px; font-size:13px; box-sizing:border-box; }' +
+                 '#builderSidebarPanel .sb-field textarea { min-height:120px; font-family:inherit; resize:vertical; }' +
+                 '#builderSidebarPanel .sb-save { display:flex; gap:10px; padding:16px 20px; border-top:1px solid #eef0f4; }' +
+                 '#builderSidebarPanel .sb-save button { flex:1; padding:12px; border:none; border-radius:8px; font-weight:700; cursor:pointer; font-size:13px; }' +
+                 '#builderSidebarPanel .sb-save .sb-apply { background:var(--rang-asli,#FF6F00); color:#fff; }' +
+                 '#builderSidebarPanel .sb-save .sb-cancel { background:#f5f6f8; border:1px solid #dde1e6; }';
+         document.head.appendChild(style);
+
+         var panel = document.getElementById('builderSidebarPanel');
+         if (!panel) {
+             panel = document.createElement('div');
+             panel.id = 'builderSidebarPanel';
+             document.body.appendChild(panel);
+         }
+
+         /* Close preview overlay if any */
+         var overlay = document.getElementById('builderOverlay');
+         if (overlay) overlay.remove();
+
+         var fieldHtml = '';
+         if (fields.length === 0) {
+             fieldHtml = '<p style="color:#888;padding:12px;">این بلاک تنظیمات خاصی ندارد.</p>';
+         }
+         fields.forEach(function(f) {
+             var val = data[f.key] !== undefined ? (f.type === 'text' ? data[f.key] : String(data[f.key])) : (f.default !== undefined ? f.default : '');
+             if (val === 'undefined') val = '';
+             fieldHtml += '<div class="sb-field">';
+             fieldHtml += '<label>' + f.label + '</label>';
+             if (f.type === 'textarea') {
+                 fieldHtml += '<textarea class="edit-field" data-key="' + f.key + '" placeholder="' + (f.placeholder || '') + '">' + (val || '') + '</textarea>';
+             } else if (f.type === 'html') {
+                 fieldHtml += '<textarea class="edit-field edit-field-html" data-key="' + f.key + '" placeholder="' + (f.placeholder || '') + '" style="min-height:180px;font-family:\'Courier New\',monospace;font-size:12px;">' + (val || '') + '</textarea>';
+             } else if (f.type === 'select') {
+                 fieldHtml += '<select class="edit-field" data-key="' + f.key + '">';
+                 (f.options || []).forEach(function(o) { fieldHtml += '<option value="' + o.value + '" ' + (val == o.value ? 'selected' : '') + '>' + o.label + '</option>'; });
+                 fieldHtml += '</select>';
+             } else if (f.type === 'color') {
+                 fieldHtml += '<div style="display:flex;gap:8px;align-items:center;"><input type="color" class="edit-field" data-key="' + f.key + '" value="' + (val || '#000000') + '" style="width:48px;height:36px;border:none;border-radius:6px;cursor:pointer;"><span style="font-size:12px;color:#888;">' + (val || '') + '</span></div>';
+             } else if (f.type === 'number') {
+                 fieldHtml += '<input type="number" class="edit-field" data-key="' + f.key + '" value="' + (val || 0) + '">';
+             } else if (f.type === 'image') {
+                 fieldHtml += '<div style="display:flex;gap:8px;"><input type="text" class="edit-field" data-key="' + f.key + '" value="' + (val || '') + '" placeholder="URL تصویر"><button type="button" onclick="selectImage(this)" style="padding:8px 14px;background:#f5f6f8;border:1px solid #dde1e6;border-radius:8px;cursor:pointer;font-size:12px;">انتخاب</button></div>';
+             } else {
+                 fieldHtml += '<input type="text" class="edit-field" data-key="' + f.key + '" value="' + (val || '') + '" placeholder="' + (f.placeholder || '') + '">';
+             }
+             fieldHtml += '</div>';
+         });
+
+         panel.innerHTML =
+             '<div class="sb-header">' +
+                 '<h3>ویرایش «' + bt.label + '»</h3>' +
+                 '<button class="sb-close" onclick="closeEditSidebar()">✕</button>' +
+             '</div>' +
+             '<div class="sb-body">' + fieldHtml + '</div>' +
+             '<div class="sb-save">' +
+                 '<button class="sb-apply" onclick="saveSidebarEdit()">اعمال</button>' +
+                 '<button class="sb-cancel" onclick="closeEditSidebar()">انصراف</button>' +
+             '</div>';
+
+         panel.classList.add('open');
+
+         /* Initialize TinyMCE for textarea.html fields if available */
+         if (typeof tinymce !== 'undefined') {
+             var htmlFields = panel.querySelectorAll('.edit-field-html');
+             htmlFields.forEach(function (ta) {
+                 var key = ta.dataset.key;
+                 if (ta.id) tinymce.remove('#' + ta.id);
+                 ta.setAttribute('id', 'mce-' + key);
+                 tinymce.init({
+                     selector: '#' + ta.id,
+                     plugins: 'lists link image charmap visualchars code',
+                     toolbar: 'bold italic underline | bullist numlist | link | code',
+                     height: 200,
+                     directionality: 'rtl',
+                     setup: function (editor) {
+                         editor.on('change', function () {
+                             ta.value = editor.getContent();
+                         });
+                     }
+                 });
+             });
+         }
+
+         /* Also initialize CKEditor for html/textarea fields for rich editing */
+         if (typeof InlineEditor !== 'undefined' && !panel.querySelector('.mce-inline')) {
+            /* If we have contenteditable fields that need rich editing inside sidebar */
+         }
+
+         /* Sync selection state in the iframe preview */
+         var frame = document.getElementById('previewFrame');
+         if (frame && frame.contentWindow) {
+            frame.contentWindow.postMessage({_ns:'builderInline', type:'builderFocusBlock', index: idx}, window.location.origin);
+         }
+     }
+
+     function closeEditSidebar() {
+         var panel = document.getElementById('builderSidebarPanel');
+         if (panel) panel.classList.remove('open');
+         var frame = document.getElementById('previewFrame');
+         if (frame && frame.contentWindow) {
+            frame.contentWindow.postMessage({_ns:'builderInline', type:'builderExit'}, window.location.origin);
+         }
+     }
+
+     function saveSidebarEdit() {
+         var panel = document.getElementById('builderSidebarPanel');
+         if (!panel) return;
+         var fields = panel.querySelectorAll('.edit-field');
+         var data = {};
+         fields.forEach(function(f) {
+             /* For TinyMCE, need to get content from editor instance */
+             if (typeof tinymce !== 'undefined') {
+                 var ed = tinymce.get(f.id || f);
+                 if (ed) {
+                     data[f.dataset.key] = ed.getContent();
+                     return;
+                 }
+             }
+             data[f.dataset.key] = (f.type === 'number') ? Number(f.value) : f.value;
+         });
+         if (blocksData[editingBlockIndex]) blocksData[editingBlockIndex].data = data;
+         renderAllBlocks();
+         closeEditSidebar();
+         autoSaveBlocks();
+     }
 
     function renderAllBlocks() {
         if (positionMode) renderFree();
@@ -956,38 +1063,42 @@ function builder_page_edit($block_page_id) {
             }
         });
     }
-    window.addEventListener('message', function(e) {
-        if (e.origin !== window.location.origin) return;
-        var d = e.data || {};
-        if (d.type === 'builderSelect') { openEditModal(d.index); }
-        else if (d.type === 'builderContent') { setBlockContent(d.index, d.key, d.value); }
-        else if (d.type === 'builderDelete') { deleteBlockByIndex(d.index); }
-        else if (d.type === 'builderMove') { moveBlock(d.index, d.dir); }
-        else if (d.type === 'builderReorder') { applyReorder(d.order); }
-        else if (d.type === 'builderAdd') { addBlockFromIframe(d.btype, d.index); }
-        else if (d.type === 'builderImageEdit') {
-            if (blocksData[d.index]) {
-                if (!blocksData[d.index].data) blocksData[d.index].data = {};
-                blocksData[d.index].data.src = d.src;
-                if (d.alt !== undefined) blocksData[d.index].data.alt = d.alt;
-                refreshPreview();
-                autoSaveBlocks();
-            }
-        }
-        else if (d.type === 'builderButtonEdit') {
-            if (blocksData[d.index]) {
-                if (!blocksData[d.index].data) blocksData[d.index].data = {};
-                blocksData[d.index].data.text = d.text;
-                blocksData[d.index].data.url = d.href;
-                refreshPreview();
-                autoSaveBlocks();
-            }
-        }
-        else if (d.type === 'builderReady') {
-            var f = document.getElementById('previewFrame');
-            if (f && f.contentWindow) f.contentWindow.postMessage({_ns:'builderInline', type:'builderSetContentFields', fields: blockContentFields()}, window.location.origin);
-        }
-    });
+     window.addEventListener('message', function(e) {
+         if (e.origin !== window.location.origin) return;
+         var d = e.data || {};
+         if (d.type === 'builderSelect') { openEditSidebar(d.index); }
+         else if (d.type === 'builderContent') { setBlockContent(d.index, d.key, d.value); }
+         else if (d.type === 'builderDelete') { deleteBlockByIndex(d.index); }
+         else if (d.type === 'builderMove') { moveBlock(d.index, d.dir); }
+         else if (d.type === 'builderReorder') { applyReorder(d.order); }
+         else if (d.type === 'builderAdd') { addBlockFromIframe(d.btype, d.index); }
+         else if (d.type === 'builderImageEdit') {
+             if (blocksData[d.index]) {
+                 if (!blocksData[d.index].data) blocksData[d.index].data = {};
+                 blocksData[d.index].data.src = d.src;
+                 if (d.alt !== undefined) blocksData[d.index].data.alt = d.alt;
+                 renderAllBlocks();
+                 autoSaveBlocks();
+             }
+         }
+         else if (d.type === 'builderButtonEdit') {
+             if (blocksData[d.index]) {
+                 if (!blocksData[d.index].data) blocksData[d.index].data = {};
+                 blocksData[d.index].data.text = d.text;
+                 blocksData[d.index].data.url = d.href;
+                 renderAllBlocks();
+                 autoSaveBlocks();
+             }
+         }
+         else if (d.type === 'builderReady') {
+             var f = document.getElementById('previewFrame');
+             if (f && f.contentWindow) f.contentWindow.postMessage({_ns:'builderInline', type:'builderSetContentFields', fields: blockContentFields()}, window.location.origin);
+            refreshPreview();
+         }
+         else if (d.type === 'builderAutoSave') {
+            autoSaveBlocks();
+         }
+     });
     function blockContentFields() {
         var map = {};
         blocksData.forEach(function(b, i) {
@@ -1376,6 +1487,32 @@ function builder_page_edit($block_page_id) {
         try { localStorage.setItem('builder_canvas_hidden', w.classList.contains('hide-canvas') ? '1' : ''); } catch(e){}
         applyColumns();
     }
+    var currentLayout = 'split';
+    function toggleLayout(mode) {
+        var w = document.getElementById('builderWrap');
+        if (!w) return;
+        if (mode === 'split') {
+            w.classList.remove('layout-stack', 'layout-preview');
+            w.style.gridTemplateColumns = (canvasW || '1fr') + ' 6px 1fr';
+            w.style.flexDirection = 'row';
+            currentLayout = 'split';
+        } else if (mode === 'stack') {
+            w.classList.remove('layout-preview');
+            w.classList.add('layout-stack');
+            w.style.flexDirection = 'column';
+            var h = window.innerHeight - 100;
+            w.style.gridTemplateColumns = '1fr';
+            w.style.gridTemplateRows = (h * 0.4) + 'px 6px ' + (h * 0.6) + 'px';
+            currentLayout = 'stack';
+        } else if (mode === 'preview') {
+            w.classList.add('layout-preview');
+            w.classList.remove('layout-stack');
+            w.style.gridTemplateColumns = '0px 0px 1fr';
+            w.style.flexDirection = 'row';
+            currentLayout = 'preview';
+        }
+        try { localStorage.setItem('builder_layout', currentLayout); } catch(e){}
+    }
     var canvasW = null; // عرض بوم (px) یا null برای 1fr
     function applyColumns() {
         var w = document.getElementById('builderWrap');
@@ -1645,7 +1782,9 @@ function builder_preview_page($block_page_id) {
             .builder-live-block img:hover { outline:2px dashed #0984E3; outline-offset:2px; }
             .builder-live-block a.dakmeh:hover, .builder-live-block a.btn:hover { outline:2px dashed #00B894; outline-offset:2px; }
         ';
-        $edit_body = '<script src="' . $site_url . 'mohtava/sakhtar/inline-editor.js"></script>';
+        $edit_body = '<script src="https://cdn.ckeditor.com/ckeditor5/44.0.0/inline/ckeditor.js"></script>';
+        $edit_body .= '<script src="https://cdn.tiny.cloud/1/no-api-key/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>';
+        $edit_body .= '<script src="' . $site_url . 'mohtava/sakhtar/inline-editor.js"></script>';
     }
     $font_css = "<style>"
         . "@font-face{font-family:'Vazirmatn';src:url({$site_url}ghaleb/manabe/fonts/Vazirmatn-RD-Regular.woff2) format('woff2');font-weight:400;font-display:swap;}"
