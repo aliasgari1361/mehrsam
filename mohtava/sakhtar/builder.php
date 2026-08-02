@@ -559,9 +559,10 @@ function builder_page_edit($block_page_id) {
         .builder-wrap.layout-stack .builder-splitter { width:100%; height:6px; cursor:ns-resize; }
         .builder-wrap.layout-stack .builder-canvas { padding:20px; }
         .builder-wrap.layout-stack .builder-preview { height:calc(100vh - 500px); }
-        .builder-wrap.layout-preview .builder-canvas { display:none; }
-        .builder-wrap.layout-preview .builder-splitter { display:none; }
-    </style>
+         .builder-wrap.layout-preview .builder-canvas { display:none; }
+         .builder-wrap.layout-preview .builder-splitter { display:none; }
+         .block-item.builder-selected { border-color:var(--rang-asli,#FF6F00) !important; box-shadow:0 0 0 3px rgba(255,111,0,0.18); }
+     </style>
 
     <h3>صفحه‌ساز: <?= htmlspecialchars($bp['page_type']) ?> #<?= $bp['page_id'] ?></h3>
     <p><a href="<?= BASE_URL ?>mod/builder/pages" style="color:var(--rang-asli,#FF6F00);">&larr; بازگشت</a></p>
@@ -705,8 +706,9 @@ function builder_page_edit($block_page_id) {
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
-    <script src="https://cdn.tiny.cloud/1/no-api-key/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
-    <script src="https://cdn.ckeditor.com/ckeditor5/44.0.0/inline/ckeditor.js"></script>
+    <script>window.tinymceScriptLoaded = false; window.CKInstance = null;</script>
+    <script defer onload="window.tinymceScriptLoaded=true" src="https://cdn.tiny.cloud/1/no-api-key/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
+    <script defer src="https://cdn.ckeditor.com/ckeditor5/44.0.0/inline/ckeditor.js"></script>
     <script>
     var blocksData = <?= json_encode($blocks, JSON_UNESCAPED_UNICODE) ?>;
     var blockTypes = <?= json_encode($available_blocks, JSON_UNESCAPED_UNICODE) ?>;
@@ -746,7 +748,7 @@ function builder_page_edit($block_page_id) {
         html += '</div>';
         html += '<div class="block-content-preview" style="font-size:13px;color:#666;">' + getBlockPreview(block) + '</div>';
         html += '<div class="block-footer">';
-        html += '<button onclick="openEditModal(parseInt(this.closest(\'.block-item\').dataset.index))" title="ویرایش"><i class="fa-solid fa-pen"></i> ویرایش</button>';
+        html += '<button onclick="openEditSidebar(parseInt(this.closest(\'.block-item\').dataset.index))" title="ویرایش"><i class="fa-solid fa-pen"></i> ویرایش</button>';
         html += '<button class="danger" onclick="removeBlock(event)" title="حذف"><i class="fa-solid fa-trash"></i> حذف</button>';
         html += '</div>';
         html += '<div class="block-data" style="display:none;">' + JSON.stringify(data) + '</div>';
@@ -847,10 +849,70 @@ function builder_page_edit($block_page_id) {
         }
     }
 
-     /* ===== سایدبار ویرایش بلاک (جایگزین مودال) ===== */
-     var editingBlockIndex = -1;
+    /* ===== سایدبار ویرایش بلاک (جایگزین مودال) ===== */
+    var editingBlockIndex = -1;
+    var editorInitRetry = 0;
 
-     function openEditSidebar(idx) {
+    function initFormEditors(panel) {
+        /* Wait for editors to load (they are deferred) */
+        function tryInit(attempt) {
+            var taFields = panel.querySelectorAll('textarea.edit-field-html');
+            var hasCKE = typeof InlineEditor !== 'undefined';
+            var hasTiny = typeof tinymce !== 'undefined';
+
+            if (taFields.length === 0) return;
+
+            if (!hasCKE && !hasTiny && attempt < 20) {
+                setTimeout(function() { tryInit(attempt + 1); }, 200);
+                return;
+            }
+
+            /* Use TinyMCE if available */
+            if (hasTiny) {
+                taFields.forEach(function (ta) {
+                    var key = ta.dataset.key;
+                    if (ta.id) { try { tinymce.remove('#' + ta.id); } catch (_) {} }
+                    ta.setAttribute('id', 'mce-' + key + '-' + Date.now());
+                    tinymce.init({
+                        selector: '#' + ta.id,
+                        plugins: 'lists link image charmap visualchars code table',
+                        toolbar: 'bold italic underline | bullist numlist | link | code',
+                        height: 200,
+                        directionality: 'rtl',
+                        setup: function (editor) {
+                            editor.on('change', function () {
+                                ta.value = editor.getContent();
+                            });
+                        }
+                    });
+                });
+            } else if (hasCKE) {
+                /* Fallback to CKEditor Classic for textarea */
+                taFields.forEach(function (ta) {
+                    var key = ta.dataset.key;
+                    ta.setAttribute('data-cke-key', key);
+                    if (ta._ckEditor) return;
+                    ClassicEditor
+                        .create(ta, {
+                            placeholder: '',
+                            toolbar: [ 'bold', 'italic', 'strikethrough', 'link', '|', 'bulletedList', 'numberedList', '|', 'heading', 'blockquote', 'code', '|', 'undo', 'redo' ],
+                            height: 200,
+                            directionality: 'rtl'
+                        })
+                        .then(function (editor) {
+                            ta._ckEditor = editor;
+                            editor.model.document.on('change:data', function () {
+                                ta.value = editor.getData();
+                            });
+                        })
+                        .catch(function (err) { /* ignore */ });
+                });
+            }
+        }
+        tryInit(0);
+    }
+
+    function openEditSidebar(idx) {
          if (idx === undefined || idx === null || isNaN(idx)) return;
          editingBlockIndex = idx;
          var block = blocksData[editingBlockIndex];
@@ -932,37 +994,13 @@ function builder_page_edit($block_page_id) {
                  '<button class="sb-cancel" onclick="closeEditSidebar()">انصراف</button>' +
              '</div>';
 
-         panel.classList.add('open');
+          panel.classList.add('open');
 
-         /* Initialize TinyMCE for textarea.html fields if available */
-         if (typeof tinymce !== 'undefined') {
-             var htmlFields = panel.querySelectorAll('.edit-field-html');
-             htmlFields.forEach(function (ta) {
-                 var key = ta.dataset.key;
-                 if (ta.id) tinymce.remove('#' + ta.id);
-                 ta.setAttribute('id', 'mce-' + key);
-                 tinymce.init({
-                     selector: '#' + ta.id,
-                     plugins: 'lists link image charmap visualchars code',
-                     toolbar: 'bold italic underline | bullist numlist | link | code',
-                     height: 200,
-                     directionality: 'rtl',
-                     setup: function (editor) {
-                         editor.on('change', function () {
-                             ta.value = editor.getContent();
-                         });
-                     }
-                 });
-             });
-         }
+          /* Initialize TinyMCE or CKEditor for textarea.html fields */
+          initFormEditors(panel);
 
-         /* Also initialize CKEditor for html/textarea fields for rich editing */
-         if (typeof InlineEditor !== 'undefined' && !panel.querySelector('.mce-inline')) {
-            /* If we have contenteditable fields that need rich editing inside sidebar */
-         }
-
-         /* Sync selection state in the iframe preview */
-         var frame = document.getElementById('previewFrame');
+          /* Sync selection state in the iframe preview */
+          var frame = document.getElementById('previewFrame');
          if (frame && frame.contentWindow) {
             frame.contentWindow.postMessage({_ns:'builderInline', type:'builderFocusBlock', index: idx}, window.location.origin);
          }
@@ -970,7 +1008,21 @@ function builder_page_edit($block_page_id) {
 
      function closeEditSidebar() {
          var panel = document.getElementById('builderSidebarPanel');
-         if (panel) panel.classList.remove('open');
+         if (panel) {
+             /* Destroy TinyMCE instances */
+             if (typeof tinymce !== 'undefined') {
+                 var taFields = panel.querySelectorAll('textarea.edit-field-html');
+                 taFields.forEach(function (ta) {
+                     if (ta.id) { try { tinymce.remove('#' + ta.id); } catch (_) {} }
+                 });
+             }
+             /* Destroy CKEditor instances */
+             taFields = panel.querySelectorAll('textarea.edit-field-html');
+             taFields.forEach(function (ta) {
+                 if (ta._ckEditor) { try { ta._ckEditor.destroy(); } catch (_) {} ta._ckEditor = null; }
+             });
+             panel.classList.remove('open');
+         }
          var frame = document.getElementById('previewFrame');
          if (frame && frame.contentWindow) {
             frame.contentWindow.postMessage({_ns:'builderInline', type:'builderExit'}, window.location.origin);
@@ -985,11 +1037,16 @@ function builder_page_edit($block_page_id) {
          fields.forEach(function(f) {
              /* For TinyMCE, need to get content from editor instance */
              if (typeof tinymce !== 'undefined') {
-                 var ed = tinymce.get(f.id || f);
+                 var ed = tinymce.get(f);
                  if (ed) {
                      data[f.dataset.key] = ed.getContent();
                      return;
                  }
+             }
+             /* For CKEditor in sidebar */
+             if (f._ckEditor) {
+                 data[f.dataset.key] = f._ckEditor.getData();
+                 return;
              }
              data[f.dataset.key] = (f.type === 'number') ? Number(f.value) : f.value;
          });
@@ -1140,12 +1197,13 @@ function builder_page_edit($block_page_id) {
                 iz.setAttribute('onclick', 'showInsertPicker(this,' + i + ')');
                 iz.innerHTML = '<i class="fa-solid fa-plus-circle"></i> درج بلاک';
                 container.appendChild(iz);
-                var div = document.createElement('div');
-                div.className = 'block-item type-' + block.type;
-                div.dataset.index = i;
-                div.draggable = true;
-                div.innerHTML = renderBlockAdmin(block);
-                container.appendChild(div);
+                 var div = document.createElement('div');
+                 div.className = 'block-item type-' + block.type;
+                 div.dataset.index = i;
+                 div.draggable = true;
+                 div.innerHTML = renderBlockAdmin(block);
+                 div.addEventListener('click', function(e) { if(!e.target.closest('.block-footer')) openEditSidebar(i); });
+                 container.appendChild(div);
             });
             var iz2 = document.createElement('div');
             iz2.className = 'insert-zone';
@@ -1326,6 +1384,8 @@ function builder_page_edit($block_page_id) {
             var lbl = document.getElementById('posDevLabel');
             if (lbl && devices[currentDevice]) lbl.textContent = devices[currentDevice].label;
             syncPosPanel();
+            /* Open sidebar editor too */
+            openEditSidebar(idx);
         } catch(e) { console.error('selectBlock error:', e); }
     }
     function syncPosPanel() {
@@ -1517,9 +1577,15 @@ function builder_page_edit($block_page_id) {
     function applyColumns() {
         var w = document.getElementById('builderWrap');
         if (!w) return;
+        var layout = currentLayout;
+        if (layout === 'preview') return;
         var hideC = w.classList.contains('hide-canvas');
         var hideP = w.classList.contains('hide-preview');
         var sp = document.getElementById('builderSplitter');
+        if (layout === 'stack') {
+            if (sp) sp.style.display = 'none';
+            return;
+        }
         if (hideC || hideP) {
             if (sp) sp.style.display = 'none';
             if (hideC && hideP) w.style.gridTemplateColumns = '0px 6px 0px';
@@ -1579,6 +1645,8 @@ function builder_page_edit($block_page_id) {
         if (localStorage.getItem('builder_chips_hidden') === '1') document.getElementById('builderWrap').classList.add('hide-chips');
         if (localStorage.getItem('builder_preview_hidden') === '1') document.getElementById('builderWrap').classList.add('hide-preview');
         if (localStorage.getItem('builder_canvas_hidden') === '1') document.getElementById('builderWrap').classList.add('hide-canvas');
+        var savedLayout = localStorage.getItem('builder_layout');
+        if (savedLayout === 'stack' || savedLayout === 'preview') toggleLayout(savedLayout);
     } catch(e){}
     applyColumns();
     document.addEventListener('keydown', function(e) {
@@ -1783,7 +1851,6 @@ function builder_preview_page($block_page_id) {
             .builder-live-block a.dakmeh:hover, .builder-live-block a.btn:hover { outline:2px dashed #00B894; outline-offset:2px; }
         ';
         $edit_body = '<script src="https://cdn.ckeditor.com/ckeditor5/44.0.0/inline/ckeditor.js"></script>';
-        $edit_body .= '<script src="https://cdn.tiny.cloud/1/no-api-key/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>';
         $edit_body .= '<script src="' . $site_url . 'mohtava/sakhtar/inline-editor.js"></script>';
     }
     $font_css = "<style>"
