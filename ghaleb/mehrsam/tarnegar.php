@@ -21,6 +21,12 @@
 
 <section class="bakhsh blog-listing">
     <div class="mohtava-container">
+        <?php if (!empty($builder_content)): ?>
+            <div class="archive-builder-content" style="margin:0 0 32px;">
+                <?= $builder_content ?>
+            </div>
+        <?php endif; ?>
+
         <?php if (!empty($posts)): ?>
             <div class="blog-grid">
                 <?php foreach ($posts as $p): ?>

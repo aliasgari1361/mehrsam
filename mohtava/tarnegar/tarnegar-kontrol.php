@@ -15,16 +15,6 @@ function tarnegar_route($amaliat, $paramha) {
 }
 
 function tarnegar_fehrest($page = 1) {
-    $theme_html = builder_render_for('archive', 'blog');
-    if ($theme_html) {
-        $onvan_safhe = 'تارنگار | ' . SITE_NAME;
-        $meta_sharh = 'تازه‌ترین مطالب آموزشی';
-        include MASIR_GHALEB . 'sarfaraz.php';
-        echo $theme_html;
-        include MASIR_GHALEB . 'panevis.php';
-        return;
-    }
-
     $data = tarnegar_get_list($page, 6);
     $posts = $data['posts'];
     $total_pages = $data['pages'];
@@ -35,6 +25,16 @@ function tarnegar_fehrest($page = 1) {
     $conn = $bank->getConnection();
     $page_data = $conn->query("SELECT * FROM posts WHERE template='blog' AND status='publish' LIMIT 1")->fetch_assoc();
     $conn->close();
+
+    // صفحه‌ساز برای آرشیو بلاگ
+    $builder_content = '';
+    if (file_exists(MASIR_RISH . 'mohtava/sakhtar/builder.php')) {
+        require_once MASIR_RISH . 'mohtava/sakhtar/builder.php';
+        $archive_bp = builder_find_template('archive', 'blog');
+        if ($archive_bp && isset($archive_bp['id'])) {
+            $builder_content = builder_render_page($archive_bp['id']);
+        }
+    }
 
     $onvan_safhe = $page_data['title'] ?? ('تارنگار | ' . SITE_NAME);
     $meta_sharh = strip_tags($page_data['content'] ?? 'تازه‌ترین مطالب آموزشی');
