@@ -22,6 +22,24 @@ VALUES (
     'auto'
 );
 
+-- قالب آرشیو محصولات
+INSERT IGNORE INTO block_pages (page_id, page_type, name, condition_type, condition_value, blocks_data, position_mode, mobile_mode)
+VALUES (
+    0, 'post', 'قالب آرشیو محصولات', 'archive', 'mahsul',
+    '[]',
+    0,
+    'auto'
+);
+
+-- قالب تک محصول
+INSERT IGNORE INTO block_pages (page_id, page_type, name, condition_type, condition_value, blocks_data, position_mode, mobile_mode)
+VALUES (
+    0, 'post', 'قالب تک محصول', 'single', 'mahsul',
+    '[]',
+    0,
+    'auto'
+);
+
 -- قالب تک مطلب بلاگ (generic)
 INSERT IGNORE INTO block_pages (page_id, page_type, name, condition_type, condition_value, blocks_data, position_mode, mobile_mode)
 VALUES (
