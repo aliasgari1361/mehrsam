@@ -702,7 +702,7 @@ function builder_page_edit($block_page_id) {
     </div>
 
     <!-- اسکریپت‌های محلی داخلی سایت -->
-    <script src="<?= BASE_URL ?>ghaleb/<?= GHALEB_FAAAL ?>/manabe/Sortable.min.js"></script>
+    <script src="<?= BASE_URL ?>ghaleb/manabe/Sortable.min.js"></script>
     <script src="<?= BASE_URL ?>manabe/js/sadastEditor.js"></script>
     <script src="<?= BASE_URL ?>manabe/js/safhesaz.js"></script>
     <script>
@@ -893,6 +893,7 @@ function builder_page_edit($block_page_id) {
                  '#builderSidebarPanel .sb-save .sb-apply { background:var(--rang-asli,#FF6F00); color:#fff; }' +
                  '#builderSidebarPanel .sb-save .sb-cancel { background:#f5f6f8; border:1px solid #dde1e6; }';
          document.head.appendChild(style);
+         }
 
          var panel = document.getElementById('builderSidebarPanel');
          if (!panel) {
