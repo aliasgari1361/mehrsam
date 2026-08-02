@@ -62,8 +62,8 @@ $site_title = $general_settings['site_title'] ?? 'مهراد سام';
         }
     </style>
 
-    <!-- آیکون‌ها -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <!-- آیکون‌ها (محلی) -->
+    <link rel="stylesheet" href="<?= BASE_URL ?>ghaleb/<?= GHALEB_FAAAL ?>/manabe/fontawesome/all.min.css">
 
     <style>
         /* ====================================================

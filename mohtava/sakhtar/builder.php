@@ -1850,7 +1850,8 @@ function builder_preview_page($block_page_id) {
             .builder-live-block img:hover { outline:2px dashed #0984E3; outline-offset:2px; }
             .builder-live-block a.dakmeh:hover, .builder-live-block a.btn:hover { outline:2px dashed #00B894; outline-offset:2px; }
         ';
-        $edit_body = '<script src="https://cdn.ckeditor.com/ckeditor5/44.0.0/inline/ckeditor.js"></script>';
+        $edit_body = '<script src="' . $site_url . 'manabe/js/sadastEditor.js"></script>';
+        $edit_body .= '<script src="' . $site_url . 'manabe/js/safhesaz.js"></script>';
         $edit_body .= '<script src="' . $site_url . 'mohtava/sakhtar/inline-editor.js"></script>';
     }
     $font_css = "<style>"
@@ -1860,7 +1861,7 @@ function builder_preview_page($block_page_id) {
     header('Content-Type: text/html; charset=utf-8');
     echo '<!DOCTYPE html><html lang="fa" dir="rtl"><head>
         <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+        <link rel="stylesheet" href="<?= $site_url ?>ghaleb/<?= GHALEB_FAAAL ?>/manabe/fontawesome/all.min.css">
         ' . $font_css . '
         <style>
             body { font-family:"Vazirmatn",Tahoma,sans-serif; font-size:15px; line-height:1.8; color:#1a1a1a; margin:0; padding:0; direction:rtl; }

@@ -214,7 +214,7 @@ function mod_route($action, $params) {
 
     <?php include __DIR__ . '/../../ghaleb/ghmod/sarfaraz.php'; ?>
     <style>
-    @import url('https://cdn.jsdelivr.net/npm/vazirmatn@33.0.3/Vazirmatn-font-face.css');
+    @import url('<?= BASE_URL ?>ghaleb/<?= GHALEB_FAAAL ?>/manabe/fonts/fonts.css');
     .dash { font-family:'Vazirmatn','Tahoma',sans-serif; direction:rtl; }
     .dash h3 { font-size:1.4rem; margin-bottom:4px; color:#1a1a1a; }
     .dash .sub { color:#666; font-size:14px; margin-bottom:24px; }
