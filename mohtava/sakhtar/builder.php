@@ -706,9 +706,8 @@ function builder_page_edit($block_page_id) {
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
-    <script>window.tinymceScriptLoaded = false; window.CKInstance = null;</script>
-    <script defer onload="window.tinymceScriptLoaded=true" src="https://cdn.tiny.cloud/1/no-api-key/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
-    <script defer src="https://cdn.ckeditor.com/ckeditor5/44.0.0/inline/ckeditor.js"></script>
+    <script src="https://cdn.tiny.cloud/1/no-api-key/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
+    <script src="https://cdn.ckeditor.com/ckeditor5/44.0.0/inline/ckeditor.js"></script>
     <script>
     var blocksData = <?= json_encode($blocks, JSON_UNESCAPED_UNICODE) ?>;
     var blockTypes = <?= json_encode($available_blocks, JSON_UNESCAPED_UNICODE) ?>;
@@ -996,8 +995,8 @@ function builder_page_edit($block_page_id) {
 
           panel.classList.add('open');
 
-          /* Initialize TinyMCE or CKEditor for textarea.html fields */
-          initFormEditors(panel);
+          /* Initialize TinyMCE or CKEditor for textarea.html fields (non-blocking, with error handling) */
+          try { initFormEditors(panel); } catch(e) { console.error('Editor init error:', e); }
 
           /* Sync selection state in the iframe preview */
           var frame = document.getElementById('previewFrame');
