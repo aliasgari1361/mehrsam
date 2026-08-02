@@ -26,7 +26,12 @@
                 <div class="post-cover"><?= $post['tasvir'] ?></div>
             <?php endif; ?>
             <div class="post-content">
-                <?= $post['content'] ?>
+                <?php if (!empty($builder_content)): ?>
+                    <?= $builder_content ?>
+                <?php else: ?>
+                    <?= $post['content'] ?>
+                <?php endif; ?>
+            </div>
             </div>
 
             <div class="post-share">

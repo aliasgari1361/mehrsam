@@ -43,20 +43,23 @@ function tarnegar_fehrest($page = 1) {
 }
 
 function tarnegar_neveshteh($slug) {
-    $theme_html = builder_render_for('single', 'post', $slug);
-    if ($theme_html) {
-        $onvan_safhe = $slug . ' | ' . SITE_NAME;
-        include MASIR_GHALEB . 'sarfaraz.php';
-        echo $theme_html;
-        include MASIR_GHALEB . 'panevis.php';
-        return;
-    }
-
     $post = tarnegar_get_by_slug($slug);
     if (!$post) {
         http_response_code(404);
         include MASIR_GHALEB . '404.php';
         return;
+    }
+
+    // صرفنظر از اینکه از صفحه‌ساز استفاده می‌شود یا نه، فرمت HTML محتوا را آماده کن
+    $builder_content = '';
+    if (file_exists(MASIR_RISH . 'mohtava/sakhtar/builder.php')) {
+        require_once MASIR_RISH . 'mohtava/sakhtar/builder.php';
+        // ابتدا جستجوی صفحه‌ساز برای single با type='blog'
+        $bp_info = builder_get_page_id('blog', $slug);
+        if (!$bp_info) $bp_info = builder_get_page_id('maghaleh', $slug);
+        if ($bp_info && $bp_info['bp_id']) {
+            $builder_content = builder_render_page($bp_info['bp_id']);
+        }
     }
 
     $related = tarnegar_get_related_posts($post['id']);
