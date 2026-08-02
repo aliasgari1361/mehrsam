@@ -89,6 +89,22 @@
             }
         });
 
+        // دکمه تمام‌صفحه در انتهای نوار ابزار
+        var spacer = document.createElement('span');
+        spacer.style.cssText = 'flex:1;';
+        toolbar.appendChild(spacer);
+
+        var fsBtn = document.createElement('button');
+        fsBtn.type = 'button';
+        fsBtn.className = 'sadast-btn sadast-fullscreen-btn';
+        fsBtn.title = 'تمام‌صفحه';
+        fsBtn.innerHTML = '⛶';
+        fsBtn.style.cssText = 'padding:4px 8px;font-size:12px;border:1px solid #ccc;border-radius:3px;background:#fff;cursor:pointer;';
+        fsBtn.addEventListener('click', (function () {
+            this.toggleFullscreen();
+        }).bind(this));
+        toolbar.appendChild(fsBtn);
+
         this.toolbar = toolbar;
         this.wrapper.insertBefore(toolbar, this.textarea);
     };
@@ -96,6 +112,7 @@
     SadastEditor.prototype._createEditorFrame = function () {
         var self = this;
         var iframeContainer = document.createElement('div');
+        iframeContainer.className = 'sadast-editor-frame-container';
         iframeContainer.style.cssText = 'position:relative;';
 
         var iframe = document.createElement('iframe');
@@ -239,6 +256,54 @@
         if (url && this.iframeWindow) {
             this.iframeWindow.focus();
             document.execCommand('insertImage', false, url);
+        }
+    };
+
+    SadastEditor.prototype.toggleFullscreen = function () {
+        var self = this;
+        var wrapper = this.wrapper;
+        var iframeContainer = this.wrapper.querySelector('.sadast-editor-frame-container');
+        var iframe = this.iframe;
+
+        if (!wrapper.classList.contains('sadast-fullscreen')) {
+            // ذخیره وضعیت فعلی برای بازگشت
+            this._prevWrapperStyle = wrapper.style.cssText;
+            wrapper.classList.add('sadast-fullscreen');
+
+            wrapper.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;width:100%;height:100%;z-index:999999;background:#fff;display:flex;flex-direction:column;border:none;border-radius:0;';
+
+            if (iframeContainer) {
+                iframeContainer.style.cssText = 'position:relative;flex:1;display:flex;';
+                iframeContainer.style.height = 'auto';
+            }
+            if (iframe) {
+                iframe.style.cssText = 'width:100%;height:100%;display:block;border:none;flex:1;';
+                iframe.style.height = '100%';
+            }
+
+            // فکوس روی بدنه ویرایشگر
+            setTimeout(function () {
+                if (self.iframeDoc && self.iframeDoc.body) {
+                    self.iframeDoc.body.focus();
+                }
+            }, 50);
+
+            // ذخیره حالت دکمه
+            var btn = this.toolbar.querySelector('.sadast-fullscreen-btn');
+            if (btn) btn.title = 'خروج از تمام‌صفحه';
+        } else {
+            wrapper.classList.remove('sadast-fullscreen');
+            wrapper.style.cssText = this._prevWrapperStyle || 'display:block;border:1px solid #ddd;border-radius:6px;overflow:hidden;';
+
+            if (iframeContainer) {
+                iframeContainer.style.cssText = 'position:relative;';
+            }
+            if (iframe) {
+                iframe.style.cssText = 'width:100%;height:300px;display:block;border:none;direction:rtl;';
+            }
+
+            var btn = this.toolbar.querySelector('.sadast-fullscreen-btn');
+            if (btn) btn.title = 'تمام‌صفحه';
         }
     };
 
