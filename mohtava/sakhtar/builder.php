@@ -702,9 +702,9 @@ function builder_page_edit($block_page_id) {
     </div>
 
     <!-- اسکریپت‌های محلی داخلی سایت -->
-    <script src="<?= BASE_URL ?>ghaleb/<?= GHALEB_FAAAL ?>/manabe/Sortable.min.js<?= VER ? '?v=' . VER : '' ?>"></script>
-    <script src="<?= BASE_URL ?>manabe/js/sadastEditor.js<?= VER ? '?v=' . VER : '' ?>"></script>
-    <script src="<?= BASE_URL ?>manabe/js/safhesaz.js<?= VER ? '?v=' . VER : '' ?>"></script>
+    <script src="<?= BASE_URL ?>ghaleb/<?= GHALEB_FAAAL ?>/manabe/Sortable.min.js"></script>
+    <script src="<?= BASE_URL ?>manabe/js/sadastEditor.js"></script>
+    <script src="<?= BASE_URL ?>manabe/js/safhesaz.js"></script>
     <script>
     var blocksData = <?= json_encode($blocks, JSON_UNESCAPED_UNICODE) ?>;
     var blockTypes = <?= json_encode($available_blocks, JSON_UNESCAPED_UNICODE) ?>;
@@ -1799,7 +1799,7 @@ function builder_preview_page($block_page_id) {
     header('Content-Type: text/html; charset=utf-8');
     echo '<!DOCTYPE html><html lang="fa" dir="rtl"><head>
         <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-        <link rel="stylesheet" href="<?= $site_url ?>ghaleb/<?= GHALEB_FAAAL ?>/manabe/fontawesome/all.min.css">
+        <link rel="stylesheet" href="' . $site_url . 'ghaleb/' . GHALEB_FAAAL . '/manabe/fontawesome/all.min.css">
         ' . $font_css . '
         <style>
             body { font-family:"Vazirmatn",Tahoma,sans-serif; font-size:15px; line-height:1.8; color:#1a1a1a; margin:0; padding:0; direction:rtl; }
