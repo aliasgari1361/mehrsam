@@ -21,8 +21,6 @@
     var toolbar = null;
     var dragEl = null;
     var editOverlay = null;
-    var ckEditors = {};
-    var ckReady = false;
     var dblClickTimer = null;
     var editModeEl = null;
 
@@ -93,58 +91,78 @@
         toolbar.style.left = Math.max(4, rect.right - 150) + 'px';
     }
 
-    /* ---------- CKEditor Inline Editing ---------- */
-    function initCKEditor() {
-        if (ckReady) return;
-        if (typeof ClassicEditor === 'undefined' && typeof InlineEditor === 'undefined') {
-            setTimeout(initCKEditor, 300);
-            return;
+    /* ---------- Local Editor (SadastEditor) ---------- */
+    function initSadastEditor() {
+        if (typeof window.SadastEditor !== 'undefined') {
+            return true;
         }
-        ckReady = true;
+        return false;
     }
 
-    function startCKEditorInline(el, blockIndex) {
-        if (!ckReady) {
-            initCKEditor();
-        }
+    function startInlineEditor(el, blockIndex) {
         var field = el.getAttribute('data-field') || 'text';
-        if (el.isContentEditable) {
-            el.contentEditable = 'false';
-        }
-        if (ckEditors[blockIndex]) {
-            try { ckEditors[blockIndex].destroy(); } catch (_) {}
-            delete ckEditors[blockIndex];
-        }
-        var editorInstance = null;
-        var CKClass = (typeof InlineEditor !== 'undefined') ? InlineEditor : null;
-        if (!CKClass && typeof ClassicEditor !== 'undefined') {
-            CKClass = ClassicEditor;
-        }
-        if (CKClass && el) {
-            CKClass.create(el, {
-                placeholder: '',
-                toolbar: [ 'bold', 'italic', 'strikethrough', 'link', '|', 'bulletedList', 'numberedList', '|', 'heading', 'blockquote', 'code', '|', 'undo', 'redo' ],
-                removePlugins: ['EasyImage', 'Image', 'ImageUpload', 'MediaEmbed', 'Table'],
-                height: 200
-            }).then(function (editor) {
-                editorInstance = editor;
-                ckEditors[blockIndex] = editor;
-                editor.model.document.on('change:data', function () {
-                    var data = editor.getData();
-                    post({ type: 'builderContent', index: blockIndex, key: field, value: data });
+
+        // Use SadastEditor if available
+        if (typeof window.SadastEditor !== 'undefined' && el.tagName === 'TEXTAREA') {
+            var existingEditor = el._sadastEditor;
+            if (existingEditor) {
+                existingEditor.destroy();
+            }
+            el._sadastEditor = new window.SadastEditor(el);
+            el._sadastEditor.setContent(el.value || el.textContent);
+            
+            // Listen for content changes
+            var syncInterval = setInterval(function () {
+                if (!el._sadastEditor || !el._sadastEditor.iframeDoc) return;
+                var body = el._sadastEditor.getBody();
+                if (!body) return;
+                var content = body.innerHTML;
+                if (content !== el.value) {
+                    el.value = content;
+                    post({ type: 'builderContent', index: blockIndex, key: field, value: content });
                     scheduleAutoSave();
-                });
-            }).catch(function (err) {
-                // console.error( err );
-            });
+                }
+            }, 500);
+
+            el._sadastEditor._cleanup = function () {
+                clearInterval(syncInterval);
+            };
+
+            editModeEl = { el: el, blockIndex: blockIndex, field: field, editor: el._sadastEditor };
+            return;
         }
-        editModeEl = { el: el, blockIndex: blockIndex, field: field, editor: editorInstance };
+
+        // Fallback: Make element contentEditable
+        if (el.isContentEditable === false || el.getAttribute('contenteditable') !== 'true') {
+            el.setAttribute('contenteditable', 'true');
+        } else {
+            el.contentEditable = 'true';
+        }
+
+        var originalContent = el.innerHTML;
+        el.focus();
+
+        var handleInput = function () {
+            var data = el.innerHTML;
+            post({ type: 'builderContent', index: blockIndex, key: field, value: data });
+            scheduleAutoSave();
+        };
+
+        el.addEventListener('input', handleInput);
+        el._cleanup = function () {
+            el.removeEventListener('input', handleInput);
+        };
+
+        editModeEl = { el: el, blockIndex: blockIndex, field: field, originalContent: originalContent };
     }
 
     function exitEditMode() {
         if (!editModeEl) return;
-        if (editModeEl.editor) {
+        if (editModeEl.editor && typeof editModeEl.editor.destroy === 'function') {
             try { editModeEl.editor.destroy(); } catch (_) {}
+        }
+        if (editModeEl._cleanup) {
+            editModeEl._cleanup();
         }
         if (editModeEl.el) {
             editModeEl.el.contentEditable = 'false';
@@ -238,8 +256,6 @@
 
     /* ---------- Init ---------- */
     function init() {
-        initCKEditor();
-
         var root = document.querySelector('.builder-edit-root');
         var blocks = root
             ? root.querySelectorAll('[data-block-index]')
@@ -271,9 +287,9 @@
                     /* اولین عنصر متنی داخل بلاک */
                     txt = el.querySelector('.builder-editable');
                 }
-                if (txt && txt.classList.contains('builder-text')) {
+                 if (txt && txt.classList.contains('builder-text')) {
                     exitEditMode();
-                    startCKEditorInline(txt, index);
+                    startInlineEditor(txt, index);
                 }
             });
 
@@ -344,8 +360,8 @@
             if (selectedBlockEl) {
                 var txt = selectedBlockEl.querySelector('.builder-text');
                 if (txt) {
-                    exitEditMode();
-                    startCKEditorInline(txt, selected);
+                     exitEditMode();
+                    startInlineEditor(txt, selected);
                 }
             }
         }

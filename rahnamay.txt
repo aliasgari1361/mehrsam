@@ -279,6 +279,21 @@ template_sections → بخش‌های محتوایی قالب
 - JSON (site_settings.json, modir_tanzimat.json)
 - Git (کنترل نسخه + به‌روزرسانی از پنل)
 
+### ۹.۸ قانون منبع داخلی (NO EXTERNAL RESOURCES)
+- **هیچ ارتباطی با اینترنت خارجی نباید در زمان اجرا وجود داشته باشد.**
+- تمام CSS، JavaScript، فونت، آیکون و تصاویر باید از داخل سرور سایت بارگذاری شوند.
+- منابع محلی موجود:
+    - `manabe/js/sadastEditor.js` — ویرایشگر متنی ساده و وابسته‌نشده
+    - `manabe/js/safhesaz.js` — ماژول صفحه‌ساز
+    - `ghaleb/manabe/Sortable.min.js` — کتابخانه Drag & Drop
+    - `ghaleb/manabe/fontawesome/` — فونت آیکون‌ها
+    - `ghaleb/manabe/fonts/` — فونت فارسی Vazirmatn
+- **منع صریح:**
+    - استفاده از `cdn.jsdelivr.net`، `cdn.tiny.cloud`، `cdn.ckeditor.com` یا هر سرویس CDN خارجی
+    - بارگذاری کتابخانه‌های جانبی از طریق `<script src="https://...">`
+    - بارگذاری فونت یا آیکون از طریق `@import` یا `url(../...)` در CSS
+- اگر ابزار جدیدی نیاز است، ابتدا به صورت محلی داخل `manabe/js/` یا `ghaleb/manabe/` اضافه شود.
+
 ### ۹.۸ نصب و راه‌اندازی
 - **نصب:** اجرای nasb.php → ۴ گام (خوش‌آمدگویی، اطلاعات DB، اطلاعات سایت، تأیید)
 - **انتقال:** بکاپ از mod/backup → آپلود → بازگردانی

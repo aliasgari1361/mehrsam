@@ -705,9 +705,10 @@ function builder_page_edit($block_page_id) {
     </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
-    <script src="https://cdn.tiny.cloud/1/no-api-key/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
-    <script src="https://cdn.ckeditor.com/ckeditor5/44.0.0/inline/ckeditor.js"></script>
+    <!-- اسکریپت‌های محلی داخلی سایت -->
+    <script src="<?= BASE_URL ?>ghaleb/<?= GHALEB_FAAAL ?>/manabe/Sortable.min.js<?= VER ? '?v=' . VER : '' ?>"></script>
+    <script src="<?= BASE_URL ?>manabe/js/sadastEditor.js<?= VER ? '?v=' . VER : '' ?>"></script>
+    <script src="<?= BASE_URL ?>manabe/js/safhesaz.js<?= VER ? '?v=' . VER : '' ?>"></script>
     <script>
     var blocksData = <?= json_encode($blocks, JSON_UNESCAPED_UNICODE) ?>;
     var blockTypes = <?= json_encode($available_blocks, JSON_UNESCAPED_UNICODE) ?>;
