@@ -102,7 +102,7 @@
     function startInlineEditor(el, blockIndex) {
         var field = el.getAttribute('data-field') || 'text';
 
-        // Use SadastEditor if available
+        // Use SadastEditor if available and element is a textarea
         if (typeof window.SadastEditor !== 'undefined' && el.tagName === 'TEXTAREA') {
             var existingEditor = el._sadastEditor;
             if (existingEditor) {
@@ -132,15 +132,21 @@
             return;
         }
 
-        // Fallback: Make element contentEditable
-        if (el.isContentEditable === false || el.getAttribute('contenteditable') !== 'true') {
-            el.setAttribute('contenteditable', 'true');
-        } else {
-            el.contentEditable = 'true';
-        }
-
-        var originalContent = el.innerHTML;
+        // Fallback: Make element contentEditable with basic formatting
+        el.setAttribute('contenteditable', 'true');
+        el.style.outline = '2px solid var(--rang-asli, #FF6F00)';
+        el.style.outlineOffset = '2px';
+        el.style.cursor = 'text';
         el.focus();
+
+        // Simple keyboard shortcuts for formatting
+        var handleKeydown = function (e) {
+            if (e.ctrlKey || e.metaKey) {
+                if (e.key === 'b') { e.preventDefault(); document.execCommand('bold'); }
+                else if (e.key === 'i') { e.preventDefault(); document.execCommand('italic'); }
+                else if (e.key === 'u') { e.preventDefault(); document.execCommand('underline'); }
+            }
+        };
 
         var handleInput = function () {
             var data = el.innerHTML;
@@ -148,12 +154,14 @@
             scheduleAutoSave();
         };
 
+        el.addEventListener('keydown', handleKeydown);
         el.addEventListener('input', handleInput);
         el._cleanup = function () {
+            el.removeEventListener('keydown', handleKeydown);
             el.removeEventListener('input', handleInput);
         };
 
-        editModeEl = { el: el, blockIndex: blockIndex, field: field, originalContent: originalContent };
+        editModeEl = { el: el, blockIndex: blockIndex, field: field };
     }
 
     function exitEditMode() {
@@ -165,7 +173,10 @@
             editModeEl._cleanup();
         }
         if (editModeEl.el) {
-            editModeEl.el.contentEditable = 'false';
+            editModeEl.el.removeAttribute('contenteditable');
+            editModeEl.el.style.outline = '';
+            editModeEl.el.style.outlineOffset = '';
+            editModeEl.el.style.cursor = '';
         }
         editModeEl = null;
     }

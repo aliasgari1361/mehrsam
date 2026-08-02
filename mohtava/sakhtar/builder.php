@@ -639,6 +639,11 @@ function builder_page_edit($block_page_id) {
         </div>
         <span style="flex:1;"></span>
         <div class="seg">
+            <button type="button" onclick="toggleLayout('split')" title="نمایش بوم و پیش‌نمایش کنار هم"><i class="fa-solid fa-grip"></i></button>
+            <button type="button" onclick="toggleLayout('stack')" title="نمایش عمودی"><i class="fa-solid fa-layer-group"></i></button>
+            <button type="button" onclick="toggleLayout('preview')" title="تمام صفحه پیش‌نمایش"><i class="fa-solid fa-expand"></i></button>
+        </div>
+        <div class="seg">
             <button type="button" onclick="toggleSidebar()" title="نمایش/مخفی چیپس‌های بلاک"><i class="fa-solid fa-layer-group"></i></button>
             <button type="button" onclick="toggleCanvas()" title="نمایش/مخفی بلاک‌ها"><i class="fa-solid fa-cubes"></i></button>
             <button type="button" onclick="togglePreview()" title="نمایش/مخفی پیشنمایش"><i class="fa-solid fa-eye-slash"></i></button>
@@ -656,15 +661,6 @@ function builder_page_edit($block_page_id) {
                         <?= $bv['label'] ?>
                     </div>
                     <?php endforeach; ?>
-                </div>
-                <div class="canvas-actions">
-                    <button type="button" onclick="toggleLayout('split')" title="نمایش بوم و پیش‌نمایش کنار هم"><i class="fa-solid fa-grip"></i></button>
-                    <button type="button" onclick="toggleLayout('stack')" title="نمایش عمودی (بوم بالا، پیش‌نمایش پایین)"><i class="fa-solid fa-layer-group"></i></button>
-                    <button type="button" onclick="toggleLayout('preview')" title="تمام صفحه پیش‌نمایش"><i class="fa-solid fa-expand"></button>
-                    <button type="button" onclick="toggleSidebar()" title="نمایش/مخفی چیپس‌های بلاک"><i class="fa-solid fa-layer-group"></i></button>
-                    <button type="button" onclick="toggleCanvas()" title="نمایش/مخفی بلاک‌ها"><i class="fa-solid fa-cubes"></i></button>
-                    <button type="button" onclick="togglePreview()" title="نمایش/مخفی پیش‌نمایش"><i class="fa-solid fa-eye-slash"></i></button>
-                    <button type="button" onclick="fullscreenPreview()" title="تمام‌صفحه پیش‌نمایش"><i class="fa-solid fa-expand"></i></button>
                 </div>
             </div>
             <div id="freeSurface" class="free-surface" style="display:none;"></div>
@@ -854,62 +850,17 @@ function builder_page_edit($block_page_id) {
     var editorInitRetry = 0;
 
     function initFormEditors(panel) {
-        /* Wait for editors to load (they are deferred) */
-        function tryInit(attempt) {
-            var taFields = panel.querySelectorAll('textarea.edit-field-html');
-            var hasCKE = typeof InlineEditor !== 'undefined';
-            var hasTiny = typeof tinymce !== 'undefined';
+        var taFields = panel.querySelectorAll('textarea.edit-field-html');
+        if (taFields.length === 0) return;
 
-            if (taFields.length === 0) return;
-
-            if (!hasCKE && !hasTiny && attempt < 20) {
-                setTimeout(function() { tryInit(attempt + 1); }, 200);
-                return;
+        taFields.forEach(function (ta) {
+            if (ta._sadastEditor) return;
+            try {
+                ta._sadastEditor = new SadastEditor(ta);
+            } catch (e) {
+                console.warn('initFormEditors: SadastEditor init failed', e);
             }
-
-            /* Use TinyMCE if available */
-            if (hasTiny) {
-                taFields.forEach(function (ta) {
-                    var key = ta.dataset.key;
-                    if (ta.id) { try { tinymce.remove('#' + ta.id); } catch (_) {} }
-                    ta.setAttribute('id', 'mce-' + key + '-' + Date.now());
-                    tinymce.init({
-                        selector: '#' + ta.id,
-                        plugins: 'lists link image charmap visualchars code table',
-                        toolbar: 'bold italic underline | bullist numlist | link | code',
-                        height: 200,
-                        directionality: 'rtl',
-                        setup: function (editor) {
-                            editor.on('change', function () {
-                                ta.value = editor.getContent();
-                            });
-                        }
-                    });
-                });
-            } else if (hasCKE) {
-                /* Fallback to CKEditor Classic for textarea */
-                taFields.forEach(function (ta) {
-                    var key = ta.dataset.key;
-                    ta.setAttribute('data-cke-key', key);
-                    if (ta._ckEditor) return;
-                    ClassicEditor
-                        .create(ta, {
-                            placeholder: '',
-                            toolbar: [ 'bold', 'italic', 'strikethrough', 'link', '|', 'bulletedList', 'numberedList', '|', 'heading', 'blockquote', 'code', '|', 'undo', 'redo' ],
-                            height: 200,
-                            directionality: 'rtl'
-                        })
-                        .then(function (editor) {
-                            ta._ckEditor = editor;
-                            editor.model.document.on('change:data', function () {
-                                ta.value = editor.getData();
-                            });
-                        })
-                        .catch(function (err) { /* ignore */ });
-                });
-            }
-        }
-        tryInit(0);
+        });
     }
 
     function openEditSidebar(idx) {
@@ -996,7 +947,7 @@ function builder_page_edit($block_page_id) {
 
           panel.classList.add('open');
 
-          /* Initialize TinyMCE or CKEditor for textarea.html fields (non-blocking, with error handling) */
+          /* Initialize SadastEditor for textarea.html fields (non-blocking, with error handling) */
           try { initFormEditors(panel); } catch(e) { console.error('Editor init error:', e); }
 
           /* Sync selection state in the iframe preview */
@@ -1009,17 +960,13 @@ function builder_page_edit($block_page_id) {
      function closeEditSidebar() {
          var panel = document.getElementById('builderSidebarPanel');
          if (panel) {
-             /* Destroy TinyMCE instances */
-             if (typeof tinymce !== 'undefined') {
-                 var taFields = panel.querySelectorAll('textarea.edit-field-html');
-                 taFields.forEach(function (ta) {
-                     if (ta.id) { try { tinymce.remove('#' + ta.id); } catch (_) {} }
-                 });
-             }
-             /* Destroy CKEditor instances */
-             taFields = panel.querySelectorAll('textarea.edit-field-html');
+             /* Destroy SadastEditor instances */
+             var taFields = panel.querySelectorAll('textarea.edit-field-html');
              taFields.forEach(function (ta) {
-                 if (ta._ckEditor) { try { ta._ckEditor.destroy(); } catch (_) {} ta._ckEditor = null; }
+                 if (ta._sadastEditor) {
+                     try { ta._sadastEditor.destroy(); } catch (_) {}
+                     ta._sadastEditor = null;
+                 }
              });
              panel.classList.remove('open');
          }
@@ -1035,17 +982,9 @@ function builder_page_edit($block_page_id) {
          var fields = panel.querySelectorAll('.edit-field');
          var data = {};
          fields.forEach(function(f) {
-             /* For TinyMCE, need to get content from editor instance */
-             if (typeof tinymce !== 'undefined') {
-                 var ed = tinymce.get(f);
-                 if (ed) {
-                     data[f.dataset.key] = ed.getContent();
-                     return;
-                 }
-             }
-             /* For CKEditor in sidebar */
-             if (f._ckEditor) {
-                 data[f.dataset.key] = f._ckEditor.getData();
+             /* For SadastEditor, get content from editor instance */
+             if (f._sadastEditor) {
+                 data[f.dataset.key] = f._sadastEditor.getContent();
                  return;
              }
              data[f.dataset.key] = (f.type === 'number') ? Number(f.value) : f.value;
@@ -1645,9 +1584,8 @@ function builder_page_edit($block_page_id) {
         if (localStorage.getItem('builder_chips_hidden') === '1') document.getElementById('builderWrap').classList.add('hide-chips');
         if (localStorage.getItem('builder_preview_hidden') === '1') document.getElementById('builderWrap').classList.add('hide-preview');
         if (localStorage.getItem('builder_canvas_hidden') === '1') document.getElementById('builderWrap').classList.add('hide-canvas');
-        var savedLayout = localStorage.getItem('builder_layout');
-        if (savedLayout === 'stack' || savedLayout === 'preview') toggleLayout(savedLayout);
     } catch(e){}
+    canvasW = null;
     applyColumns();
     document.addEventListener('keydown', function(e) {
         if ((e.key === 'Delete' || e.key === 'Backspace') && positionMode && selectedIndex >= 0 && !e.target.closest('input,textarea,select,[contenteditable]')) {
