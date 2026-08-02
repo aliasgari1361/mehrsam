@@ -14,6 +14,11 @@
 
 <section class="bakhsh">
     <div class="mohtava-container">
+        <?php if (!empty($builder_content)): ?>
+            <div class="archive-builder-content" style="margin:0 0 32px;">
+                <?= $builder_content ?>
+            </div>
+        <?php endif; ?>
 
         <?php if (!empty($dasteha)): ?>
         <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:32px; justify-content:center;">

@@ -30,6 +30,15 @@ function mahsul_fehrest($dasteh_slug = null, $page = 1) {
     $mahsulat = $data['mahsulat'];
     $total_pages = $data['pages'];
     $current_page = $page;
+
+    // صفحه‌ساز برای آرشیو محصولات
+    $builder_content = '';
+    require_once MASIR_RISH . 'mohtava/sakhtar/builder.php';
+    $archive_bp = builder_find_template('archive', 'mahsul');
+    if ($archive_bp && isset($archive_bp['id'])) {
+        $builder_content = builder_render_page($archive_bp['id']);
+    }
+
     $onvan_safhe = 'فروشگاه | ' . SITE_NAME;
     $meta_sharh = 'خرید لپ‌تاپ، کیس، مودم و قطعات کامپیوتر';
     $safhe_faali = 'forushgah';
@@ -44,7 +53,7 @@ function mahsul_tan($slug) {
         return;
     }
     $builder_content = '';
-    require_once __DIR__ . '/../sakhtar/builder.php';
+    require_once MASIR_RISH . 'mohtava/sakhtar/builder.php';
     $bp_info = builder_get_page_id('mahsul', $slug);
     if ($bp_info && $bp_info['bp_id']) {
         $builder_content = builder_render_page($bp_info['bp_id']);
