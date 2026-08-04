@@ -106,6 +106,7 @@ function mod_route($action, $params) {
                             $_SESSION['role'] = $user['role'];
                             $stmt->close();
                             $conn->close();
+                            send_login_alert($username, $user['id']);
                             redirect('mod/dashmod');
                             exit;
                         }
@@ -214,7 +215,7 @@ function mod_route($action, $params) {
 
     <?php include __DIR__ . '/../../ghaleb/ghmod/sarfaraz.php'; ?>
     <style>
-    @import url('<?= BASE_URL ?>ghaleb/<?= GHALEB_FAAAL ?>/manabe/fonts/fonts.css');
+    @import url('<?= BASE_URL ?>ghaleb/manabe/fonts/fonts.css');
     .dash { font-family:'Vazirmatn','Tahoma',sans-serif; direction:rtl; }
     .dash h3 { font-size:1.4rem; margin-bottom:4px; color:#1a1a1a; }
     .dash .sub { color:#666; font-size:14px; margin-bottom:24px; }
@@ -1438,6 +1439,12 @@ function mod_route($action, $params) {
             require_once MASIR_RISH . 'mohtava/poshtyban/backup-admin.php';
             $backup_action = $params[0] ?? '';
             admin_backup_route($backup_action);
+            break;
+
+        case 'update':
+            require_once MASIR_RISH . 'mohtava/poshtyban/update-admin.php';
+            $update_action = $params[0] ?? '';
+            admin_update_route($update_action);
             break;
 
 

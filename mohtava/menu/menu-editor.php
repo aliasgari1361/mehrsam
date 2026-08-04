@@ -452,6 +452,7 @@ function menu_get_default_admin_items() {
         ['label' => 'تنظیمات پنل', 'url' => 'mod/panel_settings', 'icon' => 'fa-palette', 'parent' => 20, 'desc' => 'ظاهر و رنگ پنل مدیریت'],
         ['label' => 'منو پنل مدیریت', 'url' => 'mod/menu_editor/admin', 'icon' => 'fa-bars', 'parent' => 20, 'desc' => 'ویرایش منوی پنل مدیریت'],
         ['label' => 'به‌روزرسانی', 'url' => 'mod/settings?tab=git', 'icon' => 'fa-github', 'parent' => 20, 'desc' => 'بروزرسانی کدهای سایت'],
+        ['label' => 'آپدیت و نگهداری', 'url' => 'mod/update', 'icon' => 'fa-arrows-rotate', 'parent' => 20, 'desc' => 'آپدیت ZIP، اجرای SQL مهاجرت و بکاپ دیتابیس'],
         ['label' => 'بکاپ و بازگردانی', 'url' => 'mod/backup', 'icon' => 'fa-shield-halved', 'parent' => 20, 'desc' => 'پشتیبان‌گیری و بازگردانی'],
         ['label' => 'مشاهده سایت', 'url' => BASE_URL, 'icon' => 'fa-eye', 'parent' => -1, 'target' => '_blank', 'desc' => 'مشاهده سایت در مرورگر'],
         ['label' => 'خروج', 'url' => 'mod/logout', 'icon' => 'fa-sign-out-alt', 'parent' => -1, 'desc' => 'خروج از پنل مدیریت'],

@@ -296,6 +296,15 @@
             "_id": "s31"
         },
         {
+            "label": "آپدیت و نگهداری",
+            "url": "mod\/update",
+            "icon": "fa-arrows-rotate",
+            "target": "",
+            "parent": "s26",
+            "desc": "آپدیت ZIP، اجرای SQL مهاجرت و بکاپ دیتابیس",
+            "_id": "s34"
+        },
+        {
             "label": "مشاهده سایت",
             "url": "http:\/\/site.test\/",
             "icon": "fa-eye",
