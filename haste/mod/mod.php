@@ -4,8 +4,25 @@
  * لاگین، داشبورد، تنظیمات، مدیریت محتوا با ویرایشگر کامل
  */
 
+/**
+ * بررسی محیط گیت روی هاست (exec فعال است؟ git نصب است؟)
+ */
+function mod_git_environment() {
+    if (!function_exists('exec')) {
+        return ['error' => 'روی این هاست تابع exec غیرفعال است (disable_functions). گیت را نمی‌توان اجرا کرد. از بخش «آپدیت و نگهداری» (آپلود ZIP) استفاده کنید.'];
+    }
+    $out = [];
+    exec('git --version 2>&1', $out, $code);
+    if ($code !== 0 || empty($out)) {
+        return ['error' => 'git روی این هاست نصب نیست یا در مسیر (PATH) نیست. از بخش «آپدیت و نگهداری» (آپلود ZIP) استفاده کنید.'];
+    }
+    if (!is_dir(MASIR_RISH . '.git')) {
+        return ['error' => 'این پروژه روی هاست به‌صورت مخزن git نیست (پوشه .git وجود ندارد). از بخش «آپدیت و نگهداری» (آپلود ZIP) استفاده کنید.'];
+    }
+    return ['ok' => true, 'version' => trim($out[0])];
+}
+
 function mod_route($action, $params) {
-    // CAPTCHA route - must be at the top before any output (no auth required)
     if ($action === 'captcha') {
         require_once __DIR__ . '/../captcha.php';
         display_captcha_image();
@@ -1033,6 +1050,10 @@ function mod_route($action, $params) {
                     fetch('<?= BASE_URL ?>mod/git_status')
                         .then(r => r.json())
                         .then(data => {
+                            if (data.error) {
+                                document.getElementById('gitStatus').innerHTML = '<div style="color:#c62828;font-weight:700;">❌ ' + data.error + '</div>';
+                                return;
+                            }
                             var html = '<div style="margin-bottom:8px;"><strong>شاخه (Branch):</strong> ' + data.branch + '</div>';
                             html += '<div style="margin-bottom:8px;"><strong>آخرین کامیت:</strong> ' + data.last_commit + '</div>';
                             if (data.changes) {
@@ -1450,6 +1471,11 @@ function mod_route($action, $params) {
 
         case 'git_pull':
             header('Content-Type: application/json');
+            $git_check = mod_git_environment();
+            if (!empty($git_check['error'])) {
+                echo json_encode(['success' => false, 'output' => $git_check['error']]);
+                exit;
+            }
             $output = [];
             $return_var = 0;
             $git_dir = MASIR_RISH;
@@ -1458,14 +1484,23 @@ function mod_route($action, $params) {
             if ($return_var !== 0) {
                 exec('git pull origin master 2>&1', $output, $return_var);
             }
+            $out_text = implode("\n", $output);
+            if ($return_var !== 0 && stripos($out_text, 'could not read') !== false) {
+                $out_text .= "\n\nنکته: گیت به اکانت GitHub شما دسترسی ندارد (SSH key / توکن).";
+            }
             echo json_encode([
                 'success' => $return_var === 0,
-                'output' => implode("\n", $output),
+                'output' => $out_text,
             ]);
             exit;
 
         case 'git_status':
             header('Content-Type: application/json');
+            $git_check = mod_git_environment();
+            if (!empty($git_check['error'])) {
+                echo json_encode(['branch' => '—', 'last_commit' => '—', 'changes' => '', 'error' => $git_check['error']]);
+                exit;
+            }
             $output = [];
             $git_dir = MASIR_RISH;
             chdir($git_dir);
@@ -1479,6 +1514,7 @@ function mod_route($action, $params) {
                 'branch' => $branch,
                 'last_commit' => $last_commit,
                 'changes' => $changes,
+                'error' => '',
             ]);
             exit;
 
