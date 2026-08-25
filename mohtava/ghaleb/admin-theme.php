@@ -36,10 +36,101 @@ function admin_theme_route($action, $params) {
             header('Location: ' . BASE_URL . 'mod/menu_editor/site');
             exit;
             break;
+        case 'bp_open':
+            admin_theme_bp_open($params[0] ?? '');
+            break;
+        case 'bp_delete':
+            admin_theme_bp_delete($params[0] ?? 0);
+            break;
         default:
             admin_theme_manager();
             break;
     }
+}
+
+/* ============================================================
+   ویرایش قالب با صفحه‌ساز: نگاشت بخشهای بصری قالب به block_pages
+   (هدر/فوتر/صفحه اصلی/آرشیوها — همانهایی که قالب از رندر صفحه‌ساز استفاده میکند)
+   ============================================================ */
+function admin_theme_bp_map() {
+    return [
+        'header' => [
+            'label' => 'هدر قالب (لوگو / منو)', 'icon' => 'fa-bars', 'color' => '#0984E3',
+            'name' => 'هدر قالب', 'part' => 'header', 'ct' => 'global', 'cv' => '*',
+            'desc' => 'جایگزین هدر پیشفرض sarfaraz.php میشود',
+        ],
+        'footer' => [
+            'label' => 'پانویس قالب (Footer)', 'icon' => 'fa-shoe-prints', 'color' => '#6C5CE7',
+            'name' => 'پانویس قالب', 'part' => 'footer', 'ct' => 'global', 'cv' => '*',
+            'desc' => 'جایگزین فوتر پیشفرض panevis.php میشود',
+        ],
+        'home' => [
+            'label' => 'صفحه اصلی (khane)', 'icon' => 'fa-house', 'color' => '#FF6F00',
+            'name' => 'صفحه اصلی (قالب)', 'part' => '', 'ct' => 'single', 'cv' => 'home',
+            'desc' => 'محتوای کامل صفحه نخست سایت',
+        ],
+        'archive_blog' => [
+            'label' => 'آرشیو وبلاگ (tarnegar)', 'icon' => 'fa-newspaper', 'color' => '#00B894',
+            'name' => 'آرشیو وبلاگ (قالب)', 'part' => '', 'ct' => 'archive', 'cv' => 'blog',
+            'desc' => 'بالای لیست مقالات وبلاگ',
+        ],
+        'archive_mahsul' => [
+            'label' => 'آرشیو فروشگاه (mahsulat)', 'icon' => 'fa-bag-shopping', 'color' => '#E17055',
+            'name' => 'آرشیو فروشگاه (قالب)', 'part' => '', 'ct' => 'archive', 'cv' => 'mahsul',
+            'desc' => 'بالای گرید محصولات فروشگاه',
+        ],
+    ];
+}
+
+function admin_theme_bp_find_all() {
+    $bank = new Bank();
+    $conn = $bank->getConnection();
+    $res = $conn->query("SELECT id, name, part, condition_type, condition_value FROM block_pages WHERE page_id = 0");
+    $rows = $res ? $res->fetch_all(MYSQLI_ASSOC) : [];
+    $conn->close();
+    $out = [];
+    foreach ($rows as $r) {
+        $out[$r['part'] . '|' . $r['condition_type'] . '|' . $r['condition_value']] = $r;
+    }
+    return $out;
+}
+
+function admin_theme_bp_open($key) {
+    $map = admin_theme_bp_map();
+    if (!isset($map[$key])) { redirect('mod/theme'); exit; }
+    $m = $map[$key];
+    $all = admin_theme_bp_find_all();
+    $hit = $all[$m['part'] . '|' . $m['ct'] . '|' . $m['cv']] ?? null;
+    if (!$hit) {
+        $bank = new Bank();
+        $conn = $bank->getConnection();
+        $stmt = $conn->prepare("INSERT INTO block_pages (page_id, page_type, name, condition_type, condition_value, part, blocks_data, position_mode, mobile_mode) VALUES (0, '', ?, ?, ?, ?, '[]', 0, 'auto')");
+        $stmt->bind_param("ssss", $m['name'], $m['ct'], $m['cv'], $m['part']);
+        $stmt->execute();
+        $new_id = $conn->insert_id;
+        $stmt->close();
+        $conn->close();
+        redirect('mod/builder/edit/' . $new_id);
+        exit;
+    }
+    redirect('mod/builder/edit/' . $hit['id']);
+    exit;
+}
+
+function admin_theme_bp_delete($id) {
+    $id = (int)$id;
+    if ($id > 0) {
+        $bank = new Bank();
+        $conn = $bank->getConnection();
+        /* فقط قالبهای خالص (بدون اتصال به محتوا) حذف شوند */
+        $stmt = $conn->prepare("DELETE FROM block_pages WHERE id = ? AND page_id = 0");
+        $stmt->bind_param("i", $id);
+        $stmt->execute();
+        $stmt->close();
+        $conn->close();
+    }
+    redirect('mod/theme');
+    exit;
 }
 
 function admin_theme_manager() {
@@ -121,6 +212,65 @@ function admin_theme_manager() {
             <a href="<?= BASE_URL ?>mod/theme/files"><i class="fa-solid fa-file-code"></i> فایل‌های قالب فعال</a>
             <a href="<?= BASE_URL ?>mod/theme/custom"><i class="fa-solid fa-paint-brush"></i> CSS سفارشی</a>
             <a href="<?= BASE_URL ?>mod/settings?tab=theme"><i class="fa-solid fa-gear"></i> تنظیمات ظاهری</a>
+        </div>
+
+        <?php
+        /* ===== ویرایش قالب با صفحه‌ساز ===== */
+        $bp_map = admin_theme_bp_map();
+        $bp_all = admin_theme_bp_find_all();
+        ?>
+        <style>
+            .bp-panel { background:#fff; border:2px solid #eef0f4; border-radius:14px; padding:22px; margin-bottom:32px; }
+            .bp-panel h4 { margin:0 0 6px; font-size:1.05rem; }
+            .bp-panel .lead { color:#888; font-size:12.5px; margin-bottom:16px; }
+            .bp-rows { display:flex; flex-direction:column; gap:8px; }
+            .bp-row { display:flex; align-items:center; gap:12px; background:#fafbfc; border:1.5px solid #eef0f4; border-radius:10px; padding:10px 14px; transition:border-color .15s; }
+            .bp-row:hover { border-color:var(--rang-asli,#FF6F00); }
+            .bp-row .ic { width:34px; height:34px; border-radius:9px; color:#fff; display:flex; align-items:center; justify-content:center; font-size:14px; flex-shrink:0; background:var(--asli,#888); }
+            .bp-row .lbl { flex:1; min-width:0; }
+            .bp-row .lbl b { display:block; font-size:13.5px; color:#333; }
+            .bp-row .lbl small { color:#999; font-size:11.5px; }
+            .bp-badge { font-size:11px; font-weight:700; padding:3px 10px; border-radius:10px; white-space:nowrap; }
+            .bp-badge.on { background:#e8f5e9; color:#2e7d32; }
+            .bp-badge.off { background:#f5f6f8; color:#999; }
+            .bp-act { display:flex; gap:6px; }
+            .bp-btn { padding:7px 14px; border-radius:8px; font-size:12.5px; font-weight:700; text-decoration:none; border:none; cursor:pointer; font-family:inherit; white-space:nowrap; }
+            .bp-btn.go { background:var(--rang-asli,#FF6F00); color:#fff; }
+            .bp-btn.go:hover { background:#E65100; }
+            .bp-btn.mk { background:#f5f6f8; color:#555; border:1px solid #dde1e6; }
+            .bp-btn.mk:hover { border-color:var(--rang-asli,#FF6F00); color:var(--rang-asli,#FF6F00); }
+            .bp-btn.del { background:none; color:#c62828; padding:7px 8px; }
+            .bp-btn.del:hover { background:#ffebee; }
+        </style>
+        <div class="bp-panel">
+            <h4><i class="fa-solid fa-wand-magic-sparkles" style="color:var(--rang-asli,#FF6F00)"></i> ویرایش قالب با صفحه‌ساز</h4>
+            <p class="lead">این بخش‌های قالب را بدون کد، با کشیدن و رها کردن در پیش‌نمایش زنده بساز. هر بخشی که ساخته شود جایگزین نسخه پیش‌فرض قالب می‌شود؛ با حذفش، قالب به حالت قبل برمی‌گردد.</p>
+            <div class="bp-rows">
+                <?php foreach ($bp_map as $key => $m):
+                    $hit = $bp_all[$m['part'] . '|' . $m['ct'] . '|' . $m['cv']] ?? null;
+                ?>
+                <div class="bp-row" style="--asli:<?= $m['color'] ?>">
+                    <span class="ic"><i class="fa-solid <?= $m['icon'] ?>"></i></span>
+                    <span class="lbl">
+                        <b><?= htmlspecialchars($m['label']) ?></b>
+                        <small><?= htmlspecialchars($m['desc']) ?></small>
+                    </span>
+                    <?php if ($hit): ?>
+                    <span class="bp-badge on">ساخته شده</span>
+                    <span class="bp-act">
+                        <a class="bp-btn go" href="<?= BASE_URL ?>mod/builder/edit/<?= $hit['id'] ?>"><i class="fa-solid fa-pen-ruler"></i> ویرایش</a>
+                        <button type="button" class="bp-btn del" title="حذف — بازگشت به پیش‌فرض قالب" onclick="if(confirm('حذف شود؟ قالب به نسخه پیشفرض (کد) برمیگردد.')) location.href='<?= BASE_URL ?>mod/theme/bp_delete/<?= $hit['id'] ?>'"><i class="fa-solid fa-trash"></i></button>
+                    </span>
+                    <?php else: ?>
+                    <span class="bp-badge off">پیش‌فرض قالب</span>
+                    <span class="bp-act">
+                        <a class="bp-btn mk" href="<?= BASE_URL ?>mod/theme/bp_open/<?= $key ?>"><i class="fa-solid fa-plus"></i> ساخت با صفحه‌ساز</a>
+                    </span>
+                    <?php endif; ?>
+                </div>
+                <?php endforeach; ?>
+            </div>
+            <p style="margin:14px 0 0;font-size:11.5px;color:#aaa;"><i class="fa-solid fa-circle-info"></i> برای ویرایش مستقیم کد PHP فایلها (sarfaraz.php و...) از دکمه «فایل‌های قالب فعال» بالا استفاده کنید.</p>
         </div>
 
         <div class="theme-grid">
