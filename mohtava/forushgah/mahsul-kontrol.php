@@ -32,6 +32,7 @@ function mahsul_fehrest($dasteh_slug = null, $page = 1) {
     $current_page = $page;
 
     // صفحه‌ساز برای آرشیو محصولات
+    $GLOBALS['page_type'] = 'mahsul';
     $builder_content = '';
     require_once MASIR_RISH . 'mohtava/sakhtar/builder.php';
     $archive_bp = builder_find_template('archive', 'mahsul');
@@ -52,6 +53,8 @@ function mahsul_tan($slug) {
         include MASIR_GHALEB . '404.php';
         return;
     }
+    $GLOBALS['page_slug'] = $slug;
+    $GLOBALS['page_type'] = 'mahsul';
     $builder_content = '';
     require_once MASIR_RISH . 'mohtava/sakhtar/builder.php';
     $bp_info = builder_get_page_id('mahsul', $slug);

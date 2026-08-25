@@ -1438,6 +1438,12 @@ function mod_route($action, $params) {
                 builder_clear_cache($builder_params[0] ?? 0);
             } elseif ($builder_action === 'render_blocks') {
                 builder_render_blocks_api();
+            } elseif ($builder_action === 'upload_image') {
+                builder_upload_image();
+            } elseif ($builder_action === 'list_images') {
+                builder_list_images();
+            } elseif ($builder_action === 'save_settings') {
+                builder_save_settings();
             } else {
                 builder_route($builder_action, $builder_params);
             }

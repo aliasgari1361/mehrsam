@@ -17,7 +17,9 @@ function mohtava_route($action, $params) {
             $post = getPostBySlug($slug, $action);
             if ($post) {
                 $block_page = null;
-                require_once __DIR__ . '/builder/builder.php';
+                require_once __DIR__ . '/sakhtar/builder.php';
+                $GLOBALS['page_slug'] = $slug;
+                $GLOBALS['page_type'] = $action;
                 $bp_info = builder_get_page_id($action, $slug);
                 if ($bp_info && $bp_info['bp_id']) {
                     $block_html = builder_render_page($bp_info['bp_id']);

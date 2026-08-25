@@ -474,628 +474,793 @@ function builder_page_edit($block_page_id) {
     $all_themes = $res2 ? $res2->fetch_all(MYSQLI_ASSOC) : [];
     $conn2->close();
 
+    // تنظیمات صفحه‌ساز (ذخیره خودکار و ...)
+    if (!function_exists('builder_get_settings_value')) { /* همین فایل است */ }
+    $pbset = builder_get_settings_value();
+
     include __DIR__ . '/../../ghaleb/ghmod/sarfaraz.php';
     ?>
     <style>
-        .builder-wrap { display:grid; grid-template-columns:var(--canvas-w,1fr) 6px 1fr; gap:0; min-height:80vh; transition:grid-template-columns 0.05s; }
-        .builder-splitter { width:6px; cursor:col-resize; background:#eef0f4; position:relative; transition:background 0.15s; }
-        .builder-splitter:hover, .builder-splitter.dragging { background:var(--rang-asli,#FF6F00); }
-        .builder-splitter::after { content:''; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:2px; height:30px; border-radius:2px; background:#c2c8d0; }
-        .builder-splitter:hover::after, .builder-splitter.dragging::after { background:#fff; }
-        .builder-canvas { background:#fff; border:1px solid #eef0f4; border-radius:0; padding:20px; min-height:500px; overflow:auto; border-left:1px solid #eef0f4; }
-        .builder-preview { background:#fff; border:1px solid #eef0f4; border-radius:0; overflow:hidden; display:flex; flex-direction:column; transition:opacity 0.3s,width 0.3s,padding 0.3s; }
-        .preview-toolbar { display:flex; align-items:center; gap:8px; padding:8px 14px; background:#f8f9fa; border-bottom:1px solid #eef0f4; font-size:13px; font-weight:600; color:#555; }
-        .builder-preview iframe { flex:1; min-height:500px; transition:width 0.2s; }
-        .canvas-toolbar { display:flex; flex-wrap:wrap; align-items:center; gap:8px; padding:10px 0; margin-bottom:16px; border-bottom:1px solid #eef0f4; }
-        .block-chips { display:flex; flex-wrap:wrap; gap:6px; flex:1; }
-        .block-chips .chip { padding:6px 12px; background:#f8f9fa; border:1px solid #eef0f4; border-radius:20px; cursor:pointer; display:flex; align-items:center; gap:6px; font-size:12px; transition:all 0.2s; white-space:nowrap; }
-        .block-chips .chip:hover { background:var(--rang-roshan,#fff3e0); border-color:var(--rang-asli,#FF6F00); }
-        .block-chips .chip .dot { width:10px;height:10px;border-radius:50%;display:inline-block;flex-shrink:0; }
-        .canvas-actions { display:flex; gap:6px; }
-        .canvas-actions button { padding:6px 12px; border:1px solid #dde1e6; border-radius:6px; background:#f5f6f8; cursor:pointer; font-size:11px; color:#555; transition:all 0.15s; white-space:nowrap; }
-        .canvas-actions button:hover { border-color:var(--rang-asli,#FF6F00); color:var(--rang-asli,#FF6F00); }
-        .block-item { background:#f8f9fa; border:2px solid #eef0f4; border-radius:10px; margin-bottom:16px; padding:16px; cursor:move; position:relative; transition:all 0.2s; }
-        .block-item:hover { border-color:var(--rang-asli,#FF6F00); }
-        .block-item.dragging { opacity:0.5; }
-        .block-item .block-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
-        .block-item .block-title { font-weight:700; font-size:14px; }
-        .block-item.drag-over { border-color:var(--rang-asli,#FF6F00); border-style:dashed; }
-        .block-item .block-content-preview svg { max-width:80px; max-height:30px; }
-        .block-footer { display:flex; align-items:center; gap:8px; padding:10px 12px; margin-top:12px; background:#f0f2f5; border:1px solid #e0e4e8; border-radius:8px; }
-        .block-footer button { background:#fff; border:1px solid #dde1e6; cursor:pointer; padding:6px 12px; border-radius:6px; font-size:13px; color:#555; transition:all 0.15s; display:flex; align-items:center; gap:4px; }
-        .block-footer button:hover { background:#e9ecef; border-color:var(--rang-asli,#FF6F00); color:#333; }
-        .block-footer button.danger { color:#c62828; }
-        .block-footer button.danger:hover { background:#ffebee; border-color:#c62828; color:#c62828; }
-        #blocksContainer > .block-item { box-sizing:border-box; }
-        .insert-zone { user-select:none; }
-        .insert-zone:hover .fa-plus-circle { color:var(--rang-asli); }
-        .empty-canvas { text-align:center; padding:60px 20px; color:#aaa; }
-        .empty-canvas i { font-size:48px; display:block; margin-bottom:16px; }
-        .btn-save-blocks { position:fixed; bottom:24px; left:24px; z-index:100; padding:14px 32px; background:var(--rang-asli,#FF6F00); color:#fff; border:none; border-radius:12px; font-weight:700; font-size:15px; cursor:pointer; box-shadow:0 4px 20px rgba(255,111,0,0.4); transition:all 0.3s; }
-        .btn-save-blocks:hover { transform:translateY(-2px); box-shadow:0 6px 25px rgba(255,111,0,0.5); }
-        .btn-save-blocks:disabled { opacity:0.6; cursor:wait; }
-        <?php foreach ($available_blocks as $bk => $bv): ?>
-        .block-item.type-<?= $bk ?> { border-right:4px solid <?= $bv['color'] ?>; }
-        <?php endforeach; ?>
+        /* ===== صفحه‌ساز جدید (سبک المنتور) ===== */
+        :root { --rang-asli:#FF6F00; --rang-tira:#E65100; --rang-roshan:#fff3e0; --rang-border:#e9ecef; --rang-sabz:#f8f9fa; }
+        * { box-sizing:border-box; }
+        .pb-topbar { display:flex; align-items:center; gap:10px; flex-wrap:wrap; background:#fff; border:1px solid var(--rang-border); border-radius:12px; padding:8px 14px; margin-bottom:12px; position:sticky; top:6px; z-index:500; box-shadow:0 2px 10px rgba(0,0,0,.04); }
+        .pb-topbar a.pb-back { color:#666; font-size:13px; text-decoration:none; white-space:nowrap; }
+        .pb-topbar a.pb-back:hover { color:var(--rang-asli); }
+        .pb-topbar .pb-title { font-weight:700; font-size:13px; color:#333; white-space:nowrap; }
+        .pb-topbar select { padding:6px 10px; border:1.5px solid #dde1e6; border-radius:8px; font-size:12px; max-width:220px; }
+        .pb-seg { display:flex; gap:3px; background:#f5f6f8; padding:3px; border-radius:8px; }
+        .pb-seg button { border:none; background:none; padding:5px 9px; border-radius:6px; cursor:pointer; font-size:11px; color:#555; transition:all .15s; white-space:nowrap; font-family:inherit; }
+        .pb-seg button:hover { background:#e9ecef; }
+        .pb-seg button.active { background:var(--rang-asli); color:#fff; }
+        .pb-spacer { flex:1; }
+        .pb-status { display:flex; align-items:center; gap:6px; font-size:12px; color:#777; white-space:nowrap; }
+        .pb-status .dot { width:9px; height:9px; border-radius:50%; background:#00B894; transition:background .2s; }
+        .pb-status.dirty .dot { background:#e17055; }
+        .pb-status.saving .dot { background:#f39c12; animation:pulse 1s infinite; }
+        @keyframes pulse { 50% { opacity:.35; } }
 
-        /* ===== حالت بوم آزاد ===== */
-        .builder-toolbar { display:flex; flex-wrap:wrap; align-items:center; gap:10px; background:#fff; border:1px solid #eef0f4; border-radius:12px; padding:10px 14px; margin-bottom:16px; }
-        .builder-toolbar .seg { display:flex; gap:4px; background:#f5f6f8; padding:4px; border-radius:8px; }
-        .builder-toolbar .seg button { border:none; background:none; padding:6px 12px; border-radius:6px; cursor:pointer; font-size:12px; color:#555; transition:all 0.15s; }
-        .builder-toolbar .seg button:hover { background:#e9ecef; }
-        .builder-toolbar .seg button.active { background:var(--rang-asli,#FF6F00); color:#fff; }
-        .builder-toolbar .tool-label { font-size:12px; color:#888; font-weight:600; }
-        .builder-canvas.free { padding:0; overflow:auto; }
-        .free-surface { position:relative; margin:0; min-height:600px; background:#fafafa; background-image:linear-gradient(#ececec 1px,transparent 1px),linear-gradient(90deg,#ececec 1px,transparent 1px); background-size:20px 20px; box-shadow:inset 0 0 0 1px #eef0f4; }
-        .free-hscroll-hint { font-size:11px; color:#999; padding:6px 12px; background:#f8f9fa; border-top:1px solid #eef0f4; direction:ltr; text-align:center; }
-        .block-item.free { position:absolute; margin:0; padding:0; background:rgba(255,255,255,0.92); border:1px dashed var(--rang-asli,#FF6F00); border-radius:6px; box-sizing:border-box; }
-        .block-item.free .block-content-preview { max-height:none; overflow:visible; padding:8px; min-height:30px; pointer-events:none; }
-        .block-item.free.selected .block-content-preview { pointer-events:auto; }
-        .block-item.free .block-header { padding:4px 8px; margin-bottom:0; background:rgba(255,255,255,0.95); border-bottom:1px solid #eef0f4; border-radius:6px 6px 0 0; z-index:10; position:relative; cursor:move; }
-        .block-item.free.selected { border:2px solid var(--rang-asli,#FF6F00); box-shadow:0 0 0 3px rgba(255,111,0,0.18); z-index:9999 !important; }
-        .resize-handle { position:absolute; left:0; bottom:0; width:16px; height:16px; background:var(--rang-asli,#FF6F00); cursor:nwse-resize; border-radius:0 0 6px 0; z-index:12; }
-        .pos-panel { position:fixed; bottom:24px; right:24px; z-index:200; background:#fff; border:1px solid #eef0f4; border-radius:12px; padding:14px; box-shadow:0 8px 30px rgba(0,0,0,0.15); width:240px; display:none; }
-        .pos-panel h5 { margin:0 0 10px; font-size:13px; }
-        .pos-panel .row { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
-        .pos-panel .row label { font-size:11px; color:#888; width:18px; }
-        .pos-panel .row input { flex:1; padding:6px 8px; border:1px solid #dde1e6; border-radius:6px; width:100%; font-size:13px; }
-        .pos-panel .layer-btns { display:flex; gap:6px; margin-top:6px; }
-        .pos-panel .layer-btns button { flex:1; padding:8px; border:1px solid #dde1e6; border-radius:6px; background:#f5f6f8; cursor:pointer; font-size:12px; }
-        .pos-panel .layer-btns button:hover { border-color:var(--rang-asli,#FF6F00); }
-        .free-add { position:absolute; top:8px; left:8px; z-index:50; padding:6px 12px; background:var(--rang-asli,#FF6F00); color:#fff; border:none; border-radius:6px; cursor:pointer; font-size:12px; }
-        .free-hint { position:absolute; top:8px; right:8px; z-index:50; font-size:11px; color:#aaa; background:rgba(255,255,255,0.8); padding:2px 8px; border-radius:4px; }
-        .btn-delete-block { width:100%; padding:10px; margin-top:8px; background:#fff0f0; border:1px solid #ef9a9a; border-radius:8px; color:#c62828; cursor:pointer; font-size:13px; font-weight:600; transition:all 0.15s; }
-        .btn-delete-block:hover { background:#ffebee; border-color:#c62828; }
-        .builder-wrap.hide-chips .block-chips { display:none; }
-        .builder-wrap.hide-canvas { grid-template-columns:0px 6px 1fr; }
-        .builder-wrap.hide-canvas .builder-canvas { overflow:hidden; padding:0; width:0; opacity:0; border:0; }
-        .builder-wrap.hide-canvas .builder-splitter { display:none; }
-        .builder-wrap.hide-preview { grid-template-columns:var(--canvas-w,1fr) 6px 0px; }
-        .builder-wrap.hide-preview .builder-preview { overflow:hidden; padding:0; width:0; opacity:0; }
-        .builder-wrap.hide-preview .builder-splitter { display:none; }
-        .builder-preview.fullscreen { position:fixed; inset:0; z-index:9999; border-radius:0; }
-        .builder-preview.fullscreen iframe { min-height:100vh; }
-        .builder-wrap.layout-stack { flex-direction:column; }
-        .builder-wrap.layout-stack .builder-splitter { width:100%; height:6px; cursor:ns-resize; }
-        .builder-wrap.layout-stack .builder-canvas { padding:20px; }
-        .builder-wrap.layout-stack .builder-preview { height:calc(100vh - 500px); }
-         .builder-wrap.layout-preview .builder-canvas { display:none; }
-         .builder-wrap.layout-preview .builder-splitter { display:none; }
-         .block-item.builder-selected { border-color:var(--rang-asli,#FF6F00) !important; box-shadow:0 0 0 3px rgba(255,111,0,0.18); }
-     </style>
+        .pb-app { display:flex; align-items:stretch; min-height:calc(100vh - 140px); gap:0; }
+        .pb-panel { width:var(--panel-w,300px); min-width:200px; max-width:520px; background:#fff; border:1px solid var(--rang-border); border-radius:12px; display:flex; flex-direction:column; overflow:hidden; order:0; }
+        .pb-tabs { display:flex; background:#f8f9fa; border-bottom:1px solid var(--rang-border); }
+        .pb-tabs button { flex:1; border:none; background:none; padding:11px 6px; cursor:pointer; font-size:12.5px; font-weight:700; color:#666; font-family:inherit; border-bottom:2.5px solid transparent; }
+        .pb-tabs button.active { color:var(--rang-asli); border-bottom-color:var(--rang-asli); background:#fff; }
+        .pb-body { flex:1; overflow-y:auto; overflow-x:hidden; }
+        .pb-tabpane { display:none; padding:12px; }
+        .pb-tabpane.active { display:block; }
+        .pb-palette { display:grid; grid-template-columns:repeat(2,1fr); gap:8px; }
+        .pb-block-card { display:flex; flex-direction:column; align-items:center; gap:6px; padding:12px 6px 10px; background:#fafbfc; border:1.5px solid var(--rang-border); border-radius:10px; cursor:grab; user-select:none; text-align:center; transition:all .15s; font-size:11.5px; color:#555; font-family:inherit; }
+        .pb-block-card:hover { border-color:var(--asli,var(--rang-asli)); background:#fff; box-shadow:0 3px 12px rgba(255,111,0,.12); transform:translateY(-1px); }
+        .pb-block-card:active { cursor:grabbing; }
+        .pb-block-card .ic { width:34px; height:34px; border-radius:9px; color:#fff; display:flex; align-items:center; justify-content:center; font-size:15px; background:var(--asli,#888); }
+        .pb-hint { margin-top:12px; font-size:11px; color:#999; line-height:1.9; background:#f8f9fa; border-radius:8px; padding:8px 10px; }
+        .pb-hint b { color:var(--rang-asli); }
 
-    <h3>صفحه‌ساز: <?= htmlspecialchars($bp['page_type']) ?> #<?= $bp['page_id'] ?></h3>
-    <p><a href="<?= BASE_URL ?>mod/builder/pages" style="color:var(--rang-asli,#FF6F00);">&larr; بازگشت</a></p>
+        /* پنل تنظیمات بلاک */
+        #pbInspector .empty { text-align:center; color:#aaa; padding:40px 10px; font-size:12.5px; line-height:2; }
+        #pbInspector .empty i { font-size:34px; display:block; margin-bottom:10px; opacity:.4; }
+        .pb-field { margin-bottom:14px; }
+        .pb-field > label { display:block; margin-bottom:5px; font-weight:700; font-size:12px; color:#555; }
+        .pb-field input[type=text], .pb-field input[type=number], .pb-field input[type=url], .pb-field select, .pb-field textarea { width:100%; padding:9px 10px; border:1.5px solid #dde1e6; border-radius:8px; font-size:12.5px; font-family:inherit; }
+        .pb-field textarea { min-height:110px; resize:vertical; }
+        .pb-field textarea.mono { font-family:Consolas,monospace; font-size:11.5px; min-height:150px; direction:ltr; text-align:left; }
+        .pb-field .row { display:flex; gap:6px; }
+        .pb-pos-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; margin-bottom:10px; }
+        .pb-pos-grid label { font-size:10px; color:#999; display:block; margin-bottom:2px; }
+        .pb-pos-grid input { width:100%; padding:6px; border:1.5px solid #dde1e6; border-radius:6px; font-size:12px; font-family:monospace; }
+        .pb-btn { padding:9px 16px; border:none; border-radius:8px; cursor:pointer; font-weight:700; font-size:12.5px; font-family:inherit; transition:all .15s; }
+        .pb-btn.asli { background:var(--rang-asli); color:#fff; }
+        .pb-btn.asli:hover { background:var(--rang-tira); }
+        .pb-btn.khali { background:#f5f6f8; border:1px solid #dde1e6; color:#555; }
+        .pb-btn.danger { background:#fff0f0; color:#c62828; border:1px solid #ef9a9a; }
+        .pb-btn.wide { width:100%; }
+        .pb-sep { border:none; border-top:1px dashed var(--rang-border); margin:14px 0; }
 
-    <!-- منوی سریع انتخاب قالب -->
-    <div style="background:#fff;border:1px solid #eef0f4;border-radius:12px;padding:12px 16px;margin-bottom:20px;display:flex;flex-wrap:wrap;align-items:center;gap:10px;">
-        <span style="font-weight:700;font-size:13px;color:#555;"><i class="fa-solid fa-layer-group"></i> انتخاب قالب:</span>
-        <select onchange="if(this.value) location.href='<?= BASE_URL ?>mod/builder/edit/'+this.value" style="padding:8px 12px;border:1.5px solid #dde1e6;border-radius:8px;font-size:13px;min-width:240px;">
+        /* نوار ذخیره پایین پنل */
+        .pb-savebar { border-top:1px solid var(--rang-border); padding:10px 12px; display:flex; align-items:center; gap:8px; background:#fafbfc; }
+        .pb-savebar .pb-save-btn { flex:1; padding:11px; background:var(--rang-asli); color:#fff; border:none; border-radius:9px; font-weight:700; font-size:13px; cursor:pointer; font-family:inherit; transition:all .2s; }
+        .pb-savebar .pb-save-btn:hover { background:var(--rang-tira); box-shadow:0 4px 14px rgba(255,111,0,.35); }
+        .pb-savebar .pb-save-btn:disabled { opacity:.55; cursor:wait; }
+
+        /* جداکننده و صحنه */
+        .pb-splitter { width:8px; cursor:col-resize; position:relative; flex-shrink:0; }
+        .pb-splitter::after { content:''; position:absolute; top:50%; right:50%; transform:translate(50%,-50%); width:4px; height:44px; border-radius:3px; background:#dde1e6; transition:background .15s; }
+        .pb-splitter:hover::after, .pb-splitter.dragging::after { background:var(--rang-asli); }
+        .pb-stage { flex:1; min-width:0; background:#eef0f4; border-radius:12px; border:1px solid var(--rang-border); display:flex; flex-direction:column; overflow:hidden; }
+        .pb-frame-wrap { flex:1; overflow:auto; display:flex; justify-content:center; align-items:flex-start; padding:18px; }
+        .pb-frame-scale { transition:max-width .25s ease; max-width:100%; width:100%; transform-origin:top center; }
+        .pb-frame-scale iframe { width:100%; height:min(78vh, 900px); border:none; background:#fff; border-radius:8px; box-shadow:0 4px 24px rgba(0,0,0,.09); }
+        .pb-empty-overlay { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:none; }
+        .pb-empty-overlay div { background:rgba(38,38,42,.85); color:#fff; font-size:13px; padding:12px 22px; border-radius:10px; }
+        .pb-stage { position:relative; }
+
+        /* مودال انتخاب تصویر */
+        .pb-modal-bg { position:fixed; inset:0; background:rgba(20,20,24,.45); z-index:9000; display:none; align-items:center; justify-content:center; }
+        .pb-modal-bg.open { display:flex; }
+        .pb-modal { background:#fff; border-radius:14px; width:min(720px,92vw); max-height:86vh; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 20px 60px rgba(0,0,0,.3); }
+        .pb-modal header { display:flex; align-items:center; gap:10px; padding:14px 18px; border-bottom:1px solid var(--rang-border); font-weight:700; font-size:14px; }
+        .pb-modal header button { margin-right:auto; border:none; background:#f5f6f8; border-radius:7px; padding:6px 12px; cursor:pointer; }
+        .pb-modal .tabs { display:flex; gap:4px; padding:10px 18px 0; }
+        .pb-modal .tabs button { border:none; background:#f5f6f8; padding:8px 16px; border-radius:8px 8px 0 0; cursor:pointer; font-size:12.5px; font-family:inherit; color:#666; }
+        .pb-modal .tabs button.active { background:var(--rang-roshan); color:var(--rang-tira); font-weight:700; }
+        .pb-modal .content { padding:16px 18px; overflow-y:auto; }
+        .pb-img-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(110px,1fr)); gap:10px; }
+        .pb-img-grid img { width:100%; height:80px; object-fit:cover; border-radius:8px; cursor:pointer; border:2.5px solid transparent; transition:all .15s; }
+        .pb-img-grid img:hover { border-color:var(--rang-asli); transform:scale(1.03); }
+        .pb-url-row { display:flex; gap:8px; }
+        .pb-url-row input { flex:1; padding:9px 10px; border:1.5px solid #dde1e6; border-radius:8px; font-size:12.5px; direction:ltr; text-align:left; }
+        .pb-drop-zone { border:2.5px dashed #cfd6dd; border-radius:10px; padding:26px; text-align:center; color:#888; font-size:12.5px; cursor:pointer; transition:all .15s; }
+        .pb-drop-zone.over { border-color:var(--rang-asli); background:var(--rang-roshan); }
+        .pb-muted { color:#999; font-size:11.5px; line-height:1.9; }
+        body.pb-pal-drag { user-select:none; -webkit-user-select:none; }
+    </style>
+
+    <div class="pb-topbar">
+        <a class="pb-back" href="<?= BASE_URL ?>mod/builder/pages"><i class="fa-solid fa-arrow-right"></i> قالب‌ها</a>
+        <span class="pb-title"><?= htmlspecialchars($bp['name'] ?: ('صفحه‌ساز #' . $bp['id'])) ?></span>
+        <select id="pbThemeSwitch" onchange="if(this.value)location.href='<?= BASE_URL ?>mod/builder/edit/'+this.value">
             <?php foreach ($all_themes as $th): ?>
-            <option value="<?= $th['id'] ?>" <?= ($th['id'] == $bp['id']) ? 'selected' : '' ?>>
-                <?= htmlspecialchars($th['name'] ?: ('تم #' . $th['id'])) ?> — <?= builder_condition_label($th) ?>
-            </option>
+            <option value="<?= $th['id'] ?>" <?= ($th['id'] == $bp['id']) ? 'selected' : '' ?>><?= htmlspecialchars($th['name'] ?: ('تم #' . $th['id'])) ?> — <?= builder_condition_label($th) ?></option>
             <?php endforeach; ?>
         </select>
-        <a href="<?= BASE_URL ?>mod/builder/new" style="padding:8px 14px;background:var(--rang-asli,#FF6F00);color:#fff;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;white-space:nowrap;"><i class="fa-solid fa-plus"></i> قالب جدید</a>
-        <a href="<?= BASE_URL ?>mod/builder/pages" style="padding:8px 14px;background:#f5f6f8;border:1px solid #dde1e6;border-radius:8px;font-size:13px;text-decoration:none;color:#555;white-space:nowrap;">همه قالب‌ها</a>
-    </div>
-
-    <!-- پنل شرط نمایش تم (فقط برای تم‌ها، نه صفحه‌های محتوایی) -->
-    <?php if (empty($bp['page_id'])): ?>
-    <form method="post" action="<?= BASE_URL ?>mod/builder/save_condition" style="background:#fff;border:1px solid #eef0f4;border-radius:12px;padding:20px;margin-bottom:20px;max-width:600px;">
-        <h4 style="margin-bottom:12px;"><i class="fa-solid fa-filter"></i> شرط نمایش این تم</h4>
-        <input type="hidden" name="bp_id" value="<?= $bp['id'] ?>">
-            <div class="form-group" style="margin-bottom:12px;">
-                <label style="display:block;margin-bottom:4px;font-weight:600;">نام تم</label>
-                <input type="text" name="name" value="<?= htmlspecialchars($bp['name'] ?? '') ?>" style="width:100%;padding:10px 12px;border:1.5px solid #dde1e6;border-radius:8px;">
-            </div>
-            <div class="form-group" style="margin-bottom:12px;">
-                <label style="display:block;margin-bottom:4px;font-weight:600;">بخش تم</label>
-                <select name="part" style="width:100%;padding:10px 12px;border:1.5px solid #dde1e6;border-radius:8px;">
-                    <option value="" <?= empty($bp['part']) ? 'selected' : '' ?>>قالب محتوا (عمومی)</option>
-                    <option value="header" <?= ($bp['part'] ?? '') === 'header' ? 'selected' : '' ?>>هدر (Header)</option>
-                    <option value="footer" <?= ($bp['part'] ?? '') === 'footer' ? 'selected' : '' ?>>پانویس (Footer)</option>
-                    <option value="single" <?= ($bp['part'] ?? '') === 'single' ? 'selected' : '' ?>>قالب صفحه تکی</option>
-                    <option value="archive" <?= ($bp['part'] ?? '') === 'archive' ? 'selected' : '' ?>>قالب آرشیو</option>
-                </select>
-            </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-                <div class="form-group">
-                    <label style="display:block;margin-bottom:4px;font-weight:600;">نوع شرط</label>
-                    <select name="condition_type" style="width:100%;padding:10px 12px;border:1.5px solid #dde1e6;border-radius:8px;">
-                        <option value="archive" <?= ($bp['condition_type'] ?? 'single') === 'archive' ? 'selected' : '' ?>>آرشیو</option>
-                        <option value="single" <?= ($bp['condition_type'] ?? 'single') === 'single' ? 'selected' : '' ?>>صفحه تکی</option>
-                        <option value="global" <?= ($bp['condition_type'] ?? 'single') === 'global' ? 'selected' : '' ?>>سراسری</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label style="display:block;margin-bottom:4px;font-weight:600;">مقدار شرط</label>
-                    <input type="text" name="condition_value" value="<?= htmlspecialchars($bp['condition_value'] ?? '') ?>" style="width:100%;padding:10px 12px;border:1.5px solid #dde1e6;border-radius:8px;" placeholder="blog / product / khadamat / slug خاص">
-                </div>
-            </div>
-        <p style="font-size:12px;color:#888;margin:8px 0 12px;">مثال‌ها — آرشیو: <code>blog</code>, <code>product</code>, <code>khadamat</code> &nbsp;|&nbsp; تکی: <code>post</code>, <code>product</code>, <code>khadamat</code>, <code>safhe</code>, یا slug یک صفحه خاص &nbsp;|&nbsp; سراسری: <code>*</code></p>
-        <button type="submit" style="padding:10px 24px;background:#f5f6f8;border:1px solid #dde1e6;border-radius:8px;cursor:pointer;font-weight:600;">ذخیره شرط نمایش</button>
-    </form>
-    <?php endif; ?>
-
-    <div>
-    <div class="builder-toolbar">
-        <span class="tool-label">حالت:</span>
-        <div class="seg" id="modeSeg">
-            <button type="button" data-mode="0" class="<?= empty($bp['position_mode']) ? 'active' : '' ?>" onclick="setPositionMode(0)">چیده‌شده</button>
-            <button type="button" data-mode="1" class="<?= !empty($bp['position_mode']) ? 'active' : '' ?>" onclick="setPositionMode(1)">آزاد (بوم)</button>
-        </div>
-        <span class="tool-label" style="margin-right:8px;">دستگاه:</span>
-        <div class="seg" id="deviceSeg">
+        <div class="pb-seg" id="pbDeviceSeg">
             <?php foreach (builder_devices() as $dk => $dv): ?>
-            <button type="button" data-dev="<?= $dk ?>" class="<?= $dk === 'desktop' ? 'active' : '' ?>" onclick="switchDevice('<?= $dk ?>')" title="<?= $dv['label'] ?> (<?= $dv['w'] ?>px)"><?= $dv['label'] ?></button>
+            <button type="button" data-dev="<?= $dk ?>" class="<?= $dk === 'desktop' ? 'active' : '' ?>" title="<?= $dv['label'] ?> (<?= $dv['w'] ?>px)"><?= $dv['label'] ?></button>
             <?php endforeach; ?>
         </div>
-        <span class="tool-label" style="margin-right:8px;">موبایل:</span>
-        <div class="seg" id="mobileSeg">
-            <button type="button" data-mm="auto" class="<?= ($bp['mobile_mode'] ?? 'auto') === 'auto' ? 'active' : '' ?>" onclick="setMobileMode('auto')">خودکار</button>
-            <button type="button" data-mm="exact" class="<?= ($bp['mobile_mode'] ?? 'auto') === 'exact' ? 'active' : '' ?>" onclick="setMobileMode('exact')">دقیق</button>
+        <div class="pb-seg" id="pbMobileSeg">
+            <button type="button" data-mm="auto" class="<?= ($bp['mobile_mode'] ?? 'auto') === 'auto' ? 'active' : '' ?>">موبایل: خودکار</button>
+            <button type="button" data-mm="exact" class="<?= ($bp['mobile_mode'] ?? 'auto') === 'exact' ? 'active' : '' ?>">دقیق</button>
         </div>
-        <span style="flex:1;"></span>
-        <div class="seg">
-            <button type="button" onclick="toggleLayout('split')" title="نمایش بوم و پیش‌نمایش کنار هم"><i class="fa-solid fa-grip"></i></button>
-            <button type="button" onclick="toggleLayout('stack')" title="نمایش عمودی"><i class="fa-solid fa-layer-group"></i></button>
-            <button type="button" onclick="toggleLayout('preview')" title="تمام صفحه پیش‌نمایش"><i class="fa-solid fa-expand"></i></button>
-        </div>
-        <div class="seg">
-            <button type="button" onclick="toggleSidebar()" title="نمایش/مخفی چیپس‌های بلاک"><i class="fa-solid fa-layer-group"></i></button>
-            <button type="button" onclick="toggleCanvas()" title="نمایش/مخفی بلاک‌ها"><i class="fa-solid fa-cubes"></i></button>
-            <button type="button" onclick="togglePreview()" title="نمایش/مخفی پیشنمایش"><i class="fa-solid fa-eye-slash"></i></button>
-            <button type="button" onclick="fullscreenPreview()" title="تمام‌صفحه پیشنمایش"><i class="fa-solid fa-expand"></i></button>
-        </div>
+        <span class="pb-spacer"></span>
+        <span class="pb-status saved" id="pbStatus"><span class="dot"></span><span id="pbStatusText">ذخیره شده</span></span>
+        <a class="pb-back" href="<?= BASE_URL ?>mod/builder/preview/<?= $bp['id'] ?>" target="_blank" title="باز کردن پیش‌نمایش واقعی"><i class="fa-solid fa-up-right-from-square"></i></a>
     </div>
 
-    <div class="builder-wrap" id="builderWrap">
-        <div class="builder-canvas" id="builderCanvas">
-            <div class="canvas-toolbar">
-                <div class="block-chips">
-                    <?php foreach ($available_blocks as $bk => $bv): ?>
-                    <div class="chip" onclick="addBlock('<?= $bk ?>')" title="<?= $bv['desc'] ?>">
-                        <span class="dot" style="background:<?= $bv['color'] ?>;"></span>
-                        <?= $bv['label'] ?>
+    <div class="pb-app" id="pbApp">
+        <!-- ================= پنل چپ ================= -->
+        <aside class="pb-panel" id="pbPanel">
+            <div class="pb-tabs">
+                <button type="button" data-tab="blocks" class="active">بلاک‌ها</button>
+                <button type="button" data-tab="inspector">تنظیمات بلاک</button>
+                <button type="button" data-tab="gear" title="تنظیمات صفحه‌ساز"><i class="fa-solid fa-gear"></i></button>
+            </div>
+            <div class="pb-body">
+                <div class="pb-tabpane active" id="pbTabBlocks">
+                    <div class="pb-palette" id="pbPalette">
+                        <?php foreach ($available_blocks as $bk => $bv): ?>
+                        <button type="button" class="pb-block-card" data-btype="<?= $bk ?>" style="--asli:<?= $bv['color'] ?>" title="<?= htmlspecialchars($bv['desc']) ?>">
+                            <span class="ic"><i class="fa-solid <?= $bv['icon'] ?>"></i></span><?= htmlspecialchars($bv['label']) ?>
+                        </button>
+                        <?php endforeach; ?>
                     </div>
-                    <?php endforeach; ?>
+                    <div class="pb-hint">
+                        <b>درگ خطی:</b> بلاک را بکشید و داخل پیش‌نمایش — خط سبز محل قرارگیری را نشان می‌دهد.<br>
+                        <b>درگ آزاد:</b> هنگام کشیدن کلید <b>Alt</b> را نگه دارید؛ بلاک دقیقاً زیر موس رها می‌شود.<br>
+                        <b>کلیک ساده</b> روی کارت = افزودن به انتهای صفحه.<br>
+                        <b>ویرایش متن:</b> دابل‌کلیک روی هر متن داخل پیش‌نمایش.<br>
+                        <b>حذف:</b> انتخاب بلاک → دکمه حذف یا کلید Delete.
+                    </div>
+                </div>
+                <div class="pb-tabpane" id="pbTabInspector">
+                    <div id="pbInspector"><div class="empty"><i class="fa-solid fa-cube"></i>بلاکی انتخاب نشده است.<br>روی یک بلاک در پیش‌نمایش کلیک کنید.</div></div>
+                </div>
+                <div class="pb-tabpane" id="pbTabGear">
+                    <h4 style="margin:4px 0 12px;font-size:13.5px;"><i class="fa-solid fa-robot"></i> ذخیره خودکار</h4>
+                    <div class="pb-field">
+                        <label style="display:flex;align-items:center;gap:8px;font-weight:600;">
+                            <input type="checkbox" id="pbAutoEnabled" <?= !empty($pbset['autosave_enabled']) ? 'checked' : '' ?>> فعال باشد
+                        </label>
+                    </div>
+                    <div class="pb-field">
+                        <label>فاصله ذخیره خودکار (دقیقه)</label>
+                        <input type="number" id="pbAutoMin" min="1" max="120" value="<?= (int)($pbset['autosave_min'] ?? 10) ?>" style="width:100px;">
+                        <p class="pb-muted">فقط داده خام ذخیره می‌شود؛ بدون رندر مجدد — روی سرعت هیچ اثری ندارد.</p>
+                    </div>
+                    <button type="button" class="pb-btn asli wide" onclick="pbSaveSettings()">ذخیره تنظیمات</button>
+                    <hr class="pb-sep">
+                    <h4 style="margin:4px 0 12px;font-size:13.5px;"><i class="fa-solid fa-broom"></i> نگهداری</h4>
+                    <button type="button" class="pb-btn khali wide" onclick="pbClearCache()"><i class="fa-solid fa-trash-can"></i> پاک کردن کش رندر این صفحه</button>
+                    <?php if (empty($bp['page_id'])): ?>
+                    <hr class="pb-sep">
+                    <h4 style="margin:4px 0 12px;font-size:13.5px;"><i class="fa-solid fa-filter"></i> شرط نمایش این تم</h4>
+                    <form method="post" action="<?= BASE_URL ?>mod/builder/save_condition">
+                        <input type="hidden" name="bp_id" value="<?= $bp['id'] ?>">
+                        <div class="pb-field"><label>نام تم</label><input type="text" name="name" value="<?= htmlspecialchars($bp['name'] ?? '') ?>"></div>
+                        <div class="pb-field"><label>بخش تم</label>
+                            <select name="part">
+                                <option value="" <?= empty($bp['part']) ? 'selected' : '' ?>>قالب محتوا (عمومی)</option>
+                                <option value="header" <?= ($bp['part'] ?? '') === 'header' ? 'selected' : '' ?>>هدر (Header)</option>
+                                <option value="footer" <?= ($bp['part'] ?? '') === 'footer' ? 'selected' : '' ?>>پانویس (Footer)</option>
+                                <option value="single" <?= ($bp['part'] ?? '') === 'single' ? 'selected' : '' ?>>قالب صفحه تکی</option>
+                                <option value="archive" <?= ($bp['part'] ?? '') === 'archive' ? 'selected' : '' ?>>قالب آرشیو</option>
+                            </select>
+                        </div>
+                        <div class="pb-field"><label>نوع شرط</label>
+                            <select name="condition_type">
+                                <option value="archive" <?= ($bp['condition_type'] ?? 'single') === 'archive' ? 'selected' : '' ?>>آرشیو</option>
+                                <option value="single" <?= ($bp['condition_type'] ?? 'single') === 'single' ? 'selected' : '' ?>>صفحه تکی</option>
+                                <option value="global" <?= ($bp['condition_type'] ?? 'single') === 'global' ? 'selected' : '' ?>>سراسری</option>
+                            </select>
+                        </div>
+                        <div class="pb-field"><label>مقدار شرط</label><input type="text" name="condition_value" value="<?= htmlspecialchars($bp['condition_value'] ?? '') ?>" placeholder="blog / product / * یا slug خاص"></div>
+                        <p class="pb-muted">آرشیو: blog ، product ، khadamat &nbsp;|&nbsp; تکی: post ، safhe یا slug &nbsp;|&nbsp; سراسری: *</p>
+                        <button type="submit" class="pb-btn asli wide">ذخیره شرط نمایش</button>
+                    </form>
+                    <?php endif; ?>
                 </div>
             </div>
-            <div id="freeSurface" class="free-surface" style="display:none;"></div>
-            <div id="blocksContainer"><?php if (empty($blocks)): ?>
-                <div class="insert-zone" data-index="-1" onclick="showInsertPicker(this)" style="padding:10px;text-align:center;border:2px dashed #ddd;border-radius:8px;cursor:pointer;color:#aaa;font-size:13px;transition:all 0.2s;" onmouseover="this.style.borderColor=\'var(--rang-asli)\'" onmouseout="this.style.borderColor=\'#ddd\'"><i class="fa-solid fa-plus"></i> افزودن بلاک</div>
-                <?php else: ?>
-                <?php $bi = 0; foreach ($blocks as $i => $block): ?>
-                <div class="insert-zone" data-index="<?= $i ?>" onclick="showInsertPicker(this,<?= $i ?>)" style="padding:6px;text-align:center;cursor:pointer;color:#ccc;font-size:12px;transition:all 0.2s;" onmouseover="this.style.color=\'var(--rang-asli)\'" onmouseout="this.style.color=\'#ccc\'"><i class="fa-solid fa-plus-circle"></i> درج بلاک</div>
-                <div class="block-item type-<?= $block['type'] ?>" data-index="<?= $i ?>" draggable="true"><?php render_block_admin_full($block); ?></div>
-                <?php $bi++; endforeach; ?>
-                <div class="insert-zone" data-index="-2" onclick="showInsertPicker(this)" style="padding:6px;text-align:center;cursor:pointer;color:#ccc;font-size:12px;transition:all 0.2s;" onmouseover="this.style.color=\'var(--rang-asli)\'" onmouseout="this.style.color=\'#ccc\'"><i class="fa-solid fa-plus-circle"></i> افزودن بلاک</div>
-                <?php endif; ?>
+            <div class="pb-savebar">
+                <button class="pb-save-btn" id="pbSaveBtn" onclick="pbFullSave()"><i class="fa-solid fa-save"></i> ذخیره تغییرات</button>
             </div>
-        </div>
-        <div class="builder-splitter" id="builderSplitter" title="کشیدن برای تغییر عرض"></div>
-        <div class="builder-preview" id="builderPreview">
-            <div class="preview-toolbar">
-                <span><i class="fa-solid fa-eye"></i> پیشنمایش زنده</span>
-                <span style="font-size:11px;color:#999;">(ذخیره → بروزرسانی خودکار)</span>
+        </aside>
+
+        <div class="pb-splitter" id="pbSplitter" title="کشیدن برای تغییر عرض پنل"></div>
+
+        <!-- ================= پیشنمایش زنده ================= -->
+        <main class="pb-stage" id="pbStage">
+            <div class="pb-frame-wrap" id="pbFrameWrap">
+                <div class="pb-frame-scale" id="pbFrameScale">
+                    <iframe id="previewFrame" src="<?= BASE_URL ?>mod/builder/preview/<?= $bp['id'] ?>?edit=1" frameborder="0"></iframe>
+                </div>
             </div>
-            <iframe id="previewFrame" src="<?= BASE_URL ?>mod/builder/preview/<?= $bp['id'] ?>?edit=1" frameborder="0" style="width:100%;height:calc(100% - 36px);border:none;"></iframe>
+            <div class="pb-empty-overlay" id="pbEmptyOverlay" style="display:none;"><div><i class="fa-solid fa-hand-pointer"></i> از پنل کنار، یک بلاک را بکشید و اینجا رها کنید</div></div>
+        </main>
+    </div>
+
+    <!-- مودال انتخاب تصویر -->
+    <div class="pb-modal-bg" id="pbImgModalBg">
+        <div class="pb-modal">
+            <header><i class="fa-solid fa-image" style="color:var(--rang-asli)"></i> انتخاب تصویر <button type="button" onclick="pbCloseImageModal()">✕</button></header>
+            <div class="tabs">
+                <button type="button" data-mtab="lib" class="active">کتابخانه</button>
+                <button type="button" data-mtab="up">آپلود مستقیم</button>
+                <button type="button" data-mtab="url">آدرس URL</button>
+            </div>
+            <div class="content">
+                <div id="pbMTabLib">
+                    <div class="pb-img-grid" id="pbLibGrid"><p class="pb-muted">در حال بارگذاری…</p></div>
+                </div>
+                <div id="pbMTabUp" style="display:none;">
+                    <div class="pb-drop-zone" id="pbDropZone"><i class="fa-solid fa-cloud-arrow-up" style="font-size:26px;display:block;margin-bottom:8px;"></i>فایل تصویر را اینجا رها کنید یا کلیک کنید<br><span class="pb-muted">JPG / PNG / WebP / GIF / SVG — پس از آپلود، خودکار انتخاب می‌شود</span></div>
+                    <input type="file" id="pbUpInput" accept="image/*" style="display:none;">
+                </div>
+                <div id="pbMTabUrl" style="display:none;">
+                    <div class="pb-url-row"><input type="url" id="pbUrlInput" placeholder="https://…"><button type="button" class="pb-btn asli" onclick="pbPickUrl()">انتخاب</button></div>
+                    <p class="pb-muted" style="margin-top:8px;">برای تصاویر خارجی؛ بهتر است تصاویر سایتتان را در کتابخانه داشته باشید.</p>
+                </div>
+            </div>
         </div>
     </div>
 
-    <button class="btn-save-blocks" id="saveBlocksBtn" onclick="saveBlocks(<?= $bp['id'] ?>)"><i class="fa-solid fa-save"></i> ذخیره تغییرات</button>
-    <div class="pos-panel" id="posPanel">
-        <h5>موقعیت بلاک (<span id="posDevLabel">دسکتاپ</span>)</h5>
-        <div class="row"><label>X</label><input type="number" id="posX" oninput="posInput()"></div>
-        <div class="row"><label>Y</label><input type="number" id="posY" oninput="posInput()"></div>
-        <div class="row"><label>W</label><input type="number" id="posW" oninput="posInput()"></div>
-        <div class="row"><label>Z</label><input type="number" id="posZ" oninput="posInput()"></div>
-        <div class="layer-btns">
-            <button type="button" onclick="layerBlock(1)" title="جلو">جلو ⇡</button>
-            <button type="button" onclick="layerBlock(-1)" title="عقب">عقب ⇣</button>
-            <button type="button" onclick="deselectBlock()" title="بستن">✕</button>
-        </div>
-        <button type="button" class="btn-delete-block" onclick="deleteSelectedBlock()"><i class="fa-solid fa-trash"></i> حذف بلاک</button>
-    </div>
-    </div>
-
-    <!-- اسکریپت‌های محلی داخلی سایت -->
-    <script src="<?= BASE_URL ?>ghaleb/manabe/Sortable.min.js"></script>
     <script src="<?= BASE_URL ?>manabe/js/sadastEditor.js"></script>
-    <script src="<?= BASE_URL ?>manabe/js/safhesaz.js"></script>
     <script>
-    var blocksData = <?= json_encode($blocks, JSON_UNESCAPED_UNICODE) ?>;
-    var blockTypes = <?= json_encode($available_blocks, JSON_UNESCAPED_UNICODE) ?>;
-    var devices = <?= json_encode(builder_devices(), JSON_UNESCAPED_UNICODE) ?>;
-    var positionMode = <?= !empty($bp['position_mode']) ? 'true' : 'false' ?>;
-    var mobileMode = '<?= $bp['mobile_mode'] ?? 'auto' ?>';
-    var currentDevice = 'desktop';
-    var currentBP = 'desktop';
-    var selectedIndex = -1;
-    var AUTOSAVE_ID = <?= (int)$bp['id'] ?>;
+    /* ============================================================
+       صفحه‌ساز زنده — نسخه بازطراحی‌شده (سبک المنتور)
+       پیشنمایش = محل ویرایش | پنل چپ = پالت + تنظیمات
+       ============================================================ */
+    var blocksData   = <?= json_encode($blocks, JSON_UNESCAPED_UNICODE) ?>;
+    var blockTypes   = <?= json_encode($available_blocks, JSON_UNESCAPED_UNICODE) ?>;
+    var devices      = <?= json_encode(builder_devices(), JSON_UNESCAPED_UNICODE) ?>;
+    var BP_ID        = <?= (int)$bp['id'] ?>;
+    var LEGACY_FREE  = <?= !empty($bp['position_mode']) ? 'true' : 'false' ?>;
+    var mobileMode   = '<?= $bp['mobile_mode'] ?? 'auto' ?>';
+    var AUTO_CFG     = { enabled: <?= !empty($pbset['autosave_enabled']) ? 1 : 0 ?>, min: <?= (int)($pbset['autosave_min'] ?? 10) ?> };
+    var MEDIA = { wide:null, desktop:'@media(max-width:1599px)', tablet:'@media(max-width:1199px)', mobile:'@media(max-width:767px)' };
+    var BP_ORDER = ['wide','desktop','tablet','mobile'];
+    var currentDevice = 'desktop', currentBP = 'desktop';
+    var selectedIdx = -1;
+    var isDirty = false, saving = false;
+    var _lastChange = 0, _autoTick = null, _fieldDebounce = null;
 
-    function mergePos(base, over) {
-        var o = {};
-        for (var k in base) o[k] = base[k];
-        for (var k in over) o[k] = over[k];
-        return o;
+    function frameWin()  { var f = document.getElementById('previewFrame'); return f && f.contentWindow ? f.contentWindow : null; }
+    function toFrame(m)  { var w = frameWin(); if (w) { m._ns = 'builderInline'; try { w.postMessage(m, window.location.origin); } catch(e){} } }
+    function setStatus(mode, txt) {
+        var el = document.getElementById('pbStatus');
+        el.className = 'pb-status ' + mode;
+        document.getElementById('pbStatusText').textContent = txt;
+    }
+    function markDirty() {
+        isDirty = true; _lastChange = Date.now();
+        if (!saving) setStatus('dirty', 'تغییرات ذخیره‌نشده');
+    }
+    function markSaved(auto) {
+        isDirty = false;
+        setStatus('saved', auto ? 'ذخیره خودکار شد ✓' : 'ذخیره شد ✓');
     }
 
-    function effectivePos(block, bp) {
-        var pos = block.pos || {};
-        var order = ['wide', 'desktop', 'tablet', 'mobile'];
-        var idx = {}; for (var i = 0; i < order.length; i++) idx[order[i]] = i;
-        var ti = idx[bp];
-        var prio = [bp];
-        for (var j = ti - 1; j >= 0; j--) prio.push(order[j]);
-        for (var j = ti + 1; j < 4; j++) prio.push(order[j]);
-        var v = null;
-        for (var k = 0; k < prio.length; k++) { if (pos[prio[k]]) { v = pos[prio[k]]; break; } }
+    /* ---------- positions helpers (آینه منطق سمت سرور) ---------- */
+    function mergePos(a, b) { var o = {}; var k; for (k in a) o[k] = a[k]; for (k in b) o[k] = b[k]; return o; }
+    function effectivePos(block) {
+        var pos = block.pos || {}, prio, v = null, i, j;
+        var ti = BP_ORDER.indexOf(currentBP);
+        prio = [currentBP];
+        for (j = ti - 1; j >= 0; j--) prio.push(BP_ORDER[j]);
+        for (j = ti + 1; j < 4; j++) prio.push(BP_ORDER[j]);
+        for (i = 0; i < prio.length; i++) { if (pos[prio[i]]) { v = pos[prio[i]]; break; } }
         return v ? mergePos({x:0,y:0,w:300,z:1}, v) : null;
     }
+    function buildPosCss() {
+        var css = '';
+        blocksData.forEach(function(b, i) {
+            if (!LEGACY_FREE && !(b.free)) return;
+            var hasT = !!(b.pos && b.pos.tablet), hasM = !!(b.pos && b.pos.mobile);
+            BP_ORDER.forEach(function(bp) {
+                var p = effectivePosAt(b, bp);
+                if (!p) return;
+                var rule;
+                if (mobileMode === 'auto' && ((bp === 'mobile' && !hasM) || (bp === 'tablet' && !hasT))) {
+                    rule = '.bpos-' + i + '{position:relative!important;width:auto!important;margin-bottom:16px;left:auto!important;top:auto!important;z-index:auto!important;}';
+                } else {
+                    rule = '.bpos-' + i + '{position:absolute;left:' + Math.round(p.x) + 'px;top:' + Math.round(p.y) + 'px;width:' + Math.round(p.w) + 'px;z-index:' + (p.z || 1) + ';}';
+                }
+                css += MEDIA[bp] ? (MEDIA[bp] + '{' + rule + '}') : rule;
+            });
+        });
+        return css ? '<style class="builder-pos-css">' + css + '</style>' : '';
+    }
+    function effectivePosAt(block, bp) {
+        var pos = block.pos || {}, prio, v = null, i, j;
+        var ti = BP_ORDER.indexOf(bp);
+        prio = [bp];
+        for (j = ti - 1; j >= 0; j--) prio.push(BP_ORDER[j]);
+        for (j = ti + 1; j < 4; j++) prio.push(BP_ORDER[j]);
+        for (i = 0; i < prio.length; i++) { if (pos[prio[i]]) { v = pos[prio[i]]; break; } }
+        return v ? mergePos({x:0,y:0,w:300,z:1}, v) : null;
+    }
+    function pushPosCss() { toFrame({ type:'builderApplyPosCss', css: buildPosCss() }); updateEmptyOverlay(); }
 
-    function renderBlockAdmin(block) {
-        var bt = blockTypes[block.type] || {label: block.type, icon: 'fa-cube', color: '#888'};
-        var data = block.data || {};
-        var html = '<div class="block-header">';
-        html += '<div class="block-title"><span style="display:inline-block;width:28px;height:28px;border-radius:6px;background:' + bt.color + ';color:#fff;text-align:center;line-height:28px;margin-left:8px;font-size:13px;"><i class="fa-solid ' + bt.icon + '"></i></span>' + bt.label + '</div>';
-        html += '</div>';
-        html += '<div class="block-content-preview" style="font-size:13px;color:#666;">' + getBlockPreview(block) + '</div>';
-        html += '<div class="block-footer">';
-        html += '<button onclick="openEditSidebar(parseInt(this.closest(\'.block-item\').dataset.index))" title="ویرایش"><i class="fa-solid fa-pen"></i> ویرایش</button>';
-        html += '<button class="danger" onclick="removeBlock(event)" title="حذف"><i class="fa-solid fa-trash"></i> حذف</button>';
-        html += '</div>';
-        html += '<div class="block-data" style="display:none;">' + JSON.stringify(data) + '</div>';
-        return html;
+    /* ---------- ذخیره ---------- */
+    function savePayload(light) {
+        var fd = new FormData();
+        fd.append('block_page_id', BP_ID);
+        fd.append('blocks_data', JSON.stringify(blocksData));
+        fd.append('light', light ? '1' : '');
+        fd.append('position_mode', LEGACY_FREE ? '1' : '0');
+        fd.append('mobile_mode', mobileMode);
+        return fd;
+    }
+    function fetchTimeout(url, opts, ms) {
+        opts = opts || {}; ms = ms || 45000;
+        var ctrl = new AbortController();
+        var t = setTimeout(function(){ ctrl.abort(); }, ms);
+        opts.signal = ctrl.signal;
+        return fetch(url, opts).finally(function(){ clearTimeout(t); });
+    }
+    function lightSave(reason) {
+        if (saving) return;
+        saving = true; setStatus('saving', 'ذخیره خودکار…');
+        fetchTimeout('<?= BASE_URL ?>mod/builder/save', { method:'POST', body: savePayload(true) })
+        .then(function(r){ return r.json(); })
+        .then(function(res){
+            saving = false;
+            if (res.success) markSaved(true); else setStatus('dirty', 'خطا در ذخیره!');
+        })
+        .catch(function(){ saving = false; setStatus('dirty', 'خطا در اتصال!'); });
+    }
+    function pbFullSave() {
+        if (saving) return;
+        saving = true;
+        var btn = document.getElementById('pbSaveBtn');
+        btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> در حال ذخیره…';
+        setStatus('saving', 'در حال ذخیره کامل…');
+        fetchTimeout('<?= BASE_URL ?>mod/builder/save', { method:'POST', body: savePayload(false) }, 90000)
+        .then(function(r){ return r.json(); })
+        .then(function(res){
+            saving = false; btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-save"></i> ذخیره تغییرات';
+            if (res.success) markSaved(false); else setStatus('dirty', 'خطا در ذخیره!');
+        })
+        .catch(function(){
+            saving = false; btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-save"></i> ذخیره تغییرات';
+            setStatus('dirty', 'خطا در اتصال!');
+        });
+    }
+    function scheduleAutosaveCheck() {
+        if (_autoTick) clearInterval(_autoTick);
+        _autoTick = setInterval(function() {
+            if (!AUTO_CFG.enabled || !isDirty || saving) return;
+            if (Date.now() - _lastChange >= AUTO_CFG.min * 60000) lightSave();
+        }, 20000);
+    }
+    function pbSaveSettings() {
+        var fd = new FormData();
+        fd.append('autosave_enabled', document.getElementById('pbAutoEnabled').checked ? '1' : '');
+        fd.append('autosave_min', document.getElementById('pbAutoMin').value || '10');
+        fetchTimeout('<?= BASE_URL ?>mod/builder/save_settings', { method:'POST', body: fd })
+        .then(function(r){ return r.json(); })
+        .then(function(res){
+            if (res.success) {
+                AUTO_CFG.enabled = document.getElementById('pbAutoEnabled').checked;
+                AUTO_CFG.min = parseInt(document.getElementById('pbAutoMin').value, 10) || 10;
+                scheduleAutosaveCheck();
+                setStatus('saved', 'تنظیمات ذخیره شد ✓');
+                setTimeout(function(){ setStatus(isDirty ? 'dirty':'saved', isDirty ? 'تغییرات ذخیره‌نشده':'ذخیره شده'); }, 1600);
+            }
+        });
+    }
+    function pbClearCache() {
+        fetchTimeout('<?= BASE_URL ?>mod/builder/clear_cache/' + BP_ID, { method:'POST' })
+        .then(function(r){ return r.json(); })
+        .then(function(res){ if (res.success) { setStatus('saved','کش پاک شد ✓'); setTimeout(function(){ setStatus(isDirty?'dirty':'saved', isDirty?'تغییرات ذخیره‌نشده':'ذخیره شده'); },1500);} });
     }
 
-    function getBlockPreview(block) {
-        var data = block.data || {};
-        switch (block.type) {
-            case 'heading': return '<h' + (data.level || 2) + '>' + (data.text || '...') + '</h' + (data.level || 2) + '>';
-            case 'text': return (data.content || '').substring(0, 100) + '...';
-            case 'image': return '<img src="' + (data.src || '') + '" alt="" style="max-width:100px;max-height:40px;">';
-            case 'gallery': return (data.images || []).length + ' تصویر';
-            case 'button': return '[ دکمه: ' + (data.text || '') + ' ]';
-            case 'services': return 'نمایش ' + (data.count || 6) + ' خدمت';
-            case 'products': return 'نمایش ' + (data.count || 8) + ' محصول';
-            case 'custom': return 'HTML سفارشی (' + ((data.html || '').length) + ' کاراکتر)';
-            case 'columns': return (data.columns || 2) + ' ستونی';
-            case 'video': return 'ویدیو: ' + (data.url || '');
-            case 'divider': return 'جداکننده';
-            default: return '...';
-        }
+    /* ---------- رندر تک‌بلاک (برای بازخورد زنده فرم) ---------- */
+    function apiRenderOne(block) {
+        var fd = new FormData();
+        fd.append('blocks', JSON.stringify([block]));
+        return fetchTimeout('<?= BASE_URL ?>mod/builder/render_blocks', { method:'POST', body: fd })
+        .then(function(r){ return r.json(); })
+        .then(function(res){ return res.html && res.html[0] ? res.html[0] : ''; });
+    }
+    var _refreshTimer = null;
+    function refreshBlockLive(idx) {
+        if (_refreshTimer) clearTimeout(_refreshTimer);
+        _refreshTimer = setTimeout(function() {
+            if (!blocksData[idx]) return;
+            apiRenderOne(blocksData[idx]).then(function(html) {
+                toFrame({ type:'builderSetBlockHtml', index: idx, html: html });
+            });
+        }, 420);
     }
 
-    function addBlock(type) { addBlockAt(type, -1); }
-
-    function addBlockAt(type, index) {
+    /* ---------- عملیات ساختاری ---------- */
+    function newBlock(type, posOverride) {
         var bt = blockTypes[type];
-        var defaultData = (bt && bt.defaults) ? bt.defaults : {};
-        var block = {type: type, data: defaultData};
-        if (positionMode) {
-            block.pos = {};
-            var sw = devices[currentDevice].w;
-            block.pos[currentBP] = {x: Math.max(0, Math.round(sw/2 - 150)), y: 40 + blocksData.length * 12, w: 300, z: blocksData.length + 1};
-        }
-        var insertedIdx;
-        if (index >= 0 && index < blocksData.length) {
-            blocksData.splice(index, 0, block);
-            insertedIdx = index;
-        } else {
-            blocksData.push(block);
-            insertedIdx = blocksData.length - 1;
-        }
-        if (positionMode) {
-            var surface = document.getElementById('freeSurface');
-            var div = createFreeBlockElement(block, insertedIdx);
-            var next = surface.querySelectorAll('.block-item.free');
-            if (insertedIdx < next.length - 1 && next[insertedIdx]) {
-                surface.insertBefore(div, next[insertedIdx]);
-            } else {
-                surface.appendChild(div);
-            }
-            updateFreeIndices();
-            refreshCanvasContent();
-        } else {
-            renderStacked();
-        }
+        var b = { type: type, data: JSON.parse(JSON.stringify((bt && bt.defaults) || {})) };
+        if (posOverride) { b.pos = {}; b.pos[currentBP] = posOverride; b.free = true; }
+        return b;
     }
-
-    function showInsertPicker(el, index) {
-        var existing = document.querySelector('.insert-picker');
-        if (existing) { existing.remove(); return; }
-        var picker = document.createElement('div');
-        picker.className = 'insert-picker';
-        picker.style.cssText = 'position:fixed;background:#fff;border:1px solid #ddd;border-radius:8px;padding:8px;box-shadow:0 4px 20px rgba(0,0,0,0.12);z-index:100;display:grid;grid-template-columns:repeat(3,1fr);gap:4px;min-width:200px;';
-        document.addEventListener('click', function closePicker(e) {
-            if (!picker.contains(e.target) && e.target !== el) { picker.remove(); document.removeEventListener('click', closePicker); }
+    function opInsert(type, index, posOverride) {
+        var b = newBlock(type, posOverride || null);
+        var at = (index >= 0 && index <= blocksData.length) ? index : blocksData.length;
+        blocksData.splice(at, 0, b);
+        apiRenderOne(b).then(function(html) {
+            toFrame({ type:'builderInsertHtml', at: at, html: wrapBlock(at, b.type, html) });
         });
-        for (var k in blockTypes) {
-            var b = blockTypes[k];
-            var btn = document.createElement('button');
-            btn.type = 'button';
-            btn.style.cssText = 'padding:8px;border:1px solid #eef0f4;border-radius:6px;cursor:pointer;background:#f8f9fa;font-size:12px;text-align:center;';
-            btn.innerHTML = '<div style="width:24px;height:24px;border-radius:4px;background:' + b.color + ';color:#fff;display:flex;align-items:center;justify-content:center;margin:0 auto 4px;font-size:12px;"><i class="fa-solid ' + b.icon + '"></i></div>' + b.label;
-            (function(kt) { btn.onclick = function() { addBlockAt(kt, index); picker.remove(); }; })(k);
-            picker.appendChild(btn);
-        }
-        var rect = el.getBoundingClientRect();
-        picker.style.top = (rect.bottom + 4) + 'px';
-        picker.style.left = (rect.left + (rect.width/2) - 100) + 'px';
-        document.body.appendChild(picker);
+        afterStructureChange();
+        selectBlock(at);
     }
-
-    function removeBlock(e) {
-        if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
-        var el = e && e.currentTarget ? e.currentTarget : e;
-        var item = el.closest('.block-item');
-        if (!item) return;
-        var idx = parseInt(item.dataset.index);
+    function opDelete(idx) {
         blocksData.splice(idx, 1);
-        if (selectedIndex === idx) deselectBlock();
-        else if (selectedIndex > idx) selectedIndex--;
-        if (positionMode) {
-            item.remove();
-            updateFreeIndices();
+        toFrame({ type:'builderRemoveBlockDom', index: idx });
+        afterStructureChange();
+        if (selectedIdx === idx) deselect();
+        closeInspector();
+    }
+    function opDuplicate(idx) {
+        var src = blocksData[idx]; if (!src) return;
+        var cp = JSON.parse(JSON.stringify(src));
+        blocksData.splice(idx + 1, 0, cp);
+        apiRenderOne(cp).then(function(html) {
+            toFrame({ type:'builderInsertHtml', at: idx + 1, html: wrapBlock(idx + 1, cp.type, html) });
+        });
+        afterStructureChange();
+    }
+    function opMove(idx, dir) {
+        var j = idx + dir;
+        if (j < 0 || j >= blocksData.length) return;
+        var t = blocksData[idx]; blocksData[idx] = blocksData[j]; blocksData[j] = t;
+        var perm = [];
+        for (var i = 0; i < blocksData.length; i++) perm.push(i);
+        perm[idx] = j; perm[j] = idx;
+        toFrame({ type:'builderReorderDom', order: perm });
+        afterStructureChange();
+    }
+    function opReorder(order) {
+        if (!order || order.length !== blocksData.length) return;
+        var nb = [];
+        for (var i = 0; i < order.length; i++) { if (!blocksData[order[i]]) return; nb.push(blocksData[order[i]]); }
+        blocksData = nb;
+        toFrame({ type:'builderReorderDom', order: identityOrder() });
+        afterStructureChange();
+    }
+    function opApplyPos(index, bpKey, pos) {
+        var b = blocksData[index]; if (!b) return;
+        b.pos = b.pos || {};
+        b.pos[bpKey] = pos;
+        pushPosCss();
+        afterStructureChange(true);
+        fillInspectorPos(b);
+    }
+    function opToggleFree(index, on, initPos) {
+        var b = blocksData[index]; if (!b) return;
+        if (LEGACY_FREE) {
+            /* مهاجرت صفحه قدیمی آزاد → مدل جدید: همه آزاد میشوند سپس یکی خاموش */
+            if (on) return;
+            LEGACY_FREE_MIGRATE();
+            b.free = false;
         } else {
-            renderStacked();
+            b.free = !!on;
+            if (on && initPos) { b.pos = b.pos || {}; b.pos[currentBP] = initPos; }
         }
+        pushPosCss();
+        afterStructureChange(true);
+        if (selectedIdx === index) fillInspectorFree(b);
+    }
+    function LEGACY_FREE_MIGRATE() {
+        LEGACY_FREE = false;
+        blocksData.forEach(function(b) { b.free = true; });
+    }
+    function identityOrder() { var a = []; for (var i = 0; i < blocksData.length; i++) a.push(i); return a; }
+    function afterStructureChange(skipCss) {
+        if (!skipCss) { /* ترتیب DOM توسط iframe اعمال شد */ }
+        pushPosCss();
+        markDirty();
+    }
+    function wrapBlock(i, type, innerHtml) {
+        return '<div class="bpos-' + i + '" data-block-index="' + i + '">' + innerHtml + '</div>';
+    }
+    function updateEmptyOverlay() {
+        document.getElementById('pbEmptyOverlay').style.display = blocksData.length ? 'none' : 'flex';
     }
 
-    /* ===== سایدبار ویرایش بلاک (جایگزین مودال) ===== */
-    var editingBlockIndex = -1;
-    var editorInitRetry = 0;
-
-    function initFormEditors(panel) {
-        var taFields = panel.querySelectorAll('textarea.edit-field-html');
-        if (taFields.length === 0) return;
-
-        taFields.forEach(function (ta) {
-            if (ta._sadastEditor) return;
-            try {
-                ta._sadastEditor = new SadastEditor(ta);
-            } catch (e) {
-                console.warn('initFormEditors: SadastEditor init failed', e);
-            }
+    /* ---------- انتخاب و پنل تنظیمات ---------- */
+    function selectBlock(idx) {
+        selectedIdx = idx;
+        buildInspector(idx);
+        switchTab('inspector');
+    }
+    function deselect() {
+        selectedIdx = -1;
+        toFrame({ type:'builderFocusBlock', index:-1 });
+    }
+    function switchTab(name) {
+        document.querySelectorAll('.pb-tabs button').forEach(function(b){ b.classList.toggle('active', b.dataset.tab === name); });
+        ['blocks','inspector','gear'].forEach(function(t){
+            document.getElementById('pbTab' + t.charAt(0).toUpperCase() + t.slice(1)).classList.toggle('active', t === name);
         });
     }
+    function esc(s) { return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
-    function openEditSidebar(idx) {
-         if (idx === undefined || idx === null || isNaN(idx)) return;
-         editingBlockIndex = idx;
-         var block = blocksData[editingBlockIndex];
-         if (!block) return;
-         var data = block.data || {};
-         var bt = blockTypes[block.type] || {label: block.type, color: '#888', icon: 'fa-cube'};
-         var fields = bt.fields || [];
+    function buildInspector(idx) {
+        var b = blocksData[idx];
+        var host = document.getElementById('pbInspector');
+        if (!b) { host.innerHTML = '<div class="empty"><i class="fa-solid fa-cube"></i>بلاکی انتخاب نشده است.</div>'; return; }
+        var bt = blockTypes[b.type] || { label:b.type, icon:'fa-cube', fields:[] };
+        var h = '<div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">';
+        h += '<span style="width:30px;height:30px;border-radius:8px;background:' + (bt.color||'#888') + ';color:#fff;display:inline-flex;align-items:center;justify-content:center;"><i class="fa-solid ' + (bt.icon||'fa-cube') + '"></i></span>';
+        h += '<strong style="flex:1;font-size:13.5px;">' + esc(bt.label) + ' #' + idx + '</strong>';
+        h += '</div><div id="pbInspFields">';
+        var fields = bt.fields || [];
+        if (!fields.length) h += '<p class="pb-muted">این بلاک تنظیمات خاصی ندارد.</p>';
+        fields.forEach(function(f) {
+            var val = (b.data && b.data[f.key] !== undefined) ? b.data[f.key] : (f.default !== undefined ? f.default : '');
+            if (val === null || val === undefined) val = '';
+            h += '<div class="pb-field"><label>' + esc(f.label) + '</label>';
+            if (f.type === 'select') {
+                h += '<select class="pb-f" data-key="' + f.key + '" data-ftype="' + f.type + '">';
+                (f.options || []).forEach(function(o){ h += '<option value="' + esc(o.value) + '" ' + (String(val) === String(o.value) ? 'selected' : '') + '>' + esc(o.label) + '</option>'; });
+                h += '</select>';
+            } else if (f.type === 'textarea') {
+                h += '<textarea class="pb-f" data-key="' + f.key + '" data-ftype="textarea">' + esc(val) + '</textarea>';
+            } else if (f.type === 'html') {
+                h += '<textarea class="pb-f mono" data-key="' + f.key + '" data-ftype="html">' + esc(val) + '</textarea>';
+            } else if (f.type === 'color') {
+                h += '<input type="color" class="pb-f" data-key="' + f.key + '" data-ftype="color" value="' + esc(val || '#000000') + '" style="height:38px;padding:3px;">';
+            } else if (f.type === 'number') {
+                h += '<input type="number" class="pb-f" data-key="' + f.key + '" data-ftype="number" value="' + esc(val) + '">';
+            } else if (f.type === 'image') {
+                h += '<div class="row"><input type="text" class="pb-f" data-key="' + f.key + '" data-ftype="image" value="' + esc(val) + '" placeholder="URL تصویر" style="direction:ltr;text-align:left;"><button type="button" class="pb-btn khali" onclick="openImagePicker()" title="کتابخانه / آپلود / URL"><i class="fa-solid fa-folder-open"></i></button></div>';
+            } else {
+                h += '<input type="text" class="pb-f" data-key="' + f.key + '" data-ftype="text" value="' + esc(val) + '">';
+            }
+            h += '</div>';
+        });
+        h += '</div>';
 
-         /* استایل سایدبار اگر اولین بار است */
-         var style = document.getElementById('builderSidebarStyle');
-         if (!style) {
-             style = document.createElement('style');
-             style.id = 'builderSidebarStyle';
-             style.textContent =
-                 '#builderSidebarPanel { position:fixed; top:0; left:0; width:380px; max-width:380px; height:100vh; background:#fff; box-shadow:2px 0 20px rgba(0,0,0,0.12); z-index:2000; display:none; overflow-y:auto; border-left:1px solid #eef0f4; }' +
-                 '#builderSidebarPanel.open { display:block; }' +
-                 '#builderSidebarPanel .sb-header { display:flex; align-items:center; gap:10px; padding:18px 20px; border-bottom:1px solid #eef0f4; }' +
-                 '#builderSidebarPanel .sb-header h3 { margin:0; font-size:16px; font-weight:700; flex:1; }' +
-                 '#builderSidebarPanel .sb-close { padding:8px 14px; background:#f5f6f8; border:1px solid #dde1e6; border-radius:6px; cursor:pointer; font-size:14px; }' +
-                 '#builderSidebarPanel .sb-body { padding:20px; }' +
-                 '#builderSidebarPanel .sb-field { margin-bottom:16px; }' +
-                 '#builderSidebarPanel .sb-field label { display:block; margin-bottom:6px; font-weight:600; font-size:13px; color:#555; }' +
-                 '#builderSidebarPanel .sb-field input[type="text"], #builderSidebarPanel .sb-field input[type="number"], #builderSidebarPanel .sb-field textarea, #builderSidebarPanel .sb-field select { width:100%; padding:10px; border:1.5px solid #dde1e6; border-radius:8px; font-size:13px; box-sizing:border-box; }' +
-                 '#builderSidebarPanel .sb-field textarea { min-height:120px; font-family:inherit; resize:vertical; }' +
-                 '#builderSidebarPanel .sb-save { display:flex; gap:10px; padding:16px 20px; border-top:1px solid #eef0f4; }' +
-                 '#builderSidebarPanel .sb-save button { flex:1; padding:12px; border:none; border-radius:8px; font-weight:700; cursor:pointer; font-size:13px; }' +
-                 '#builderSidebarPanel .sb-save .sb-apply { background:var(--rang-asli,#FF6F00); color:#fff; }' +
-                 '#builderSidebarPanel .sb-save .sb-cancel { background:#f5f6f8; border:1px solid #dde1e6; }';
-         document.head.appendChild(style);
-         }
+        /* موقعیت (اگر آزاد) */
+        h += '<div id="pbInspPosWrap" style="display:none;"><hr class="pb-sep"><h4 style="font-size:12.5px;margin:0 0 8px;color:#555;"><i class="fa-solid fa-crosshairs"></i> موقعیت آزاد (<span id="pbDevLabel">' + devices[currentDevice].label + '</span>)</h4>';
+        h += '<div class="pb-pos-grid">';
+        ['x','y','w','z'].forEach(function(k) {
+            h += '<div><label>' + k.toUpperCase() + '</label><input type="number" id="pbPos_' + k + '" onchange="pbPosInput(\'' + k + '\')"></div>';
+        });
+        h += '</div>';
+        h += '<div style="display:flex;gap:6px;"><button type="button" class="pb-btn khali" style="flex:1;" onclick="pbLayer(1)">جلو ⇡</button><button type="button" class="pb-btn khali" style="flex:1;" onclick="pbLayer(-1)">عقب ⇣</button></div>';
+        h += '<button type="button" class="pb-btn khali wide" style="margin-top:8px;" id="pbUnfreeBtn" onclick="pbToggleSelectedFree(false)"><i class="fa-solid fa-link"></i> چسباندن به جریان (خروج از آزاد)</button></div>';
+        h += '<hr class="pb-sep"><button type="button" class="pb-btn danger wide" onclick="opDelete(selectedIdx)"><i class="fa-solid fa-trash"></i> حذف این بلاک</button>';
+        host.innerHTML = h;
 
-         var panel = document.getElementById('builderSidebarPanel');
-         if (!panel) {
-             panel = document.createElement('div');
-             panel.id = 'builderSidebarPanel';
-             document.body.appendChild(panel);
-         }
-
-         /* Close preview overlay if any */
-         var overlay = document.getElementById('builderOverlay');
-         if (overlay) overlay.remove();
-
-         var fieldHtml = '';
-         if (fields.length === 0) {
-             fieldHtml = '<p style="color:#888;padding:12px;">این بلاک تنظیمات خاصی ندارد.</p>';
-         }
-         fields.forEach(function(f) {
-             var val = data[f.key] !== undefined ? (f.type === 'text' ? data[f.key] : String(data[f.key])) : (f.default !== undefined ? f.default : '');
-             if (val === 'undefined') val = '';
-             fieldHtml += '<div class="sb-field">';
-             fieldHtml += '<label>' + f.label + '</label>';
-             if (f.type === 'textarea') {
-                 fieldHtml += '<textarea class="edit-field" data-key="' + f.key + '" placeholder="' + (f.placeholder || '') + '">' + (val || '') + '</textarea>';
-             } else if (f.type === 'html') {
-                 fieldHtml += '<textarea class="edit-field edit-field-html" data-key="' + f.key + '" placeholder="' + (f.placeholder || '') + '" style="min-height:180px;font-family:\'Courier New\',monospace;font-size:12px;">' + (val || '') + '</textarea>';
-             } else if (f.type === 'select') {
-                 fieldHtml += '<select class="edit-field" data-key="' + f.key + '">';
-                 (f.options || []).forEach(function(o) { fieldHtml += '<option value="' + o.value + '" ' + (val == o.value ? 'selected' : '') + '>' + o.label + '</option>'; });
-                 fieldHtml += '</select>';
-             } else if (f.type === 'color') {
-                 fieldHtml += '<div style="display:flex;gap:8px;align-items:center;"><input type="color" class="edit-field" data-key="' + f.key + '" value="' + (val || '#000000') + '" style="width:48px;height:36px;border:none;border-radius:6px;cursor:pointer;"><span style="font-size:12px;color:#888;">' + (val || '') + '</span></div>';
-             } else if (f.type === 'number') {
-                 fieldHtml += '<input type="number" class="edit-field" data-key="' + f.key + '" value="' + (val || 0) + '">';
-             } else if (f.type === 'image') {
-                 fieldHtml += '<div style="display:flex;gap:8px;"><input type="text" class="edit-field" data-key="' + f.key + '" value="' + (val || '') + '" placeholder="URL تصویر"><button type="button" onclick="selectImage(this)" style="padding:8px 14px;background:#f5f6f8;border:1px solid #dde1e6;border-radius:8px;cursor:pointer;font-size:12px;">انتخاب</button></div>';
-             } else {
-                 fieldHtml += '<input type="text" class="edit-field" data-key="' + f.key + '" value="' + (val || '') + '" placeholder="' + (f.placeholder || '') + '">';
-             }
-             fieldHtml += '</div>';
-         });
-
-         panel.innerHTML =
-             '<div class="sb-header">' +
-                 '<h3>ویرایش «' + bt.label + '»</h3>' +
-                 '<button class="sb-close" onclick="closeEditSidebar()">✕</button>' +
-             '</div>' +
-             '<div class="sb-body">' + fieldHtml + '</div>' +
-             '<div class="sb-save">' +
-                 '<button class="sb-apply" onclick="saveSidebarEdit()">اعمال</button>' +
-                 '<button class="sb-cancel" onclick="closeEditSidebar()">انصراف</button>' +
-             '</div>';
-
-          panel.classList.add('open');
-
-          /* Initialize SadastEditor for textarea.html fields (non-blocking, with error handling) */
-          try { initFormEditors(panel); } catch(e) { console.error('Editor init error:', e); }
-
-          /* Sync selection state in the iframe preview */
-          var frame = document.getElementById('previewFrame');
-         if (frame && frame.contentWindow) {
-            frame.contentWindow.postMessage({_ns:'builderInline', type:'builderFocusBlock', index: idx}, window.location.origin);
-         }
-     }
-
-     function closeEditSidebar() {
-         var panel = document.getElementById('builderSidebarPanel');
-         if (panel) {
-             /* Destroy SadastEditor instances */
-             var taFields = panel.querySelectorAll('textarea.edit-field-html');
-             taFields.forEach(function (ta) {
-                 if (ta._sadastEditor) {
-                     try { ta._sadastEditor.destroy(); } catch (_) {}
-                     ta._sadastEditor = null;
-                 }
-             });
-             panel.classList.remove('open');
-         }
-         var frame = document.getElementById('previewFrame');
-         if (frame && frame.contentWindow) {
-            frame.contentWindow.postMessage({_ns:'builderInline', type:'builderExit'}, window.location.origin);
-         }
-     }
-
-     function saveSidebarEdit() {
-         var panel = document.getElementById('builderSidebarPanel');
-         if (!panel) return;
-         var fields = panel.querySelectorAll('.edit-field');
-         var data = {};
-         fields.forEach(function(f) {
-             /* For SadastEditor, get content from editor instance */
-             if (f._sadastEditor) {
-                 data[f.dataset.key] = f._sadastEditor.getContent();
-                 return;
-             }
-             data[f.dataset.key] = (f.type === 'number') ? Number(f.value) : f.value;
-         });
-         if (blocksData[editingBlockIndex]) blocksData[editingBlockIndex].data = data;
-         renderAllBlocks();
-         closeEditSidebar();
-         autoSaveBlocks();
-     }
-
-    function renderAllBlocks() {
-        if (positionMode) renderFree();
-        else renderStacked();
+        /* رویدادها */
+        host.querySelectorAll('.pb-f').forEach(function(inp) {
+            var ev = (inp.tagName === 'SELECT' || inp.type === 'color') ? 'change' : 'input';
+            inp.addEventListener(ev, function() {
+                var key = inp.dataset.key, ftype = inp.dataset.ftype, v = inp.value;
+                if (ftype === 'number') v = Number(v);
+                b.data[key] = v;
+                markDirty();
+                refreshBlockLive(selectedIdx);
+            });
+            if (ftype === 'html') { try { if (typeof SadastEditor !== 'undefined') inp._sadastEditor = new SadastEditor(inp); } catch(e){} }
+        });
+        fillInspectorFree(b);
+    }
+    function fillInspectorFree(b) {
+        var wrap = document.getElementById('pbInspPosWrap');
+        if (!wrap) return;
+        var isFree = LEGACY_FREE || !!(b && b.free);
+        wrap.style.display = isFree ? 'block' : 'none';
+        if (isFree) fillInspectorPos(b);
+    }
+    function fillInspectorPos(b) {
+        if (!b) return;
+        var p = effectivePos(b);
+        if (!p) return;
+        ['x','y','w','z'].forEach(function(k) {
+            var el = document.getElementById('pbPos_' + k);
+            if (el) el.value = Math.round(p[k]);
+        });
+    }
+    function pbPosInput(k) {
+        var b = blocksData[selectedIdx]; if (!b) return;
+        b.pos = b.pos || {};
+        var p = b.pos[currentBP] = b.pos[currentBP] || { x:0,y:0,w:300,z:1 };
+        p[k] = Number(document.getElementById('pbPos_' + k).value) || 0;
+        pushPosCss();
+        markDirty();
+        toFrame({ type:'builderPosChanged', index:selectedIdx });
+    }
+    function pbLayer(dir) {
+        var b = blocksData[selectedIdx]; if (!b) return;
+        b.pos = b.pos || {};
+        var p = b.pos[currentBP] = b.pos[currentBP] || { x:0,y:0,w:300,z:1 };
+        p.z = (parseInt(p.z,10)||1) + dir;
+        pushPosCss(); markDirty(); fillInspectorPos(b);
+        toFrame({ type:'builderPosChanged', index:selectedIdx });
+    }
+    function pbToggleSelectedFree(on) {
+        if (selectedIdx < 0) return;
+        if (on === false) { opToggleFree(selectedIdx, false, null); }
+        else { toFrame({ type:'builderDoFree', index:selectedIdx }); }
+    }
+    function closeInspector() {
+        if (selectedIdx >= 0) return;
+        document.getElementById('pbInspector').innerHTML = '<div class="empty"><i class="fa-solid fa-cube"></i>بلاکی انتخاب نشده است.</div>';
     }
 
-    // ===== ویرایش درجا از درون iframe پیش‌نمایش (postMessage) =====
-    function setBlockContent(idx, key, value) {
+    /* ---------- انتخابگر تصویر ---------- */
+    var _imgCb = null, _libCache = null, _libCacheTime = 0;
+    function openImagePicker(cb) {
+        _imgCb = cb || function(url) {
+            var b = blocksData[selectedIdx]; if (!b) return;
+            b.data.src = url;
+            var inp = document.querySelector('#pbInspector .pb-f[data-key="src"]');
+            if (inp) inp.value = url;
+            refreshBlockLive(selectedIdx);
+        };
+        document.getElementById('pbImgModalBg').classList.add('open');
+        pbLoadLibrary();
+    }
+    function pbCloseImageModal() { document.getElementById('pbImgModalBg').classList.remove('open'); }
+    document.querySelectorAll('.pb-modal .tabs button').forEach && document.querySelectorAll('#pbImgModalBg .tabs button').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('#pbImgModalBg .tabs button').forEach(function(x){ x.classList.toggle('active', x === btn); });
+            ['lib','up','url'].forEach(function(t) { document.getElementById('pbMTab' + t.charAt(0).toUpperCase()+t.slice(1)).style.display = (btn.dataset.mtab === t) ? '' : 'none'; });
+            if (btn.dataset.mtab === 'lib') pbLoadLibrary();
+        });
+    });
+    function pbLoadLibrary(force) {
+        var grid = document.getElementById('pbLibGrid');
+        if (_libCache && !force && Date.now() - _libCacheTime < 60000) { renderLib(_libCache); return; }
+        grid.innerHTML = '<p class="pb-muted">در حال بارگذاری…</p>';
+        fetchTimeout('<?= BASE_URL ?>mod/builder/list_images')
+        .then(function(r){ return r.json(); })
+        .then(function(res) {
+            if (res.success) { _libCache = res.images; _libCacheTime = Date.now(); renderLib(res.images); }
+            else grid.innerHTML = '<p class="pb-muted">خطا در بارگذاری کتابخانه.</p>';
+        }).catch(function(){ grid.innerHTML = '<p class="pb-muted">خطا در اتصال.</p>'; });
+    }
+    function renderLib(urls) {
+        var grid = document.getElementById('pbLibGrid');
+        if (!urls || !urls.length) { grid.innerHTML = '<p class="pb-muted">هنوز تصویری در کتابخانه نیست — از تب «آپلود مستقیم» شروع کنید.</p>'; return; }
+        grid.innerHTML = '';
+        urls.forEach(function(u) {
+            var img = document.createElement('img');
+            img.src = u; img.loading = 'lazy'; img.alt = '';
+            img.onclick = function() { if (_imgCb) _imgCb(u); pbCloseImageModal(); };
+            grid.appendChild(img);
+        });
+    }
+    function pbPickUrl() {
+        var u = document.getElementById('pbUrlInput').value.trim();
+        if (!u) return;
+        if (_imgCb) _imgCb(u);
+        pbCloseImageModal();
+    }
+    (function() {
+        var dz = document.getElementById('pbDropZone'), fi = document.getElementById('pbUpInput');
+        dz.addEventListener('click', function(){ fi.click(); });
+        dz.addEventListener('dragover', function(e){ e.preventDefault(); dz.classList.add('over'); });
+        dz.addEventListener('dragleave', function(){ dz.classList.remove('over'); });
+        dz.addEventListener('drop', function(e){ e.preventDefault(); dz.classList.remove('over'); if (e.dataTransfer.files.length) pbUploadFile(e.dataTransfer.files[0]); });
+        fi.addEventListener('change', function(){ if (fi.files.length) pbUploadFile(fi.files[0]); fi.value=''; });
+    })();
+    function pbUploadFile(file) {
+        var fd = new FormData();
+        fd.append('image', file);
+        var dz = document.getElementById('pbDropZone');
+        dz.innerHTML = '<i class="fa-solid fa-spinner fa-spin" style="font-size:26px;display:block;margin-bottom:8px;"></i>در حال آپلود…';
+        fetchTimeout('<?= BASE_URL ?>mod/builder/upload_image', { method:'POST', body: fd }, 120000)
+        .then(function(r){ return r.json(); })
+        .then(function(res) {
+            dz.innerHTML = '<i class="fa-solid fa-cloud-arrow-up" style="font-size:26px;display:block;margin-bottom:8px;"></i>فایل تصویر را اینجا رها کنید یا کلیک کنید';
+            if (res.success) { _libCache = null; pbLoadLibrary(); if (_imgCb) _imgCb(res.url); pbCloseImageModal(); }
+            else alert(res.message || 'خطا در آپلود');
+        }).catch(function(){ dz.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> خطا در اتصال'; });
+    }
+
+    /* ---------- دستگاه‌ها ---------- */
+    function applyDeviceScale() {
+        var dev = devices[currentDevice];
+        var wrap = document.getElementById('pbFrameScale');
+        var avail = document.getElementById('pbFrameWrap').clientWidth - 36;
+        var w = Math.min(dev.w, 1920);
+        wrap.style.maxWidth = w + 'px';
+        var scale = Math.min(1, avail / w);
+        wrap.style.transform = scale < 1 ? ('scale(' + scale + ')') : '';
+        wrap.style.width = (scale < 1 ? w : '100%');
+    }
+    document.querySelectorAll('#pbDeviceSeg button').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('#pbDeviceSeg button').forEach(function(x){ x.classList.toggle('active', x === btn); });
+            currentDevice = btn.dataset.dev;
+            currentBP = devices[currentDevice].bp;
+            applyDeviceScale();
+            toFrame({ type:'builderDeviceChanged', bp: currentBP, label: devices[currentDevice].label });
+            if (selectedIdx >= 0) fillInspectorPos(blocksData[selectedIdx]);
+            var lbl = document.getElementById('pbDevLabel');
+            if (lbl) lbl.textContent = devices[currentDevice].label;
+        });
+    });
+    document.querySelectorAll('#pbMobileSeg button').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('#pbMobileSeg button').forEach(function(x){ x.classList.toggle('active', x === btn); });
+            mobileMode = btn.dataset.mm;
+            pushPosCss();
+            markDirty();
+        });
+    });
+
+    /* ---------- تب‌ها و اسپلیتر ---------- */
+    document.querySelectorAll('.pb-tabs button').forEach(function(btn) {
+        btn.addEventListener('click', function(){ switchTab(btn.dataset.tab); });
+    });
+    (function() {
+        var sp = document.getElementById('pbSplitter'), panel = document.getElementById('pbPanel'), app = document.getElementById('pbApp');
+        var dragging = false;
+        sp.addEventListener('mousedown', function(e){ dragging = true; sp.classList.add('dragging'); e.preventDefault(); });
+        window.addEventListener('mousemove', function(e) {
+            if (!dragging) return;
+            var r = app.getBoundingClientRect();
+            var w = Math.max(200, Math.min(520, e.clientX - r.left));
+            panel.style.setProperty('--panel-w', w + 'px');
+            panel.style.width = w + 'px';
+        });
+        window.addEventListener('mouseup', function() {
+            if (!dragging) return;
+            dragging = false; sp.classList.remove('dragging');
+            try { localStorage.setItem('pb_panel_w', panel.offsetWidth); } catch(err){}
+        });
+        try { var sw = parseInt(localStorage.getItem('pb_panel_w'),10); if (sw) { panel.style.width = sw+'px'; panel.style.setProperty('--panel-w', sw+'px'); } } catch(err){}
+    })();
+
+    /* ---------- پیام‌های iframe ---------- */
+    window.addEventListener('message', function(e) {
+        if (e.origin !== window.location.origin) return;
+        var d = e.data || {};
+        if (d._ns !== 'builderInline') return;
+        switch (d.type) {
+            case 'builderReady':
+                toFrame({ type:'builderSetContentFields', fields: blockContentFields() });
+                updateEmptyOverlay();
+                break;
+            case 'builderSelect':          selectBlock(d.index); break;
+            case 'builderContent':         onInlineContent(d.index, d.key, d.value); break;
+            case 'builderInsertAt':        opInsert(d.btype, d.index, null); break;
+            case 'builderInsertFree':      opInsert(d.btype, -1, d.pos); break;
+            case 'builderReorder':         opReorder(d.order); break;
+            case 'builderPos':             opApplyPos(d.index, d.bp || currentBP, d.pos); break;
+            case 'builderDuplicate':       opDuplicate(d.index); break;
+            case 'builderDelete':          opDelete(d.index); break;
+            case 'builderMove':            opMove(d.index, d.dir === 'up' ? -1 : 1); break;
+            case 'builderOpenImages':      openImagePicker(function(url) {
+                                               var b = blocksData[selectedIdx]; if (!b) return;
+                                               b.data.src = url;
+                                               var inp = document.querySelector('#pbInspector .pb-f[data-key="src"]');
+                                               if (inp) inp.value = url;
+                                               refreshBlockLive(selectedIdx);
+                                           }); break;
+            case 'builderToggleFree':      opToggleFree(d.index, d.on, d.initPos); break;
+            case 'builderDragState':       break;
+        }
+    });
+    function onInlineContent(idx, key, value) {
         if (!blocksData[idx]) return;
         blocksData[idx].data = blocksData[idx].data || {};
         blocksData[idx].data[key] = value;
-        schedulePreviewRefresh();
+        markDirty();
     }
-    function deleteBlockByIndex(idx) {
-        if (!blocksData[idx]) return;
-        blocksData.splice(idx, 1);
-        if (positionMode) renderFree(); else renderStacked();
-        schedulePreviewRefresh();
-    }
-    function moveBlock(idx, dir) {
-        var j = idx + (dir === 'up' ? -1 : 1);
-        if (j < 0 || j >= blocksData.length) return;
-        var t = blocksData[idx]; blocksData[idx] = blocksData[j]; blocksData[j] = t;
-        if (positionMode) renderFree(); else renderStacked();
-        schedulePreviewRefresh();
-    }
-    function applyReorder(order) {
-        if (!order || !order.length) return;
-        var nb = [];
-        for (var i = 0; i < order.length; i++) {
-            var idx = order[i];
-            if (blocksData[idx]) nb.push(blocksData[idx]);
-        }
-        if (nb.length !== blocksData.length) return;
-        blocksData = nb;
-        if (positionMode) renderFree(); else renderStacked();
-        schedulePreviewRefresh();
-    }
-    function addBlockFromIframe(type, index) {
-        addBlockAt(type, index);
-    }
-    var _previewTimer = null;
-    var _autosaveTimer = null;
-    function schedulePreviewRefresh() {
-        if (_previewTimer) clearTimeout(_previewTimer);
-        _previewTimer = setTimeout(refreshPreview, 600);
-        if (_autosaveTimer) clearTimeout(_autosaveTimer);
-        _autosaveTimer = setTimeout(function() { autoSaveBlocks(); }, 1500);
-    }
-    function autoSaveBlocks() {
-        var fd = new FormData();
-        fd.append('block_page_id', AUTOSAVE_ID);
-        fd.append('blocks_data', JSON.stringify(blocksData));
-        fd.append('cache', '1');
-        fd.append('position_mode', positionMode ? '1' : '0');
-        fd.append('mobile_mode', mobileMode);
-        fetch('<?= BASE_URL ?>mod/builder/save', { method: 'POST', body: fd })
-        .then(function(r) { return r.json(); })
-        .then(function(res) {
-            if (res.success) {
-                var btn = document.getElementById('saveBlocksBtn');
-                if (btn) { btn.innerHTML = '<i class="fa-solid fa-check"></i> ذخیره خودکار'; setTimeout(function(){ if(btn) btn.innerHTML = '<i class="fa-solid fa-save"></i> ذخیره تغییرات'; }, 1500); }
-            }
-        });
-    }
-     window.addEventListener('message', function(e) {
-         if (e.origin !== window.location.origin) return;
-         var d = e.data || {};
-         if (d.type === 'builderSelect') { openEditSidebar(d.index); }
-         else if (d.type === 'builderContent') { setBlockContent(d.index, d.key, d.value); }
-         else if (d.type === 'builderDelete') { deleteBlockByIndex(d.index); }
-         else if (d.type === 'builderMove') { moveBlock(d.index, d.dir); }
-         else if (d.type === 'builderReorder') { applyReorder(d.order); }
-         else if (d.type === 'builderAdd') { addBlockFromIframe(d.btype, d.index); }
-         else if (d.type === 'builderImageEdit') {
-             if (blocksData[d.index]) {
-                 if (!blocksData[d.index].data) blocksData[d.index].data = {};
-                 blocksData[d.index].data.src = d.src;
-                 if (d.alt !== undefined) blocksData[d.index].data.alt = d.alt;
-                 renderAllBlocks();
-                 autoSaveBlocks();
-             }
-         }
-         else if (d.type === 'builderButtonEdit') {
-             if (blocksData[d.index]) {
-                 if (!blocksData[d.index].data) blocksData[d.index].data = {};
-                 blocksData[d.index].data.text = d.text;
-                 blocksData[d.index].data.url = d.href;
-                 renderAllBlocks();
-                 autoSaveBlocks();
-             }
-         }
-         else if (d.type === 'builderReady') {
-             var f = document.getElementById('previewFrame');
-             if (f && f.contentWindow) f.contentWindow.postMessage({_ns:'builderInline', type:'builderSetContentFields', fields: blockContentFields()}, window.location.origin);
-            refreshPreview();
-         }
-         else if (d.type === 'builderAutoSave') {
-            autoSaveBlocks();
-         }
-     });
     function blockContentFields() {
         var map = {};
         blocksData.forEach(function(b, i) {
@@ -1107,503 +1272,105 @@ function builder_page_edit($block_page_id) {
         return map;
     }
 
-    function updateBlockCount() {
-        var c = document.getElementById('blockCount');
-        if (c) c.textContent = blocksData.length;
-    }
+    /* ---------- کیبورد ---------- */
+    document.addEventListener('keydown', function(e) {
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') { e.preventDefault(); pbFullSave(); return; }
+        var inField = e.target.closest && e.target.closest('input,textarea,select,[contenteditable]');
+        if (inField) return;
+        if ((e.key === 'Delete' || e.key === 'Backspace') && selectedIdx >= 0) { e.preventDefault(); opDelete(selectedIdx); }
+        if (e.key === 'Escape') { deselect(); toFrame({type:'builderExit'}); }
+    });
+    window.addEventListener('beforeunload', function(e) {
+        if (isDirty) { e.preventDefault(); e.returnValue = ''; }
+    });
 
-    var sortable = null;
-    function renderStacked() {
-        var canvas = document.getElementById('builderCanvas');
-        var container = document.getElementById('blocksContainer');
-        var surface = document.getElementById('freeSurface');
-        canvas.classList.remove('free');
-        surface.style.display = 'none';
-        var hscroll = document.getElementById('freeHScroll');
-        if (hscroll) hscroll.style.display = 'none';
-        container.style.display = 'block';
-        container.innerHTML = '';
-        if (blocksData.length === 0) {
-            var empty = document.createElement('div');
-            empty.className = 'insert-zone';
-            empty.setAttribute('onclick', 'showInsertPicker(this)');
-            empty.innerHTML = '<i class="fa-solid fa-plus"></i> افزودن بلاک';
-            container.appendChild(empty);
-        } else {
-            blocksData.forEach(function(block, i) {
-                var iz = document.createElement('div');
-                iz.className = 'insert-zone';
-                iz.dataset.index = i;
-                iz.setAttribute('onclick', 'showInsertPicker(this,' + i + ')');
-                iz.innerHTML = '<i class="fa-solid fa-plus-circle"></i> درج بلاک';
-                container.appendChild(iz);
-                 var div = document.createElement('div');
-                 div.className = 'block-item type-' + block.type;
-                 div.dataset.index = i;
-                 div.draggable = true;
-                 div.innerHTML = renderBlockAdmin(block);
-                 div.addEventListener('click', function(e) { if(!e.target.closest('.block-footer')) openEditSidebar(i); });
-                 container.appendChild(div);
-            });
-            var iz2 = document.createElement('div');
-            iz2.className = 'insert-zone';
-            iz2.dataset.index = '-2';
-            iz2.setAttribute('onclick', 'showInsertPicker(this)');
-            iz2.innerHTML = '<i class="fa-solid fa-plus-circle"></i> افزودن بلاک';
-            container.appendChild(iz2);
+    /* ---------- درگ بلاک از پالت (Pointer Events + capture — دقیق روی iframe) ---------- */
+    (function() {
+        var ghost = null, started = false, curType = null, lastSent = 0;
+        var frameEl = document.getElementById('previewFrame');
+
+        function toLocal(e) {
+            var r = frameEl.getBoundingClientRect();
+            var w = frameEl.contentWindow ? frameEl.contentWindow.innerWidth : r.width;
+            var h = frameEl.contentWindow ? frameEl.contentWindow.innerHeight : r.height;
+            return {
+                x: Math.round((e.clientX - r.left) * (w / r.width)),
+                y: Math.round((e.clientY - r.top) * (h / r.height)),
+                inside: e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom
+            };
         }
-        updateBlockCount();
-        if (sortable) sortable.destroy();
-        sortable = new Sortable(container, {
-            animation: 150, handle: '.block-item', filter: '.insert-zone', ghostClass: 'drag-over',
-            onEnd: function() { updateBlocksFromDOM(); }
-        });
-        refreshCanvasContent();
-    }
-
-    function updateBlocksFromDOM() {
-        var items = document.querySelectorAll('#blocksContainer > .block-item');
-        var nb = [];
-        items.forEach(function(it) { var idx = parseInt(it.dataset.index); if (blocksData[idx]) nb.push(blocksData[idx]); });
-        if (nb.length > 0) blocksData = nb;
-        items.forEach(function(it, i) { it.dataset.index = i; });
-        var zones = document.querySelectorAll('#blocksContainer > .insert-zone');
-        zones.forEach(function(z, i) {
-            if (i === 0) z.dataset.index = 0;
-            else if (i === zones.length - 1) z.dataset.index = -2;
-            else z.dataset.index = parseInt(items[i-1].dataset.index) + 1;
-        });
-        updateBlockCount();
-    }
-
-    function updateFreeIndices() {
-        var items = document.querySelectorAll('#freeSurface .block-item.free');
-        items.forEach(function(it, i) { it.dataset.index = i; });
-        updateBlockCount();
-    }
-
-    function createFreeBlockElement(block, i) {
-        var eff = effectivePos(block, currentBP) || {x: 20, y: 20 + i * 20, w: 300, z: i + 1};
-        var div = document.createElement('div');
-        div.className = 'block-item free type-' + block.type + (i === selectedIndex ? ' selected' : '');
-        div.dataset.index = i;
-        div.style.left = eff.x + 'px';
-        div.style.top = eff.y + 'px';
-        div.style.width = eff.w + 'px';
-        div.style.zIndex = eff.z;
-        div.innerHTML = renderBlockAdmin(block);
-        var rh = document.createElement('div');
-        rh.className = 'resize-handle';
-        div.appendChild(rh);
-        (function(el, rhEl) {
-            el.addEventListener('mousedown', function(e) { startDrag(e, parseInt(el.dataset.index), el); });
-            rhEl.addEventListener('mousedown', function(e) { startResize(e, parseInt(el.dataset.index), el); });
-            el.addEventListener('click', function(e) {
-                if (e.target.closest('.block-footer')) return;
-                selectBlock(parseInt(el.dataset.index));
-            });
-        })(div, rh);
-        return div;
-    }
-
-    function renderFree() {
-        var canvas = document.getElementById('builderCanvas');
-        var container = document.getElementById('blocksContainer');
-        var surface = document.getElementById('freeSurface');
-        canvas.classList.add('free');
-        container.style.display = 'none';
-        surface.style.display = 'block';
-        surface.style.width = devices[currentDevice].w + 'px';
-        surface.innerHTML = '';
-        var addBtn = document.createElement('button');
-        addBtn.className = 'free-add';
-        addBtn.innerHTML = '<i class="fa-solid fa-plus"></i> بلاک';
-        addBtn.onclick = function() { showInsertPickerSurface(); };
-        surface.appendChild(addBtn);
-        var hint = document.createElement('div');
-        hint.className = 'free-hint';
-        hint.textContent = 'حالت آزاد — بکش و رها کن · کلیک=انتخاب';
-        surface.appendChild(hint);
-        blocksData.forEach(function(block, i) {
-            var div = createFreeBlockElement(block, i);
-            surface.appendChild(div);
-        });
-        // گسترش عرض بوم تا دورترین بلاک (برای اسکرول افقی)
-        var maxRight = devices[currentDevice].w;
-        blocksData.forEach(function(block) {
-            var p = effectivePos(block, currentBP);
-            if (p) maxRight = Math.max(maxRight, (p.x + p.w));
-        });
-        surface.style.width = (maxRight + 60) + 'px';
-        var hint = document.getElementById('freeHScroll');
-        if (!hint) {
-            hint = document.createElement('div');
-            hint.id = 'freeHScroll';
-            hint.className = 'free-hscroll-hint';
-            canvas.appendChild(hint);
+        function makeGhost(bt) {
+            var b = blockTypes[bt] || {};
+            ghost = document.createElement('div');
+            ghost.style.cssText = 'position:fixed;z-index:99999;pointer-events:none;background:#fff;border:2px solid var(--rang-asli,#FF6F00);color:#333;border-radius:10px;padding:6px 12px;font-size:12px;font-weight:700;box-shadow:0 8px 24px rgba(0,0,0,.28);display:flex;align-items:center;gap:7px;font-family:inherit;';
+            ghost.innerHTML = '<span style="width:22px;height:22px;border-radius:6px;background:' + (b.color||'#888') + ';color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:11px;"><i class="fa-solid ' + (b.icon||'fa-cube') + '"></i></span>' + esc(b.label||bt);
+            document.body.appendChild(ghost);
         }
-        hint.textContent = 'بوم آزاد — برای جابجایی افقی، در اینجا اسکرول (چپ/راست) کنید · عرض: ' + Math.round(surface.offsetWidth) + 'px';
-        surface.onclick = function(e) { if (e.target === surface) deselectBlock(); };
-        updateBlockCount();
-        refreshCanvasContent();
-    }
-
-    function showInsertPickerSurface() {
-        showInsertPicker(document.querySelector('.free-add'), -1);
-    }
-
-    var dragState = null;
-    function startDrag(e, idx, el) {
-        if (e.target.closest('.block-footer') || e.target.classList.contains('resize-handle')) return;
-        e.preventDefault();
-        selectBlock(idx);
-        dragState = { idx: idx, el: el, startX: e.clientX, startY: e.clientY, origX: parseFloat(el.style.left) || 0, origY: parseFloat(el.style.top) || 0, curX: 0, curY: 0, moved: false };
-        document.addEventListener('mousemove', onDragMove);
-        document.addEventListener('mouseup', onDragEnd);
-    }
-    function onDragMove(e) {
-        if (!dragState) return;
-        var dx = e.clientX - dragState.startX;
-        var dy = e.clientY - dragState.startY;
-        if (Math.abs(dx) > 2 || Math.abs(dy) > 2) dragState.moved = true;
-        var nx = Math.max(0, dragState.origX + dx);
-        var ny = Math.max(0, dragState.origY + dy);
-        dragState.el.style.left = nx + 'px';
-        dragState.el.style.top = ny + 'px';
-        dragState.curX = nx; dragState.curY = ny;
-    }
-    function onDragEnd() {
-        document.removeEventListener('mousemove', onDragMove);
-        document.removeEventListener('mouseup', onDragEnd);
-        if (dragState && dragState.moved) {
-            var b = blocksData[dragState.idx];
-            b.pos = b.pos || {}; b.pos[currentBP] = b.pos[currentBP] || {};
-            b.pos[currentBP].x = Math.round(dragState.curX);
-            b.pos[currentBP].y = Math.round(dragState.curY);
-            syncPosPanel();
-        }
-        dragState = null;
-    }
-
-    var resizeState = null;
-    function startResize(e, idx, el) {
-        e.preventDefault();
-        e.stopPropagation();
-        resizeState = { idx: idx, el: el, startX: e.clientX, origW: parseFloat(el.style.width) || 300, curW: 0, moved: false };
-        document.addEventListener('mousemove', onResizeMove);
-        document.addEventListener('mouseup', onResizeEnd);
-    }
-    function onResizeMove(e) {
-        if (!resizeState) return;
-        var dw = e.clientX - resizeState.startX;
-        if (Math.abs(dw) > 2) resizeState.moved = true;
-        var nw = Math.max(40, resizeState.origW + dw);
-        resizeState.el.style.width = nw + 'px';
-        resizeState.curW = nw;
-    }
-    function onResizeEnd() {
-        document.removeEventListener('mousemove', onResizeMove);
-        document.removeEventListener('mouseup', onResizeEnd);
-        if (resizeState && resizeState.moved) {
-            var b = blocksData[resizeState.idx];
-            b.pos = b.pos || {}; b.pos[currentBP] = b.pos[currentBP] || {};
-            b.pos[currentBP].w = Math.round(resizeState.curW);
-            syncPosPanel();
-        }
-        resizeState = null;
-    }
-
-    function selectBlock(idx) {
-        try {
-            selectedIndex = idx;
-            var items = document.querySelectorAll('#freeSurface .block-item.free');
-            items.forEach(function(it) { it.classList.remove('selected'); });
-            if (items[idx]) items[idx].classList.add('selected');
-            var panel = document.getElementById('posPanel');
-            if (panel) panel.style.display = 'block';
-            var lbl = document.getElementById('posDevLabel');
-            if (lbl && devices[currentDevice]) lbl.textContent = devices[currentDevice].label;
-            syncPosPanel();
-            /* Open sidebar editor too */
-            openEditSidebar(idx);
-        } catch(e) { console.error('selectBlock error:', e); }
-    }
-    function syncPosPanel() {
-        if (selectedIndex < 0) return;
-        var eff = effectivePos(blocksData[selectedIndex], currentBP) || {x:0,y:0,w:300,z:1};
-        document.getElementById('posX').value = Math.round(eff.x);
-        document.getElementById('posY').value = Math.round(eff.y);
-        document.getElementById('posW').value = Math.round(eff.w);
-        document.getElementById('posZ').value = Math.round(eff.z);
-    }
-    function posInput() {
-        if (selectedIndex < 0) return;
-        var b = blocksData[selectedIndex];
-        b.pos = b.pos || {}; b.pos[currentBP] = b.pos[currentBP] || {};
-        b.pos[currentBP].x = parseInt(document.getElementById('posX').value) || 0;
-        b.pos[currentBP].y = parseInt(document.getElementById('posY').value) || 0;
-        b.pos[currentBP].w = parseInt(document.getElementById('posW').value) || 300;
-        b.pos[currentBP].z = parseInt(document.getElementById('posZ').value) || 1;
-        var el = document.querySelectorAll('#freeSurface .block-item.free')[selectedIndex];
-        if (el) { el.style.left = b.pos[currentBP].x + 'px'; el.style.top = b.pos[currentBP].y + 'px'; el.style.width = b.pos[currentBP].w + 'px'; el.style.zIndex = b.pos[currentBP].z; }
-    }
-    function layerBlock(dir) {
-        if (selectedIndex < 0) return;
-        var b = blocksData[selectedIndex];
-        b.pos = b.pos || {}; b.pos[currentBP] = b.pos[currentBP] || {};
-        b.pos[currentBP].z = (b.pos[currentBP].z || 1) + dir;
-        syncPosPanel();
-        var el = document.querySelectorAll('#freeSurface .block-item.free')[selectedIndex];
-        if (el) el.style.zIndex = b.pos[currentBP].z;
-    }
-    function deleteSelectedBlock() {
-        if (selectedIndex < 0) return;
-        if (!confirm('این بلاک حذف شود؟')) return;
-        var items = document.querySelectorAll('#freeSurface .block-item.free');
-        if (items[selectedIndex]) items[selectedIndex].remove();
-        blocksData.splice(selectedIndex, 1);
-        selectedIndex = -1;
-        document.getElementById('posPanel').style.display = 'none';
-        updateFreeIndices();
-    }
-    function deselectBlock() {
-        selectedIndex = -1;
-        var panel = document.getElementById('posPanel');
-        if (panel) panel.style.display = 'none';
-        document.querySelectorAll('#freeSurface .block-item.free').forEach(function(it) { it.classList.remove('selected'); });
-    }
-
-    function switchDevice(dev) {
-        currentDevice = dev;
-        currentBP = devices[dev].bp;
-        document.querySelectorAll('#deviceSeg button').forEach(function(b) { b.classList.toggle('active', b.dataset.dev === dev); });
-        var frame = document.getElementById('previewFrame');
-        if (frame) frame.style.width = devices[dev].w + 'px';
-        if (positionMode) {
-            renderFree();
-            var lbl = document.getElementById('posDevLabel');
-            if (lbl) lbl.textContent = devices[dev].label;
-            if (selectedIndex >= 0) syncPosPanel();
-        }
-    }
-
-    function setPositionMode(mode) {
-        positionMode = !!mode;
-        document.querySelectorAll('#modeSeg button').forEach(function(b) { b.classList.toggle('active', parseInt(b.dataset.mode) === mode); });
-        if (positionMode) {
-            var y = 20, sw = devices[currentDevice].w;
-            blocksData.forEach(function(b, i) {
-                b.pos = b.pos || {};
-                if (!b.pos.desktop) {
-                    b.pos.desktop = {x: 20, y: y, w: Math.min(600, sw - 60), z: i + 1};
-                    y += 140;
-                }
-            });
-            renderFree();
-        } else {
-            deselectBlock();
-            renderStacked();
-        }
-    }
-
-    function setMobileMode(mm) {
-        mobileMode = mm;
-        document.querySelectorAll('#mobileSeg button').forEach(function(b) { b.classList.toggle('active', b.dataset.mm === mm); });
-        refreshPreview();
-    }
-
-    function convertToFree() { setPositionMode(1); }
-
-    function saveBlocks(pageId) {
-        var btn = document.getElementById('saveBlocksBtn');
-        btn.disabled = true;
-        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> در حال ذخیره...';
-        var fd = new FormData();
-        fd.append('block_page_id', pageId);
-        fd.append('blocks_data', JSON.stringify(blocksData));
-        fd.append('cache', '1');
-        fd.append('position_mode', positionMode ? '1' : '0');
-        fd.append('mobile_mode', mobileMode);
-        fetch('<?= BASE_URL ?>mod/builder/save', { method: 'POST', body: fd })
-        .then(function(r) { return r.json(); })
-        .then(function(res) {
-            if (res.success) {
-                btn.innerHTML = '<i class="fa-solid fa-check"></i> ذخیره شد';
-                refreshPreview();
-                setTimeout(function() { btn.innerHTML = '<i class="fa-solid fa-save"></i> ذخیره تغییرات'; btn.disabled = false; }, 2000);
-            } else {
-                btn.innerHTML = '<i class="fa-solid fa-times"></i> خطا';
-                setTimeout(function() { btn.innerHTML = '<i class="fa-solid fa-save"></i> ذخیره تغییرات'; btn.disabled = false; }, 3000);
-            }
-        });
-    }
-
-    function refreshPreview() {
-        var frame = document.getElementById('previewFrame');
-        if (frame) frame.src = frame.src.split('?')[0] + '?t=' + Date.now();
-    }
-
-    function refreshCanvasContent() {
-        if (!blocksData.length) return;
-        fetch('<?= BASE_URL ?>mod/builder/render_blocks', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ blocks: blocksData })
-        }).then(function(r) { return r.json(); }).then(function(res) {
-            if (!res || !res.html) return;
-            var els = document.querySelectorAll('.builder-canvas .block-content-preview');
-            for (var i = 0; i < els.length && i < res.html.length; i++) {
-                els[i].innerHTML = res.html[i];
-            }
-        }).catch(function() {});
-    }
-
-    function selectImage(btn) {
-        var input = btn.previousElementSibling;
-        var url = prompt('آدرس URL تصویر:');
-        if (url) input.value = url;
-    }
-
-    function clearCache(pageId) {
-        fetch('<?= BASE_URL ?>mod/builder/clear_cache/' + pageId)
-        .then(function(r) { return r.json(); })
-        .then(function(res) { alert(res.success ? 'کش پاک شد' : 'خطا'); });
-    }
-
-    function toggleSidebar() {
-        var w = document.getElementById('builderWrap');
-        w.classList.toggle('hide-chips');
-        try { localStorage.setItem('builder_chips_hidden', w.classList.contains('hide-chips') ? '1' : ''); } catch(e){}
-    }
-    function togglePreview() {
-        var w = document.getElementById('builderWrap');
-        w.classList.toggle('hide-preview');
-        try { localStorage.setItem('builder_preview_hidden', w.classList.contains('hide-preview') ? '1' : ''); } catch(e){}
-        applyColumns();
-    }
-    function toggleCanvas() {
-        var w = document.getElementById('builderWrap');
-        w.classList.toggle('hide-canvas');
-        try { localStorage.setItem('builder_canvas_hidden', w.classList.contains('hide-canvas') ? '1' : ''); } catch(e){}
-        applyColumns();
-    }
-    var currentLayout = 'split';
-    function toggleLayout(mode) {
-        var w = document.getElementById('builderWrap');
-        if (!w) return;
-        if (mode === 'split') {
-            w.classList.remove('layout-stack', 'layout-preview');
-            w.style.gridTemplateColumns = (canvasW || '1fr') + ' 6px 1fr';
-            w.style.flexDirection = 'row';
-            currentLayout = 'split';
-        } else if (mode === 'stack') {
-            w.classList.remove('layout-preview');
-            w.classList.add('layout-stack');
-            w.style.flexDirection = 'column';
-            var h = window.innerHeight - 100;
-            w.style.gridTemplateColumns = '1fr';
-            w.style.gridTemplateRows = (h * 0.4) + 'px 6px ' + (h * 0.6) + 'px';
-            currentLayout = 'stack';
-        } else if (mode === 'preview') {
-            w.classList.add('layout-preview');
-            w.classList.remove('layout-stack');
-            w.style.gridTemplateColumns = '0px 0px 1fr';
-            w.style.flexDirection = 'row';
-            currentLayout = 'preview';
-        }
-        try { localStorage.setItem('builder_layout', currentLayout); } catch(e){}
-    }
-    var canvasW = null; // عرض بوم (px) یا null برای 1fr
-    function applyColumns() {
-        var w = document.getElementById('builderWrap');
-        if (!w) return;
-        var layout = currentLayout;
-        if (layout === 'preview') return;
-        var hideC = w.classList.contains('hide-canvas');
-        var hideP = w.classList.contains('hide-preview');
-        var sp = document.getElementById('builderSplitter');
-        if (layout === 'stack') {
-            if (sp) sp.style.display = 'none';
-            return;
-        }
-        if (hideC || hideP) {
-            if (sp) sp.style.display = 'none';
-            if (hideC && hideP) w.style.gridTemplateColumns = '0px 6px 0px';
-            else if (hideC) w.style.gridTemplateColumns = '0px 6px 1fr';
-            else w.style.gridTemplateColumns = (canvasW || '1fr') + ' 6px 0px';
-        } else {
-            if (sp) sp.style.display = 'block';
-            w.style.gridTemplateColumns = (canvasW || '1fr') + ' 6px 1fr';
-        }
-    }
-    (function initSplitter() {
-        var sp = document.getElementById('builderSplitter');
-        var w = document.getElementById('builderWrap');
-        var frame = document.getElementById('previewFrame');
-        if (!sp || !w) return;
-        var dragging = false;
-        sp.addEventListener('mousedown', function(e) {
-            dragging = true; sp.classList.add('dragging');
-            document.body.style.cursor = 'col-resize';
-            document.body.style.userSelect = 'none';
-            if (frame) frame.style.pointerEvents = 'none';
+        function begin(e) {
+            var card = e.target.closest('.pb-block-card');
+            if (!card || e.button !== 0) return;
+            curType = card.dataset.btype;
+            started = false;
+            try { card.setPointerCapture(e.pointerId); } catch(err) {}
+            card.addEventListener('pointermove', onMove);
+            card.addEventListener('pointerup', onUp);
+            card.addEventListener('pointercancel', onCancel);
             e.preventDefault();
-        });
-        document.addEventListener('mousemove', function(e) {
-            if (!dragging) return;
-            var rect = w.getBoundingClientRect();
-            var x = e.clientX - rect.left;
-            var isRTL = getComputedStyle(w).direction === 'rtl';
-            var min = 260, max = rect.width - 320;
-            var cw = isRTL ? (rect.width - x - 6) : x;
-            if (cw < min) cw = min;
-            if (cw > max) cw = max;
-            canvasW = cw;
-            w.style.gridTemplateColumns = cw + 'px 6px 1fr';
-        });
-        document.addEventListener('mouseup', function() {
-            if (dragging) {
-                dragging = false; sp.classList.remove('dragging');
-                document.body.style.cursor = '';
-                document.body.style.userSelect = '';
-                if (frame) frame.style.pointerEvents = '';
+        }
+        function onMove(e) {
+            if (!ghost && !started) {
+                started = true;
+                makeGhost(curType);
+                document.body.classList.add('pb-pal-drag');
             }
+            if (!started) return;
+            ghost.style.left = (e.clientX + 12) + 'px';
+            ghost.style.top = (e.clientY + 14) + 'px';
+            var now = Date.now();
+            if (now - lastSent < 35) return;
+            lastSent = now;
+            var L = toLocal(e);
+            toFrame({ type:'builderDragMove', btype:curType, x:L.x, y:L.y, inside:L.inside, alt:e.altKey });
+        }
+        function detach(card) {
+            card.removeEventListener('pointermove', onMove);
+            card.removeEventListener('pointerup', onUp);
+            card.removeEventListener('pointercancel', onCancel);
+            document.body.classList.remove('pb-pal-drag');
+            if (ghost) { ghost.remove(); ghost = null; }
+        }
+        function onUp(e) {
+            var card = e.currentTarget;
+            detach(card);
+            if (!started) { opInsert(curType, -1, null); return; } /* کلیک ساده */
+            var L = toLocal(e);
+            toFrame({ type:'builderDragDrop', btype:curType, x:L.x, y:L.y, inside:L.inside, alt:e.altKey });
+        }
+        function onCancel(e) { detach(e.currentTarget); toFrame({ type:'builderDragCancel' }); }
+        Array.prototype.forEach.call(document.querySelectorAll('.pb-block-card'), function(card) {
+            card.addEventListener('pointerdown', begin);
+            card.style.touchAction = 'none';
         });
     })();
-    function fullscreenPreview() {
-        var p = document.getElementById('builderPreview');
-        if (p.classList.contains('fullscreen')) {
-            p.classList.remove('fullscreen');
-        } else {
-            p.classList.add('fullscreen');
-        }
-    }
 
-    if (positionMode) { renderFree(); }
-    else { renderStacked(); }
-    try {
-        if (localStorage.getItem('builder_chips_hidden') === '1') document.getElementById('builderWrap').classList.add('hide-chips');
-        if (localStorage.getItem('builder_preview_hidden') === '1') document.getElementById('builderWrap').classList.add('hide-preview');
-        if (localStorage.getItem('builder_canvas_hidden') === '1') document.getElementById('builderWrap').classList.add('hide-canvas');
-    } catch(e){}
-    canvasW = null;
-    applyColumns();
-    document.addEventListener('keydown', function(e) {
-        if ((e.key === 'Delete' || e.key === 'Backspace') && positionMode && selectedIndex >= 0 && !e.target.closest('input,textarea,select,[contenteditable]')) {
-            e.preventDefault();
-            deleteSelectedBlock();
-        }
-    });
+    /* ---------- boot ---------- */
+    applyDeviceScale();
+    scheduleAutosaveCheck();
+    updateEmptyOverlay();
     </script>
     <?php
     include __DIR__ . '/../../ghaleb/ghmod/panevis.php';
 }
 
 function builder_save_blocks() {
-    header('Content-Type: application/json');
+    header('Content-Type: application/json; charset=utf-8');
+    /* آزادسازی قفل سشن: درخواست‌های همزمان (ذخیره/رندر/پیش‌نمایش) دیگر پشت هم صف نمی‌شوند */
+    if (function_exists('session_write_close')) { @session_write_close(); }
+    @set_time_limit(90);
+
     $block_page_id = (int)($_POST['block_page_id'] ?? 0);
     $blocks_data = $_POST['blocks_data'] ?? '[]';
-    $cache = !empty($_POST['cache']);
+    $light       = !empty($_POST['light']);   // ذخیره خودکار سبک: فقط JSON
     $position_mode = !empty($_POST['position_mode']) ? 1 : 0;
     $mobile_mode = in_array($_POST['mobile_mode'] ?? '', ['auto', 'exact']) ? $_POST['mobile_mode'] : 'auto';
     if (!$block_page_id) {
@@ -1613,50 +1380,67 @@ function builder_save_blocks() {
     $bank = new Bank();
     $conn = $bank->getConnection();
 
-    $stmt = $conn->prepare("SELECT id, page_id, position_mode, mobile_mode FROM block_pages WHERE id = ?");
+    $stmt = $conn->prepare("SELECT id, page_id, page_type, position_mode, mobile_mode FROM block_pages WHERE id = ?");
     $stmt->bind_param("i", $block_page_id);
     $stmt->execute();
     $row = $stmt->get_result()->fetch_assoc();
     $stmt->close();
 
     if ($row) {
+        if ($light) {
+            /* سبک: بدون رندر و sync؛ کش قدیم باطل می‌شود تا فرانت کهنه نماند */
+            $stmt = $conn->prepare("UPDATE block_pages SET blocks_data = ?, position_mode = ?, mobile_mode = ?, cached_html = NULL, cache_updated = NULL WHERE id = ?");
+            $stmt->bind_param("sisi", $blocks_data, $position_mode, $mobile_mode, $block_page_id);
+            $stmt->execute();
+            $stmt->close();
+            $conn->close();
+            echo json_encode(['success' => true, 'mode' => 'light']);
+            exit;
+        }
+        /* کامل: JSON + باطل‌سازی کش */
         $stmt = $conn->prepare("UPDATE block_pages SET blocks_data = ?, position_mode = ?, mobile_mode = ?, cached_html = NULL, cache_updated = NULL WHERE id = ?");
-        $stmt->bind_param("isis", $blocks_data, $position_mode, $mobile_mode, $block_page_id);
+        $stmt->bind_param("sisi", $blocks_data, $position_mode, $mobile_mode, $block_page_id);
     } else {
         $stmt = $conn->prepare("INSERT INTO block_pages (id, page_id, page_type, blocks_data, position_mode, mobile_mode) VALUES (?, 0, 'safhe', ?, ?, ?)");
         $stmt->bind_param("isiss", $block_page_id, $blocks_data, $position_mode, $mobile_mode);
     }
     $stmt->execute();
     $stmt->close();
-    $conn->close();
 
     $blocks = json_decode($blocks_data, true) ?: [];
+
+    /* رندر همه بلاکها با یک کانکشن مشترک (بدون اتصال جدا برای هر بلاک) */
+    $page_type = $row['page_type'] ?? 'safhe';
     if ($position_mode) {
-        $html = '<div class="builder-free-canvas">' . builder_build_positions_css($blocks, $mobile_mode) . builder_render_blocks($blocks, true) . '</div>';
+        $html = '<div class="builder-free-canvas">' . builder_build_positions_css($blocks, $mobile_mode, true) . builder_render_blocks($blocks, true, $bank) . '</div>';
     } else {
-        $html = builder_render_blocks($blocks, false);
+        $any_free = false;
+        foreach ($blocks as $__b) { if (!empty($__b['free'])) { $any_free = true; break; } }
+        $inner = builder_render_blocks($blocks, false, $bank);
+        $html = $any_free
+            ? '<div class="builder-free-canvas">' . builder_build_positions_css($blocks, $mobile_mode, true) . $inner . '</div>'
+            : $inner;
     }
 
-    // همگام‌سازی محتوای رندرشده با جدول مربوطه (پست/محصول/خدمت)
+    /* همگام‌سازی محتوای رندرشده با جدول مربوطه (پست/محصول/خدمت) */
     if ($row && (int)$row['page_id'] > 0) {
-        builder_sync_content($row['page_type'], (int)$row['page_id'], $html);
+        builder_sync_content($row['page_type'] ?? $page_type, (int)$row['page_id'], $html, $bank);
     }
 
-    if ($cache && $blocks) {
-        $bank = new Bank();
-        $conn = $bank->getConnection();
-        $stmt = $conn->prepare("UPDATE block_pages SET cached_html = ? WHERE id = ?");
+    /* کش پیش‌فرض روشن: نتیجه ذخیره می‌شود تا بازدیدهای بعدی سریع باشند */
+    if ($blocks) {
+        $stmt = $conn->prepare("UPDATE block_pages SET cached_html = ?, cache_updated = NOW() WHERE id = ?");
         $stmt->bind_param("si", $html, $block_page_id);
         $stmt->execute();
         $stmt->close();
-        $conn->close();
     }
+    $conn->close();
 
-    echo json_encode(['success' => true]);
+    echo json_encode(['success' => true, 'mode' => 'full']);
     exit;
 }
 
-function builder_sync_content($page_type, $page_id, $html) {
+function builder_sync_content($page_type, $page_id, $html, $bank = null) {
     $map = [
         'blog'     => ['posts', 'content'],
         'maghaleh' => ['posts', 'content'],
@@ -1667,17 +1451,17 @@ function builder_sync_content($page_type, $page_id, $html) {
     ];
     if (!isset($map[$page_type])) return;
     list($table, $col) = $map[$page_type];
-    $bank = new Bank();
+    if ($bank === null) { $bank = new Bank(); }
     $conn = $bank->getConnection();
     $stmt = $conn->prepare("UPDATE $table SET $col = ? WHERE id = ?");
     $stmt->bind_param("si", $html, $page_id);
     $stmt->execute();
     $stmt->close();
-    $conn->close();
 }
 
 function builder_clear_cache($block_page_id) {
-    header('Content-Type: application/json');
+    header('Content-Type: application/json; charset=utf-8');
+    if (function_exists('session_write_close')) { @session_write_close(); }
     $bank = new Bank();
     $conn = $bank->getConnection();
     $stmt = $conn->prepare("UPDATE block_pages SET cached_html = NULL, cache_updated = NULL WHERE id = ?");
@@ -1697,32 +1481,60 @@ function builder_render_page($block_page_id, $use_cache = true) {
     $stmt->execute();
     $bp = $stmt->get_result()->fetch_assoc();
     $stmt->close();
-    $conn->close();
-    if (!$bp)     return '';
-    if ($use_cache && $bp['cached_html']) return $bp['cached_html'];
+    if (!$bp) { $conn->close(); return ''; }
+    /* کش با عمر کوتاه (۵ دقیقه): بازدیدهای پشت‌سرهم از کش؛ بلاکهای داینامیک حداکثر ۵ دقیقه کهنه می‌مانند */
+    $__ttl_fresh = false;
+    if ($use_cache && $bp['cached_html']) {
+        $__ts = $bp['cache_updated'] ? strtotime($bp['cache_updated']) : 0;
+        if ($__ts && (time() - $__ts) < 300) {
+            $conn->close();
+            return $bp['cached_html'];
+        }
+        $__ttl_fresh = true;
+    }
     $blocks = json_decode($bp['blocks_data'], true) ?: [];
+    $html = '';
+    $is_free_wrap = false;
     if (empty($blocks)) {
         if ($bp['page_id']) {
-            $bank2 = new Bank();
-            $c2 = $bank2->getConnection();
-            $r = $c2->query("SELECT content FROM posts WHERE id = " . (int)$bp['page_id']);
+            $r = $conn->query("SELECT content FROM posts WHERE id = " . (int)$bp['page_id']);
             $row = $r ? $r->fetch_assoc() : null;
-            $c2->close();
-            if ($row) return '<div class="mohtava-container" style="padding:40px 0;">' . $row['content'] . '</div>';
+            if ($row) { $html = '<div class="mohtava-container" style="padding:40px 0;">' . $row['content'] . '</div>'; }
         }
-        return '';
+    } else {
+        if (!empty($bp['position_mode'])) {
+            $css = builder_build_positions_css($blocks, $bp['mobile_mode'] ?? 'auto', !empty($bp['position_mode']));
+            $html = '<div class="builder-free-canvas">' . $css . builder_render_blocks($blocks, true, $bank) . '</div>';
+            $is_free_wrap = true;
+        } else {
+            $any_free = false;
+            foreach ($blocks as $__b) { if (!empty($__b['free'])) { $any_free = true; break; } }
+            $inner = builder_render_blocks($blocks, false, $bank);
+            if ($any_free) {
+                $html = '<div class="builder-free-canvas">' . builder_build_positions_css($blocks, $bp['mobile_mode'] ?? 'auto', !empty($bp['position_mode'])) . $inner . '</div>';
+                $is_free_wrap = true;
+            } else {
+                $html = $inner;
+            }
+        }
     }
-    if (!empty($bp['position_mode'])) {
-        $css = builder_build_positions_css($blocks, $bp['mobile_mode'] ?? 'auto');
-        return '<div class="builder-free-canvas">' . $css . builder_render_blocks($blocks, true) . '</div>';
+    /* کش خودکار: اولین بازدید (یا منقضی‌شده) رندر می‌کند و نتیجه کش می‌شود */
+    if ($use_cache && $html !== '' && $__ttl_fresh) {
+        $stmt = $conn->prepare("UPDATE block_pages SET cached_html = ?, cache_updated = NOW() WHERE id = ?");
+        $stmt->bind_param("si", $html, $block_page_id);
+        $stmt->execute();
+        $stmt->close();
     }
-    return builder_render_blocks($blocks, false);
+    $conn->close();
+    return $html;
 }
 
-function builder_build_positions_css($blocks, $mobile_mode = 'auto') {
+function builder_build_positions_css($blocks, $mobile_mode = 'auto', $all_free = false) {
     $bps = builder_breakpoints();
     $css = '<style class="builder-pos-css">';
     foreach ($blocks as $i => $block) {
+        /* مدل جدید: هر بلاک خودش پرچم free دارد؛ حالت قدیمی: کل صفحه آزاد */
+        if (!$all_free && empty($block['free'])) continue;
         $eff = builder_effective_pos($block);
         $cls = '.bpos-' . $i;
         $hasMobile = !empty($block['pos']['mobile']);
@@ -1753,6 +1565,7 @@ function builder_render_full_page($block_page_id, $context = [], $use_cache = tr
 }
 
 function builder_preview_page($block_page_id) {
+    if (function_exists('session_write_close')) { @session_write_close(); }
     $bank = new Bank();
     $conn = $bank->getConnection();
     $stmt = $conn->prepare("SELECT * FROM block_pages WHERE id = ?");
@@ -1774,24 +1587,30 @@ function builder_preview_page($block_page_id) {
     $edit_body = '';
     if ($edit) {
         $edit_head = '
-            .builder-live-block { position:relative; cursor:pointer; transition:outline .15s; }
+            .builder-live-block { position:relative; cursor:pointer; }
             .builder-live-block:hover { outline:2px dashed var(--rang-asli,#FF6F00); outline-offset:2px; }
-            .builder-live-block.builder-selected { outline:3px solid var(--rang-asli,#FF6F00); outline-offset:2px; }
-            .builder-inline-toolbar { position:fixed; z-index:99999; display:none; gap:2px; background:#fff; border:1px solid #e9ecef; border-radius:8px; padding:4px; box-shadow:0 6px 20px rgba(0,0,0,0.18); }
-            .builder-inline-toolbar button { width:32px; height:32px; border:none; background:#f8f9fa; border-radius:6px; cursor:pointer; color:#444; font-size:13px; }
-            .builder-inline-toolbar button:hover { background:var(--rang-asli,#FF6F00); color:#fff; }
-            .builder-inline-toolbar button.danger:hover { background:#c62828; }
-            .builder-drag-handle { position:absolute; top:4px; left:4px; z-index:50; width:26px; height:26px; border-radius:6px; background:rgba(255,111,0,0.92); color:#fff; display:none; align-items:center; justify-content:center; cursor:grab; font-size:12px; }
-            .builder-live-block:hover > .builder-drag-handle { display:flex; }
-            .builder-live-block { padding-top:6px; }
-            .builder-drop-target { outline:2px dashed #00B894 !important; outline-offset:2px; }
-            .builder-live-block img { cursor:pointer; transition:outline .15s; }
+            .builder-live-block.builder-selected { outline:2px solid var(--rang-asli,#FF6F00); outline-offset:2px; box-shadow:0 0 0 6px rgba(255,111,0,.12); }
+            .builder-live-block.pb-free { cursor:move; }
+            .builder-live-block.pb-free:hover { outline-style:dotted; }
+            .builder-inline-toolbar { position:fixed; z-index:99999; display:none; gap:4px; background:#fff; border:1px solid #e9ecef; border-radius:12px; padding:6px; box-shadow:0 10px 30px rgba(0,0,0,0.25); direction:rtl; }
+            .builder-inline-toolbar button { min-width:38px; height:38px; padding:0 12px; border:none; background:#f8f9fa; border-radius:9px; cursor:pointer; color:#444; font-size:12.5px; font-weight:700; display:inline-flex; align-items:center; gap:7px; font-family:inherit; }
+            .builder-inline-toolbar button:hover { background:#ffe0b2; color:#e65100; }
+            .builder-inline-toolbar button.danger:hover { background:#c62828; color:#fff; }
+            .builder-inline-toolbar button.on { background:var(--rang-asli,#FF6F00); color:#fff; }
+            .builder-drag-handle { position:absolute; top:-14px; right:8px; z-index:60; width:26px; height:26px; border-radius:7px; background:var(--rang-asli,#FF6F00); color:#fff; display:none; align-items:center; justify-content:center; cursor:grab; font-size:12px; box-shadow:0 2px 8px rgba(0,0,0,.25); }
+            .builder-live-block:hover > .builder-drag-handle, .builder-live-block.builder-selected > .builder-drag-handle { display:flex; }
+            .builder-drop-line { height:0; border-top:3px dashed var(--rang-makm2,#00B894); position:relative; margin:2px 0; }
+            .builder-drop-line::after { content:\'\'; position:absolute; right:-4px; top:-7px; width:11px; height:11px; border-radius:50%; background:var(--rang-makm2,#00B894); }
+            .builder-resize-handle { position:absolute; bottom:-6px; left:-6px; width:16px; height:16px; background:var(--rang-asli,#FF6F00); border:2px solid #fff; cursor:nwse-resize; border-radius:50%; z-index:70; display:none; box-shadow:0 1px 6px rgba(0,0,0,.3); }
+            .builder-live-block.builder-selected.pb-free > .builder-resize-handle { display:block; }
+            .builder-pos-hud { position:fixed; z-index:99999; background:rgba(38,38,42,.92); color:#fff; font-size:11px; font-family:monospace; padding:3px 8px; border-radius:5px; pointer-events:none; display:none; direction:ltr; }
+            .builder-editing-text { outline:2px solid #0984E3 !important; outline-offset:2px !important; cursor:text !important; min-height:1em; }
+            .builder-live-block img { cursor:pointer; }
             .builder-live-block img:hover { outline:2px dashed #0984E3; outline-offset:2px; }
-            .builder-live-block a.dakmeh:hover, .builder-live-block a.btn:hover { outline:2px dashed #00B894; outline-offset:2px; }
+            body.pb-is-dragging { cursor:copy !important; }
+            body.pb-is-dragging * { cursor:copy !important; }
         ';
-        $edit_body = '<script src="' . $site_url . 'manabe/js/sadastEditor.js"></script>';
-        $edit_body .= '<script src="' . $site_url . 'manabe/js/safhesaz.js"></script>';
-        $edit_body .= '<script src="' . $site_url . 'mohtava/sakhtar/inline-editor.js"></script>';
+        $edit_body = '<script src="' . $site_url . 'mohtava/sakhtar/inline-editor.js?v=2"></script>';
     }
     $font_css = "<style>"
         . "@font-face{font-family:'Vazirmatn';src:url({$site_url}ghaleb/manabe/fonts/Vazirmatn-RD-Regular.woff2) format('woff2');font-weight:400;font-display:swap;}"
@@ -1920,52 +1739,128 @@ function builder_render_for($kind, $subtype = null, $slug = null) {
     return '';
 }
 
-function builder_render_blocks($blocks, $free = false) {
+function builder_render_blocks($blocks, $free = false, $bank = null) {
     $html = '';
     foreach ($blocks as $i => $block) {
-        $html .= builder_render_block($block, $i, $free);
+        $html .= builder_render_block($block, $i, $free, $bank);
     }
     return $html;
 }
 
-function builder_render_block($block, $index = 0, $free = false) {
+function builder_render_block($block, $index = 0, $free = false, $bank = null) {
     $type = $block['type'] ?? 'text';
     $data = $block['data'] ?? [];
     $func = 'block_' . $type . '_render';
     if (function_exists($func)) {
-        $inner = call_user_func($func, $data);
+        /* کانکشن مشترک فقط به بلاکهای داینامیک پاس داده می‌شود */
+        $ref = new ReflectionFunction($func);
+        $inner = $ref->getNumberOfParameters() >= 2
+            ? call_user_func($func, $data, $bank)
+            : call_user_func($func, $data);
     } else {
         $inner = '<div style="padding:20px;background:#fff3e0;border:1px solid #FF6F00;border-radius:8px;margin:16px 0;color:#e65100;text-align:center;">بلاک «' . htmlspecialchars($type) . '» فعال نیست</div>';
     }
     if ($free) {
         return '<div class="bpos-' . $index . '" data-block-index="' . $index . '">' . $inner . '</div>';
     }
-    return '<div data-block-index="' . $index . '">' . $inner . '</div>';
+    return '<div class="bpos-' . $index . '" data-block-index="' . $index . '">' . $inner . '</div>';
 }
 
-function builder_render_block_inner($block) {
+function builder_render_block_inner($block, $bank = null) {
     $type = $block['type'] ?? 'text';
     $data = $block['data'] ?? [];
     $func = 'block_' . $type . '_render';
     if (function_exists($func)) {
-        return call_user_func($func, $data);
+        $ref = new ReflectionFunction($func);
+        return $ref->getNumberOfParameters() >= 2
+            ? call_user_func($func, $data, $bank)
+            : call_user_func($func, $data);
     }
     return '<div style="padding:20px;background:#fff3e0;border:1px solid #FF6F00;border-radius:8px;margin:16px 0;color:#e65100;text-align:center;">بلاک «' . htmlspecialchars($type) . '» فعال نیست</div>';
 }
 
 function builder_render_blocks_api() {
     header('Content-Type: application/json; charset=utf-8');
-    $raw = $_POST['blocks'] ?? '';
-    if ($raw === '') {
-        $input = json_decode(file_get_contents('php://input'), true);
-        $raw = $input['blocks'] ?? '[]';
-    }
-    $blocks = json_decode($raw, true) ?: [];
+    if (function_exists('session_write_close')) { @session_write_close(); }
+    /* پشتیبانی از multipart و JSON و آرایه مستقیم */
+    $raw = $_POST['blocks'] ?? file_get_contents('php://input');
+    $decoded = is_array($raw) ? $raw : (json_decode((string)$raw, true) ?: []);
+    if (isset($decoded['blocks']) && is_array($decoded['blocks'])) { $decoded = $decoded['blocks']; }
+    $blocks = is_array($decoded) ? $decoded : [];
     $out = [];
     foreach ($blocks as $b) {
         $out[] = builder_render_block_inner($b);
     }
     echo json_encode(['html' => $out], JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
+/* ===== آپلود تصویر از داخل صفحه‌ساز (به کتابخانه فایلها) ===== */
+function builder_upload_image() {
+    header('Content-Type: application/json; charset=utf-8');
+    if (!function_exists('upload_download_file')) {
+        require_once MASIR_RISH . 'mohtava/file/file-functions.php';
+    }
+    $res = upload_download_file('image', 'builder/');
+    if (!empty($res['error'])) {
+        echo json_encode(['success' => false, 'message' => $res['error']], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+    $url = isset($res['url']) ? $res['url'] : FILES_URL . 'builder/' . ($res['name'] ?? '');
+    echo json_encode(['success' => true, 'url' => $url], JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
+/* ===== لیست تصاویر کتابخانه برای انتخابگر صفحه‌ساز ===== */
+function builder_list_images() {
+    header('Content-Type: application/json; charset=utf-8');
+    if (function_exists('session_write_close')) { @session_write_close(); }
+    if (!defined('FILES_DIR')) { require_once MASIR_DADE . '../haste/tanzimat.php'; }
+    $exts = ['jpg','jpeg','png','gif','webp','svg','avif'];
+    $urls = [];
+    $dir = defined('FILES_DIR') ? FILES_DIR : (UPLOADS_DIR . 'files/');
+    $base_len = strlen(str_replace('\\', '/', $dir));
+    $rii = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS));
+    foreach ($rii as $f) {
+        if (!$f->isFile()) continue;
+        $e = strtolower(pathinfo($f->getFilename(), PATHINFO_EXTENSION));
+        if (!in_array($e, $exts, true)) continue;
+        $rel = ltrim(str_replace('\\', '/', substr(str_replace('\\', '/', $f->getPathname()), $base_len)), '/');
+        $urls[] = ['url' => FILES_URL . $rel, 'time' => $f->getMTime()];
+        if (count($urls) >= 300) break;
+    }
+    usort($urls, function($a,$b){ return $b['time'] <=> $a['time']; });
+    echo json_encode(['success' => true, 'images' => array_map(function($x){ return $x['url']; }, $urls)], JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
+/* ===== تنظیمات صفحه‌ساز (فاصله ذخیره خودکار و ...) ===== */
+function builder_get_settings_value() {
+    $defaults = ['autosave_enabled' => 1, 'autosave_min' => 10];
+    $s = function_exists('site_settings_all') ? site_settings_all() : null;
+    if (is_array($s) && isset($s['builder'])) {
+        return array_merge($defaults, is_array($s['builder']) ? $s['builder'] : []);
+    }
+    if (defined('SITE_SETTINGS_FILE') && file_exists(SITE_SETTINGS_FILE)) {
+        $j = json_decode((string)file_get_contents(SITE_SETTINGS_FILE), true);
+        if (is_array($j) && isset($j['builder'])) return array_merge($defaults, is_array($j['builder']) ? $j['builder'] : []);
+    }
+    return $defaults;
+}
+
+function builder_save_settings() {
+    header('Content-Type: application/json; charset=utf-8');
+    if (!defined('SITE_SETTINGS_FILE')) { echo json_encode(['success'=>false]); exit; }
+    $enabled = !empty($_POST['autosave_enabled']) ? 1 : 0;
+    $min = max(1, min(120, (int)($_POST['autosave_min'] ?? 10)));
+    $j = [];
+    if (file_exists(SITE_SETTINGS_FILE)) {
+        $j = json_decode((string)file_get_contents(SITE_SETTINGS_FILE), true);
+        if (!is_array($j)) $j = [];
+    }
+    $j['builder'] = ['autosave_enabled' => $enabled, 'autosave_min' => $min];
+    @file_put_contents(SITE_SETTINGS_FILE, json_encode($j, JSON_UNESCAPED_UNICODE|JSON_PRETTY_PRINT), LOCK_EX);
+    echo json_encode(['success' => true]);
     exit;
 }
 

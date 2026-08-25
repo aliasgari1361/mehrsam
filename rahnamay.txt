@@ -255,14 +255,27 @@ block_pages     → داده‌های صفحه‌ساز (JSON blocks)
 template_sections → بخش‌های محتوایی قالب
 ```
 
-### ۹.۵ صفحه‌ساز (Page Builder)
-- **محل فایل:** mohtava/sakhtar/builder.php + mohtava/sakhtar/blocks/block-types.php
-- **نوع:** ویرایشگر واحد برای تمام محتوا
-- **ذخیره‌سازی:** JSON در ستون `blocks_data` جدول `block_pages`
-- **۱۲ نوع بلاک:** heading, text, image, gallery, button, divider, columns, video, services, products, custom, map, counter
-- **۶ حالت ریسپانسیو:** عریض/دسکتاپ/تبلت افقی/عمودی/موبایل افقی/عمودی
-- **حالت‌ها:** لیستی (پیش‌فرض) + آزاد (اختیاری) در یک بوم واحد
+### ۹.۵ صفحه‌ساز (Page Builder) — نگارش ۲ (سبک المنتور)
+- **محل فایل:** mohtava/sakhtar/builder.php + blocks/block-types.php + inline-editor.js (موتور ویرایش زنده داخل پیشنمایش)
+- **معماری:** پنل چپ ~۲۰٪ قابل تغییر اندازه (پالت بلاک + تنظیمات بلاک انتخابی + تب ⚙️ تنظیمات) + پیشنمایش زنده iframe = محل اصلی ویرایش
+- **ویرایش مستقیم روی پیشنمایش:** کلیک = انتخاب + تولبار شناور (تنظیمات/تصویر/تکثیر/بالا/پایین/آزاد/حذف با متن)، دابلکلیک متن = ویرایش درجا
+- **درگ:** خطی (بین بلاکها، خط راهنمای سبز) با Pointer Capture از پالت؛ Alt+رها = درج آزاد زیر موس؛ دکمه «آزاد» در تولبار = موقعیت X/Y/W/Z برای هر بلاک به تفکیک دستگاه
+- **مهم:** هدر/فوترِ قالب هم data-block-index دارند؛ همه محاسبات ایندکس فقط در `.builder-edit-root` (محتوای اصلی) scope میشود — هرگز global نشمار
+- **ذخیره‌سازی:** همان JSON `blocks_data` جدول `block_pages` (سازگار با صفحات قدیمی؛ پرچم `free` per-block جدید است)
+- **ذخیره دوگانه:** manual کامل (JSON+رندر+sync+کش) / autosave سبک (`light=1` فقط JSON) — فاصله autosave در site_settings.json کلید `builder` (پیشفرض ۱۰ دقیقه، از تب ⚙️)
+- **سرعت:** `session_write_close()` ابتدای save/render/preview + یک کانکشن Bank مشترک برای کل رندر (پارامتر `$bank` تا block_*_render پاس میشود)
+- **کش رندر:** پیشفرض روشن با TTL ۵ دقیقه (`cached_html` + `cache_updated`)؛ light-save کش را NULL میکند و اولین بازدید بعدی دوباره پر میکند
+- **انتخاب تصویر:** مودال سهکاره (کتابخانه `mod/builder/list_images` / آپلود `mod/builder/upload_image` → FILES_DIR/builder/ / URL دستی)
+- **۶ حالت ریسپانسیو:** حفظ شده (قانون بخش ۷) — سوییچ دستگاه بالای صحنه؛ عرض iframe با scale-to-fit
+- **safhesaz.js مرده حذف شد** — ویرایشگرهای فعال: SadastEditor (فیلدهای html پنل) + inline-editor.js (iframe). فایل editor.php قدیمی فقط در فرمهای کلاسیک mod است.
+- **۱۳ نوع بلاک:** heading, text, image, gallery, button, divider, columns, video, services, products, custom, map, counter
 - **قالب پیش‌فرض:** mehrsam (قالب شرکتی مدرن RTL)
+
+### ۹.۵.۱ قوانین تغییر صفحه‌ساز
+- ساختار JSON بلاکها را نشکن؛ سازگاری عقب لازم است.
+- هیچ CDN اضافه نشود (قانون ۹.۸)؛ همه اسکریپتها لوکال.
+- تولبار/دکمهها باید متن + آیکون داشته باشند (خوانایی).
+- قبل از هر تغییر ساختاری، بخش «مهم» بالا را ببین: scope ایندکسها.
 
 ### ۹.۶ قالب (Theme)
 - **محل فایل:** ghaleb/{name}/
@@ -352,4 +365,4 @@ template_sections → بخش‌های محتوایی قالب
 - `haste/tanzimat.php` عمداً **کامیت/پوش نمی‌شود** (کانفیگ لوکال DB داخلش است).
   روی لوکال: `DB_PASS=root`, `DB_NAME=mehrsam_db`؛ در ریپو/هاست: `DB_PASS=''`, `DB_NAME=mehrsamdb`.
 ===============================================================
-آخرین به‌روزرسانی: یکپارچه‌سازی ویرایشگر، انتقال خدمات به محتوا، قوانین ریسپانسیو، ادغام اطلاعات فنی README، بخش آپدیت و نگهداری + هشدار ایمیل ورود
+آخرین به‌روزرسانی: بازطراحی کامل صفحه‌ساز (نگارش ۲ — سبک المنتور، ویرایش زنده در پیشنمایش، کش خودکار TTL، autosave سبک) + رفع require خراب mohtava-kontrol + سبد مهمان فقطخواندنی

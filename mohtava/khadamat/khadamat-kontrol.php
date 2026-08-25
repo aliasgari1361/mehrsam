@@ -78,6 +78,8 @@ function khadamat_tan($slug) {
         $meta_sharh   = strip_tags($service['kholaseh'] ?? 'خدمات پشتیبانی کامپیوتر');
         $safhe_faali  = 'khadamat';
         $GLOBALS['khadamat_service'] = $service;
+        $GLOBALS['page_slug'] = $slug;
+        $GLOBALS['page_type'] = 'khadamat';
 
         $builder_content = '';
         if (file_exists(MASIR_RISH . 'mohtava/sakhtar/builder.php')) {

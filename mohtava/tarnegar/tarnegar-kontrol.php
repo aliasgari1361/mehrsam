@@ -27,6 +27,7 @@ function tarnegar_fehrest($page = 1) {
     $conn->close();
 
     // صفحه‌ساز برای آرشیو بلاگ
+    $GLOBALS['page_type'] = 'blog';
     $builder_content = '';
     if (file_exists(MASIR_RISH . 'mohtava/sakhtar/builder.php')) {
         require_once MASIR_RISH . 'mohtava/sakhtar/builder.php';
@@ -51,6 +52,8 @@ function tarnegar_neveshteh($slug) {
     }
 
     // صرفنظر از اینکه از صفحه‌ساز استفاده می‌شود یا نه، فرمت HTML محتوا را آماده کن
+    $GLOBALS['page_slug'] = $slug;
+    $GLOBALS['page_type'] = 'blog';
     $builder_content = '';
     if (file_exists(MASIR_RISH . 'mohtava/sakhtar/builder.php')) {
         require_once MASIR_RISH . 'mohtava/sakhtar/builder.php';

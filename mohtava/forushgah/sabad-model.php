@@ -178,16 +178,37 @@ function sabad_clear() {
 }
 
 function sabad_count() {
-    $sabad_id = sabad_get_or_create();
+    /* فقط‌خواندنی: برای بازدیدکننده بدون سبد، رکوردی ساخته نمیشود
+      (جلوگیری از پر شدن جدول sabad توسط ترافیک/ربات) */
     $bank = new Bank();
     $conn = $bank->getConnection();
-    $stmt = $conn->prepare("SELECT SUM(tedad) as cnt FROM sabad_mahsul WHERE sabad_id = ?");
+    $session_id = session_id();
+    $karbar_id = $_SESSION['user_id'] ?? null;
+    $sabad_id = 0;
+    if ($karbar_id) {
+        $stmt = $conn->prepare("SELECT id FROM sabad WHERE karbar_id = ? LIMIT 1");
+        $stmt->bind_param("i", $karbar_id);
+        $stmt->execute();
+        $r = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+        if ($r) $sabad_id = (int)$r['id'];
+    }
+    if (!$sabad_id && $session_id) {
+        $stmt = $conn->prepare("SELECT id FROM sabad WHERE session_id = ? LIMIT 1");
+        $stmt->bind_param("s", $session_id);
+        $stmt->execute();
+        $r = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+        if ($r) $sabad_id = (int)$r['id'];
+    }
+    if (!$sabad_id) { $conn->close(); return 0; }
+    $stmt = $conn->prepare("SELECT COALESCE(SUM(tedad),0) AS cnt FROM sabad_mahsul WHERE sabad_id = ?");
     $stmt->bind_param("i", $sabad_id);
     $stmt->execute();
-    $cnt = $stmt->get_result()->fetch_assoc()['cnt'] ?? 0;
+    $cnt = (int)($stmt->get_result()->fetch_assoc()['cnt'] ?? 0);
     $stmt->close();
     $conn->close();
-    return (int)$cnt;
+    return $cnt;
 }
 
 function sabad_total() {

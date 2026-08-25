@@ -264,17 +264,16 @@ function block_video_render($data) {
     return $html;
 }
 
-function block_services_render($data) {
+function block_services_render($data, $bank = null) {
     $count = (int)($data['count'] ?? 6);
     $title = htmlspecialchars($data['title'] ?? 'خدمات ما');
-    $bank = new Bank();
+    if ($bank === null) { $bank = new Bank(); }
     $conn = $bank->getConnection();
     $stmt = $conn->prepare("SELECT title, slug, kholaseh, subtitle, tasvir FROM posts WHERE type = 'khadamat' AND status = 'publish' ORDER BY display_order ASC LIMIT ?");
     $stmt->bind_param("i", $count);
     $stmt->execute();
     $services = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     $stmt->close();
-    $conn->close();
     if (empty($services)) return '';
 
     $html = '<section style="padding:50px 0;"><div class="mohtava-container">';
@@ -288,11 +287,11 @@ function block_services_render($data) {
     return $html;
 }
 
-function block_products_render($data) {
+function block_products_render($data, $bank = null) {
     $count = (int)($data['count'] ?? 8);
     $title = htmlspecialchars($data['title'] ?? 'محصولات');
     $dasteh_id = (int)($data['dasteh_id'] ?? 0);
-    $bank = new Bank();
+    if ($bank === null) { $bank = new Bank(); }
     $conn = $bank->getConnection();
     $sql = "SELECT id, onvan, slug, gheymat, gheymat_takhfif, tasvir, tozih FROM mahsulat WHERE vaziat=1";
     if ($dasteh_id) { $sql .= " AND dasteh_id=?"; $stmt = $conn->prepare($sql . " ORDER BY id DESC LIMIT ?"); $stmt->bind_param("ii", $dasteh_id, $count); }
@@ -300,7 +299,6 @@ function block_products_render($data) {
     $stmt->execute();
     $products = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     $stmt->close();
-    $conn->close();
     if (!$products) return '';
     $html = '<section style="padding:60px 0;background:#f8f9fa;"><div class="mohtava-container">';
     if ($title) $html .= '<div class="onvan-bakhsh"><h2 class="builder-editable builder-text" data-field="title">' . $title . '</h2></div>';
