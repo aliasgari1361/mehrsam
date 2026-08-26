@@ -759,7 +759,7 @@ function mod_route($action, $params) {
 
                 // ذخیره تنظیمات
                 $new_settings = [];
-                foreach (['general', 'social', 'theme', 'files'] as $section) {
+                foreach (['general', 'social', 'theme', 'files', 'support', 'notif'] as $section) {
                     if (!empty($_POST[$section]) && is_array($_POST[$section])) {
                         $new_settings[$section] = $_POST[$section];
                     }
@@ -775,6 +775,7 @@ function mod_route($action, $params) {
             $tabs = [
                 'general'   => 'عمومی',
                 'social'    => 'شبکه‌ها',
+                'messages'  => 'پیام‌ها',
                 'files'     => 'فایل‌ها',
             ];
             $standalone = in_array($active_tab, ['theme', 'git'], true);
@@ -925,6 +926,109 @@ function mod_route($action, $params) {
                             <input type="url" name="social[instagram]" value="<?= htmlspecialchars($current['social']['instagram'] ?? '') ?>" placeholder="https://instagram.com/...">
                         </div>
                     </div>
+                </div>
+
+                <?php elseif ($active_tab === 'messages'): ?>
+                <?php
+                $sup = $current['support'] ?? [];
+                $notif = $current['notif'] ?? [];
+                $supc = function ($ch, $k, $def = '') use ($sup) { return htmlspecialchars($sup['channels'][$ch][$k] ?? $def); };
+                $supon = function ($ch) use ($sup) { return !empty($sup['channels'][$ch]['on']); };
+                $supcol = function ($ch, $def) use ($sup) { return htmlspecialchars($sup['channels'][$ch]['color'] ?? $def); };
+                $push_count = 0;
+                try {
+                    require_once MASIR_RISH . 'afzuneh/elpayaagh/Notifier.php';
+                    $__kp = new kanal_push();
+                    $push_count = $__kp->count_subscriptions();
+                } catch (\Throwable $e) { $push_count = 0; }
+                ?>
+                <div class="settings-panel" style="margin-bottom:20px;">
+                    <h4 class="section-title"><i class="fa-solid fa-bell" style="color:var(--rang-asli)"></i> اعلان گوشی من (Web Push)</h4>
+                    <p class="help-text" style="margin-bottom:12px;">هر پیام چت / تماس / سفارش جدید، نوتیف مستقیم روی گوشی تو. با گوشی اندروید (کروم) وارد لینک شو و دکمه را بزن:</p>
+                    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+                        <a href="<?= BASE_URL ?>mod/push" target="_blank" class="btn btn-primary" style="text-decoration:none;"><i class="fa-solid fa-mobile-screen-button"></i> صفحه فعالسازی اعلان</a>
+                        <span style="background:#f5f6f8;padding:8px 14px;border-radius:8px;font-size:13px;"><b><?= $push_count ?></b> دستگاه ثبت شده</span>
+                    </div>
+
+                    <hr style="border:none;border-top:1px dashed var(--rang-border);margin:18px 0;">
+                    <h4 class="section-title"><i class="fa-brands fa-bale" style="color:#0088cc"></i> ربات بله (اعلان جایگزین)</h4>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>توکن ربات بله</label>
+                            <input type="text" name="notif[bale_token]" value="<?= htmlspecialchars($notif['bale_token'] ?? '') ?>" placeholder="توکن را از BotFather بله بگیر" dir="ltr">
+                        </div>
+                        <div class="form-group">
+                            <label>آیدی عددی من در بله</label>
+                            <input type="text" name="notif[bale_id]" value="<?= htmlspecialchars($notif['bale_id'] ?? '') ?>" placeholder="مثلا 123456789" dir="ltr">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>توکن ربات تلگرام (اختیاری)</label>
+                            <input type="text" name="notif[telegram_token]" value="<?= htmlspecialchars($notif['telegram_token'] ?? '') ?>" dir="ltr">
+                        </div>
+                        <div class="form-group">
+                            <label>آیدی عددی من در تلگرام (اختیاری)</label>
+                            <input type="text" name="notif[telegram_id]" value="<?= htmlspecialchars($notif['telegram_id'] ?? '') ?>" dir="ltr">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-panel" style="margin-bottom:20px;">
+                    <h4 class="section-title"><i class="fa-solid fa-headset" style="color:var(--rang-asli)"></i> دکمه پشتیبانی سایت (برای مشتریها)</h4>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="checkbox-label"><input type="checkbox" name="support[enabled]" value="1" <?= !isset($sup['enabled']) || !empty($sup['enabled']) ? 'checked' : '' ?>> نمایش دکمه پشتیبانی شناور در سایت</label>
+                        </div>
+                        <div class="form-group">
+                            <label>متن پیام خوشآمد چت</label>
+                            <input type="text" name="support[welcome]" value="<?= htmlspecialchars($sup['welcome'] ?? 'سلام، چطور میتونم کمک کنم؟') ?>">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>رنگ اصلی ویجت</label>
+                            <input type="color" name="support[main_color]" value="<?= htmlspecialchars($sup['main_color'] ?? '#FF6F00') ?>">
+                        </div>
+                        <div class="form-group">
+                            <label>اندازه فونت ویجت (px)</label>
+                            <select name="support[font_size]">
+                                <?php foreach (['13','14','15','16','17'] as $fs): ?>
+                                <option value="<?= $fs ?>" <?= ($sup['font_size'] ?? '14') === $fs ? 'selected' : '' ?>><?= $fs ?>px</option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                    </div>
+
+                    <h4 style="margin:18px 0 12px;">کانالهای تماس</h4>
+                    <?php
+                    $channels_ui = [
+                        'telegram' => ['تلگرام', '#0088cc', 'fa-brands fa-telegram', 'آیدی بدون @ — مثلا mehrsam'],
+                        'eitaa'    => ['ایتا', '#E94560', 'fa-solid fa-comments', 'آیدی ایتا — مثلا mehrsam'],
+                        'rubika'   => ['روبیکا', '#5F4B8B', 'fa-solid fa-comment-dots', 'آیدی روبیکا'],
+                        'whatsapp' => ['واتس‌اپ', '#25d366', 'fa-brands fa-whatsapp', 'شماره با کد کشور — 98912...'],
+                        'email'    => ['ایمیل', '#EA4335', 'fa-solid fa-envelope', 'ایمیل پشتیبانی'],
+                        'sms'      => ['پیامک', '#16a085', 'fa-solid fa-comment-sms', 'شماره دریافت پیامک'],
+                        'tel'      => ['تماس تلفنی', '#2D3436', 'fa-solid fa-phone', 'شماره تماس'],
+                    ];
+                    foreach ($channels_ui as $ch => $info): ?>
+                    <div style="border:1px solid var(--rang-border);border-radius:10px;padding:14px;margin-bottom:10px;background:#fafbfc;">
+                        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap;">
+                            <label class="checkbox-label"><input type="checkbox" name="support[channels][<?= $ch ?>][on]" value="1" <?= $supon($ch) ? 'checked' : '' ?>> <i class="<?= $info[2] ?>" style="color:<?= $info[1] ?>"></i> <b><?= $info[0] ?></b></label>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group" style="margin-bottom:0;">
+                                <label style="font-size:12px;"><?= $ch === 'email' ? 'ایمیل' : (($ch === 'whatsapp' || $ch === 'sms' || $ch === 'tel') ? 'شماره' : 'آیدی / لینک') ?></label>
+                                <input type="text" name="support[channels][<?= $ch ?>][v]" value="<?= $supc($ch, 'v') ?>" placeholder="<?= $info[3] ?>" dir="ltr">
+                            </div>
+                            <div class="form-group" style="margin-bottom:0;">
+                                <label style="font-size:12px;">رنگ دکمه</label>
+                                <input type="color" name="support[channels][<?= $ch ?>][color]" value="<?= $supcol($ch, $info[1]) ?>">
+                            </div>
+                        </div>
+                    </div>
+                    <?php endforeach; ?>
+                    <p class="help-text">راهنما: تلگرام/ایتا/روبیکا = فقط آیدی (بدون @). واتساپ = شماره با 98. پیامک و تماس = شماره معمولی.</p>
                 </div>
 
                 <?php elseif ($active_tab === 'theme'): ?>
@@ -1419,6 +1523,11 @@ function mod_route($action, $params) {
             $store_action = $params[0] ?? '';
             $store_params = array_slice($params, 1);
             admin_store_route($store_action, $store_params);
+            break;
+
+        case 'push':
+            require_once MASIR_RISH . 'afzuneh/elpayaagh/push-admin.php';
+            push_route($params[0] ?? '', $params);
             break;
 
         case 'theme':

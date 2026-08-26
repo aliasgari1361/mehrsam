@@ -35,7 +35,7 @@ function chat_handle_start() {
 
     $session = chat_start_session($name, $phone, $email);
     $_SESSION['chat_token'] = $session['token'];
-    chat_send_message($session['id'], 'user', 'سلام، چطور میتونم کمک کنم؟');
+    chat_send_message($session['id'], 'user', chat_welcome_text());
     echo json_encode(['id' => $session['id'], 'token' => $session['token']]);
 }
 

@@ -108,6 +108,7 @@ if (function_exists('builder_render_part')) {
 <?php endif; ?>
 
 <?php include __DIR__ . '/chat/widget.php'; ?>
+<?php include __DIR__ . '/poshtibani.php'; ?>
 
 <script>
 // بستن منوی موبایل با کلیک بیرون

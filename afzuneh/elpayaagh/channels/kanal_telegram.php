@@ -5,8 +5,10 @@ class kanal_telegram {
     protected $defaultChatId;
 
     public function __construct() {
-        $this->botToken = NOTIF_TELEGRAM_BOT_TOKEN;
-        $this->defaultChatId = NOTIF_TELEGRAM_ADMIN_ID;
+        /* اولویت: تنظیمات پنل (site_settings ← notif) سپس ثابت فایل کانفیگ */
+        global $site_settings;
+        $this->botToken = trim((string)($site_settings['notif']['telegram_token'] ?? '')) ?: NOTIF_TELEGRAM_BOT_TOKEN;
+        $this->defaultChatId = trim((string)($site_settings['notif']['telegram_id'] ?? '')) ?: NOTIF_TELEGRAM_ADMIN_ID;
     }
 
     public function send($to, $message) {

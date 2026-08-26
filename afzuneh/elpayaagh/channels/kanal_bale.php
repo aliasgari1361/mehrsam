@@ -5,8 +5,10 @@ class kanal_bale {
     protected $defaultChatId;
 
     public function __construct() {
-        $this->botToken = NOTIF_BALE_BOT_TOKEN;
-        $this->defaultChatId = NOTIF_BALE_ADMIN_ID;
+        /* اولویت: تنظیمات پنل (site_settings ← notif) سپس ثابت فایل کانفیگ */
+        global $site_settings;
+        $this->botToken = trim((string)($site_settings['notif']['bale_token'] ?? '')) ?: NOTIF_BALE_BOT_TOKEN;
+        $this->defaultChatId = trim((string)($site_settings['notif']['bale_id'] ?? '')) ?: NOTIF_BALE_ADMIN_ID;
     }
 
     public function send($to, $message) {

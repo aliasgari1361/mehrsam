@@ -26,6 +26,12 @@ class Notifier {
         $results = [];
         $results['telegram'] = $this->telegram->notifyAdmin($message);
         $results['bale'] = $this->bale->notifyAdmin($message);
+        /* اعلان گوشی (Web Push) — به همه دستگاههای ثبتشده */
+        try {
+            $results['push'] = $this->push->notifyAdmin('پیام جدید مهراد سام', strip_tags($message), '/mod/chat');
+        } catch (\Throwable $e) {
+            $results['push'] = ['ok' => false, 'error' => $e->getMessage()];
+        }
         return $results;
     }
 

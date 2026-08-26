@@ -42,14 +42,23 @@ function chat_get_session($id) {
     return $session;
 }
 
+/* متن پیام خوشآمد — قابل تغییر از پنل: تنظیمات ← پیام‌ها */
+function chat_welcome_text() {
+    global $site_settings;
+    $t = trim((string)($site_settings['support']['welcome'] ?? ''));
+    return $t !== '' ? $t : 'سلام، چطور میتونم کمک کنم؟';
+}
+
 function chat_send_message($session_id, $sender_type, $message) {
     $bank = new Bank();
     $conn = $bank->getConnection();
 
-    $stmt = $conn->prepare("SELECT user_name FROM chat_sessions WHERE id = ? LIMIT 1");
+    $stmt = $conn->prepare("SELECT user_name, user_phone FROM chat_sessions WHERE id = ? LIMIT 1");
     $stmt->bind_param("i", $session_id);
     $stmt->execute();
-    $user_name = $stmt->get_result()->fetch_assoc()['user_name'] ?? '';
+    $srow = $stmt->get_result()->fetch_assoc() ?: [];
+    $user_name = $srow['user_name'] ?? '';
+    $user_phone = $srow['user_phone'] ?? '';
     $stmt->close();
 
     $stmt = $conn->prepare("INSERT INTO chat_messages (session_id, sender_type, message) VALUES (?, ?, ?)");
@@ -60,10 +69,13 @@ function chat_send_message($session_id, $sender_type, $message) {
     $conn->query("UPDATE chat_sessions SET last_activity = NOW(), status = 'active' WHERE id = $session_id");
     $conn->close();
 
-    if ($sender_type === 'user') {
+    /* اعلان فقط برای پیام واقعی مشتری — پیام خوشآمد خودکار اعلان نمیدهد */
+    if ($sender_type === 'user' && trim($message) !== chat_welcome_text()) {
         @require_once MASIR_RISH . 'afzuneh/elpayaagh/Notifier.php';
         if (class_exists('Notifier')) {
-            Notifier::notify("💬 <b>پیام جدید در چت</b>\nکاربر: {$user_name}\nپیام: " . mb_substr($message, 0, 100));
+            $phone_line = $user_phone !== '' ? "\nتلفن: {$user_phone}" : '';
+            $link = (defined('BASE_URL') ? BASE_URL : '/') . 'mod/chat_view/' . (int)$session_id;
+            Notifier::notify("💬 <b>پیام جدید در چت</b>\nکاربر: {$user_name}{$phone_line}\nپیام: " . mb_substr($message, 0, 100) . "\n<a href=\"{$link}\">مشاهده و پاسخ</a>");
         }
     }
 
