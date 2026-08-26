@@ -349,6 +349,22 @@ $site_title = $general_settings['site_title'] ?? 'مهراد سام';
         }
 
         /* ====================================================
+           محافظت سراسری موبایل (جلوگیری از سرریز افقی)
+        ==================================================== */
+        html, body { overflow-x: hidden; max-width: 100%; }
+        img, video { max-width: 100%; height: auto; }
+        iframe { max-width: 100%; }
+
+        /* ====================================================
+           فوتر ریسپانسیو
+        ==================================================== */
+        .footer-grid { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 40px; }
+        .footer-grid a, .footer-grid p, .footer-grid li, .footer-grid h4, .footer-grid h5, .footer-grid span { overflow-wrap: anywhere; word-break: break-word; }
+        @media (max-width: 768px) {
+            .footer-grid { grid-template-columns: 1fr; gap: 26px; }
+        }
+
+        /* ====================================================
            عنوان بخش‌ها
         ==================================================== */
         .onvan-bakhsh {

@@ -768,11 +768,13 @@ function builder_page_edit($block_page_id) {
             BP_ORDER.forEach(function(bp) {
                 var p = effectivePosAt(b, bp);
                 if (!p) return;
+                var needW = (p.x||0) + (p.w||0);
+                var tooWide = (bp === 'mobile' && needW > 520) || (bp === 'tablet' && needW > 1100);
                 var rule;
-                if (mobileMode === 'auto' && ((bp === 'mobile' && !hasM) || (bp === 'tablet' && !hasT))) {
-                    rule = '.bpos-' + i + '{position:relative!important;width:auto!important;margin-bottom:16px;left:auto!important;top:auto!important;z-index:auto!important;}';
+                if ((mobileMode === 'auto' && ((bp === 'mobile' && !hasM) || (bp === 'tablet' && !hasT))) || tooWide) {
+                    rule = '.bpos-' + i + '{position:relative!important;width:auto!important;max-width:100%!important;margin-bottom:16px;left:auto!important;top:auto!important;z-index:auto!important;}';
                 } else {
-                    rule = '.bpos-' + i + '{position:absolute;left:' + Math.round(p.x) + 'px;top:' + Math.round(p.y) + 'px;width:' + Math.round(p.w) + 'px;z-index:' + (p.z || 1) + ';}';
+                    rule = '.bpos-' + i + '{position:absolute;left:' + Math.round(p.x) + 'px;top:' + Math.round(p.y) + 'px;width:' + Math.round(p.w) + 'px;max-width:100vw;z-index:' + (p.z || 1) + ';}';
                 }
                 css += MEDIA[bp] ? (MEDIA[bp] + '{' + rule + '}') : rule;
             });
@@ -1542,10 +1544,15 @@ function builder_build_positions_css($blocks, $mobile_mode = 'auto', $all_free =
         foreach (['wide', 'desktop', 'tablet', 'mobile'] as $b) {
             $p = $eff[$b];
             if ($p === null) continue;
-            if ($mobile_mode === 'auto' && (($b === 'mobile' && !$hasMobile) || ($b === 'tablet' && !$hasTablet))) {
-                $rule = $cls . '{position:static!important;width:100%!important;margin-bottom:16px;}';
+            /* فروپاشی خودکار در موبایل/تبلت:
+               ۱) حالت auto و نبود مختصات اختصاصی  ۲) چیدمان «دقیق»ی که برای آن عرض طراحی نشده
+               (x+w بزرگتر از عرض دستگاه → بلاک میزند بیرون؛ به جریان برمیگردد) */
+            $need_w = (int)$p['x'] + (int)$p['w'];
+            $too_wide = ($b === 'mobile' && $need_w > 520) || ($b === 'tablet' && $need_w > 1100);
+            if (($mobile_mode === 'auto' && (($b === 'mobile' && !$hasMobile) || ($b === 'tablet' && !$hasTablet))) || $too_wide) {
+                $rule = $cls . '{position:relative!important;width:auto!important;max-width:100%!important;margin-bottom:16px;left:auto!important;top:auto!important;z-index:auto!important;}';
             } else {
-                $rule = $cls . '{position:absolute;left:' . (int)$p['x'] . 'px;top:' . (int)$p['y'] . 'px;width:' . (int)$p['w'] . 'px;z-index:' . (int)($p['z'] ?? 1) . ';}';
+                $rule = $cls . '{position:absolute;left:' . (int)$p['x'] . 'px;top:' . (int)$p['y'] . 'px;width:' . (int)$p['w'] . 'px;max-width:100vw;z-index:' . (int)($p['z'] ?? 1) . ';}';
             }
             $media = $bps[$b]['media'];
             $css .= $media ? ($media . '{' . $rule . '}') : $rule;

@@ -19,7 +19,7 @@ if (function_exists('builder_render_part')) {
 <footer style="background:var(--rang-makm1); color:#ccc; margin-top:0;">
 
     <div class="mohtava-container" style="padding-top:60px; padding-bottom:40px;">
-        <div style="display:grid; grid-template-columns:2fr 1fr 1fr; gap:40px;">
+        <div class="footer-grid">
 
             <!-- ستون اول: معرفی -->
             <div>
