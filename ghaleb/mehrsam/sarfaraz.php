@@ -365,6 +365,20 @@ $site_title = $general_settings['site_title'] ?? 'مهراد سام';
         }
 
         /* ====================================================
+           محتوای قدیمی صفحه‌ساز (سینک‌شده در posts.content) — فروپاشی در موبایل
+           (طراحیهای جدید exact خودشان قانون دارند و در body بعد از این استایل میآیند)
+        ==================================================== */
+        @media (max-width: 768px) {
+            .builder-free-canvas [class*="bpos-"] {
+                position: relative !important;
+                width: auto !important;
+                max-width: 100% !important;
+                left: auto !important;
+                top: auto !important;
+            }
+        }
+
+        /* ====================================================
            عنوان بخش‌ها
         ==================================================== */
         .onvan-bakhsh {
