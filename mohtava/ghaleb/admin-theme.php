@@ -42,6 +42,12 @@ function admin_theme_route($action, $params) {
         case 'bp_delete':
             admin_theme_bp_delete($params[0] ?? 0);
             break;
+        case 'bp_open_file':
+            admin_theme_bp_open_file($params[0] ?? '');
+            break;
+        case 'bp_file_delete':
+            admin_theme_bp_file_delete($params[0] ?? 0, $params[1] ?? '');
+            break;
         default:
             admin_theme_manager();
             break;
@@ -130,6 +136,102 @@ function admin_theme_bp_delete($id) {
         $conn->close();
     }
     redirect('mod/theme');
+    exit;
+}
+
+/* ============================================================
+   ویرایش «فایلهای قالب» با صفحه‌ساز (مثل 404.php)
+   پل: یک بلاک‌صفحه با condition_type='file' و condition_value=نام فایل
+   + تزریق یک گارد کوچک به ابتدای فایل که اگر قالب صفحه‌ساز موجود بود
+   خروجی صفحه‌ساز را جایگزین کل فایل میکند (با هدر/فوتر قالب).
+   حذف رکورد → گارد بیاثر میشود و فایل کد عادی اجرا میشود.
+   ============================================================ */
+function admin_theme_bp_eligible_file($name) {
+    $name = basename($name);
+    if (strtolower(pathinfo($name, PATHINFO_EXTENSION)) !== 'php') return false;
+    $skip = ['sarfaraz.php', 'panevis.php', 'khane.php'];
+    if (in_array($name, $skip, true)) return false;
+    return is_file(MASIR_GHALEB . $name) ? $name : false;
+}
+
+function admin_theme_bp_file_row($name) {
+    $bank = new Bank();
+    $conn = $bank->getConnection();
+    $stmt = $conn->prepare("SELECT id, name FROM block_pages WHERE page_id = 0 AND condition_type = 'file' AND condition_value = ? LIMIT 1");
+    $stmt->bind_param("s", $name);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    $conn->close();
+    return $row ?: null;
+}
+
+function admin_theme_bp_ensure_bridge($name) {
+    $path = MASIR_GHALEB . $name;
+    if (!is_file($path)) return false;
+    $content = (string)file_get_contents($path);
+    if (strpos($content, 'BUILDER-BRIDGE') !== false) return true; /* قبلاً تزریق شده */
+    /* بکاپ یکباره قبل از اولین تزریق */
+    $bak = MASIR_GHALEB . 'backup/' . $name . '.pre-bridge.bak';
+    if (!is_dir(dirname($bak))) { @mkdir(dirname($bak), 0755, true); }
+    if (!file_exists($bak)) { @copy($path, $bak); }
+
+    $snippet = "\n/* BUILDER-BRIDGE:start */\n"
+        . "if (function_exists('builder_find_template') || @require_once MASIR_RISH . 'mohtava/sakhtar/builder.php') {\n"
+        . "    \$__gbp = builder_find_template('file', " . var_export($name, true) . ");\n"
+        . "    if (\$__gbp) {\n"
+        . "        \$__gh = builder_render_page(\$__gbp['id']);\n"
+        . "        include MASIR_GHALEB . 'sarfaraz.php';\n"
+        . "        echo \$__gh;\n"
+        . "        include MASIR_GHALEB . 'panevis.php';\n"
+        . "        return;\n"
+        . "    }\n"
+        . "}\n"
+        . "/* BUILDER-BRIDGE:end */\n";
+
+    $pos = strpos($content, '<?php');
+    if ($pos === false) {
+        $content = "<?php\n" . $snippet . "?>" . $content;
+    } else {
+        $content = substr($content, 0, $pos + 5) . $snippet . substr($content, $pos + 5);
+    }
+    return @file_put_contents($path, $content, LOCK_EX) !== false;
+}
+
+function admin_theme_bp_open_file($name) {
+    $name = admin_theme_bp_eligible_file($name);
+    if (!$name) { redirect('mod/theme/files'); exit; }
+    if (!admin_theme_bp_ensure_bridge($name)) { redirect('mod/theme/file_edit/' . urlencode($name) . '?err=bridge'); exit; }
+    $row = admin_theme_bp_file_row($name);
+    if (!$row) {
+        $bank = new Bank();
+        $conn = $bank->getConnection();
+        $title = 'فایل ' . $name;
+        $stmt = $conn->prepare("INSERT INTO block_pages (page_id, page_type, name, condition_type, condition_value, part, blocks_data, position_mode, mobile_mode) VALUES (0, '', ?, 'file', ?, '', '[]', 0, 'auto')");
+        $stmt->bind_param("ss", $title, $name);
+        $stmt->execute();
+        $new_id = $conn->insert_id;
+        $stmt->close();
+        $conn->close();
+        redirect('mod/builder/edit/' . $new_id);
+        exit;
+    }
+    redirect('mod/builder/edit/' . $row['id']);
+    exit;
+}
+
+function admin_theme_bp_file_delete($id, $file) {
+    $id = (int)$id;
+    if ($id > 0) {
+        $bank = new Bank();
+        $conn = $bank->getConnection();
+        $stmt = $conn->prepare("DELETE FROM block_pages WHERE id = ? AND page_id = 0 AND condition_type = 'file'");
+        $stmt->bind_param("i", $id);
+        $stmt->execute();
+        $stmt->close();
+        $conn->close();
+    }
+    redirect('mod/theme/file_edit/' . urlencode(basename($file)));
     exit;
 }
 
@@ -589,12 +691,25 @@ function admin_theme_file_list() {
     <p style="color:#888;margin-bottom:16px;">فایل‌های قالب فعال (<strong><?= GHALEB_FAAAL ?></strong>) — با احتیاط ویرایش کنید! قبل از ویرایش بک‌آپ گرفته می‌شود.</p>
     <table border="1" cellpadding="6" cellspacing="0" width="100%" style="border-collapse:collapse;">
         <tr style="background:#f8f9fa;"><th>نام فایل</th><th>حجم</th><th>آخرین تغییر</th><th>عملیات</th></tr>
-        <?php foreach ($files as $f): $name = basename($f); $size = filesize($f); $mtime = filemtime($f); ?>
+        <?php foreach ($files as $f): $name = basename($f); $size = filesize($f); $mtime = filemtime($f);
+            $eligible = admin_theme_bp_eligible_file($name);
+            $bp_row = $eligible ? admin_theme_bp_file_row($name) : null;
+        ?>
         <tr>
             <td><?= htmlspecialchars($name) ?></td>
             <td><?= $size > 1024 ? round($size/1024) . ' KB' : $size . ' B' ?></td>
             <td style="font-size:12px;color:#888;"><?= date('Y-m-d H:i', $mtime) ?></td>
-            <td><a href="<?= BASE_URL ?>mod/theme/file_edit/<?= urlencode($name) ?>">ویرایش</a></td>
+            <td>
+                <a href="<?= BASE_URL ?>mod/theme/file_edit/<?= urlencode($name) ?>">ویرایش کد</a>
+                <?php if ($eligible): ?>
+                &nbsp;|&nbsp;
+                <?php if ($bp_row): ?>
+                <a href="<?= BASE_URL ?>mod/builder/edit/<?= $bp_row['id'] ?>" style="color:var(--rang-asli,#FF6F00);font-weight:700;"><i class="fa-solid fa-wand-magic-sparkles"></i> ویرایش با صفحه‌ساز</a>
+                <?php else: ?>
+                <a href="<?= BASE_URL ?>mod/theme/bp_open_file/<?= urlencode($name) ?>" style="color:#888;"><i class="fa-solid fa-plus"></i> صفحه‌ساز</a>
+                <?php endif; ?>
+                <?php endif; ?>
+            </td>
         </tr>
         <?php endforeach; ?>
     </table>
@@ -623,10 +738,23 @@ function admin_theme_file_edit($filename) {
     $content = file_get_contents($filepath);
     $ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
     $is_html_editable = in_array($ext, ['php', 'html', 'htm']);
+    $bp_eligible = admin_theme_bp_eligible_file($filename);
+    $bp_row = $bp_eligible ? admin_theme_bp_file_row($filename) : null;
     include __DIR__ . '/../../ghaleb/ghmod/sarfaraz.php';
     ?>
     <h3>ویرایش فایل: <?= htmlspecialchars($filename) ?></h3>
-    <p><a href="<?= BASE_URL ?>mod/theme/files" style="color:var(--rang-asli,#FF6F00);">&larr; بازگشت به لیست</a></p>
+    <p style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+        <a href="<?= BASE_URL ?>mod/theme/files" style="color:var(--rang-asli,#FF6F00);">&larr; بازگشت به لیست</a>
+        <?php if ($bp_eligible): ?>
+            <?php if ($bp_row): ?>
+            <a href="<?= BASE_URL ?>mod/builder/edit/<?= $bp_row['id'] ?>" style="display:inline-flex;align-items:center;gap:6px;padding:9px 18px;background:var(--rang-asli,#FF6F00);color:#fff;border-radius:8px;font-weight:700;font-size:13px;text-decoration:none;"><i class="fa-solid fa-wand-magic-sparkles"></i> ویرایش با صفحه‌ساز</a>
+            <button type="button" onclick="if(confirm('قالب صفحه‌ساز این فایل حذف شود؟ فایل به نسخه کد برمیگردد.')) location.href='<?= BASE_URL ?>mod/theme/bp_file_delete/<?= $bp_row['id'] ?>/<?= urlencode($filename) ?>'" style="padding:9px 14px;background:#f5f6f8;border:1px solid #dde1e6;color:#c62828;border-radius:8px;cursor:pointer;font-size:12.5px;font-family:inherit;"><i class="fa-solid fa-trash"></i> حذف قالب صفحه‌ساز</button>
+            <?php else: ?>
+            <a href="<?= BASE_URL ?>mod/theme/bp_open_file/<?= urlencode($filename) ?>" style="display:inline-flex;align-items:center;gap:6px;padding:9px 18px;background:#f5f6f8;border:1px solid #dde1e6;color:#555;border-radius:8px;font-weight:700;font-size:13px;text-decoration:none;" onclick="this.style.opacity=.5;this.innerHTML='در حال ساخت پل...'"><i class="fa-solid fa-plus"></i> ساخت قالب با صفحه‌ساز</a>
+            <span style="font-size:11.5px;color:#999;">یک بکاپ از فایل گرفته میشود و پل صفحه‌ساز به آن اضافه میشود</span>
+            <?php endif; ?>
+        <?php endif; ?>
+    </p>
     <?php if (isset($message)): ?><p style="background:#e8f5e9;color:#2e7d32;padding:12px;border-radius:8px;margin:12px 0;"><?= htmlspecialchars($message) ?></p><?php endif; ?>
     <form method="post" style="margin-top:12px;">
         <?php if ($is_html_editable): ?>
