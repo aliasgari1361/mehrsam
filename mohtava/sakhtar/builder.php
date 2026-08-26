@@ -1478,17 +1478,16 @@ function builder_clear_cache($block_page_id) {
 function builder_render_page($block_page_id, $use_cache = true) {
     $bank = new Bank();
     $conn = $bank->getConnection();
-    $stmt = $conn->prepare("SELECT * FROM block_pages WHERE id = ?");
+    $stmt = $conn->prepare("SELECT bp.*, (CASE WHEN bp.cache_updated IS NULL THEN 1 WHEN bp.cache_updated < (NOW() - INTERVAL 300 SECOND) THEN 1 ELSE 0 END) AS cache_stale FROM block_pages bp WHERE bp.id = ?");
     $stmt->bind_param("i", $block_page_id);
     $stmt->execute();
     $bp = $stmt->get_result()->fetch_assoc();
     $stmt->close();
     if (!$bp) { $conn->close(); return ''; }
-    /* کش با عمر کوتاه (۵ دقیقه): بازدیدهای پشت‌سرهم از کش؛ بلاکهای داینامیک حداکثر ۵ دقیقه کهنه می‌مانند */
+    /* مقایسه TTL سمت MySQL انجام میشود (مستقل از timezone پیاچپی) */
     $__ttl_fresh = false;
     if ($use_cache && $bp['cached_html']) {
-        $__ts = $bp['cache_updated'] ? strtotime($bp['cache_updated']) : 0;
-        if ($__ts && (time() - $__ts) < 300) {
+        if (empty($bp['cache_stale'])) {
             $conn->close();
             return $bp['cached_html'];
         }
