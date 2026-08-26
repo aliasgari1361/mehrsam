@@ -1,4 +1,4 @@
-﻿<?php include MASIR_GHALEB . 'sarfaraz.php'; ?>
+<?php include MASIR_GHALEB . 'sarfaraz.php'; ?>
 
 <section style="padding:100px 0; text-align:center;">
     <div class="mohtava-container">

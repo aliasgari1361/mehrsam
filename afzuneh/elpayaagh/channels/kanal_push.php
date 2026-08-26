@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 
 require_once __DIR__ . '/../webpush.php';
 if (!class_exists('Bank')) { require_once MASIR_DADE . 'bank.php'; }

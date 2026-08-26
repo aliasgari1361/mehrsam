@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 /**
  * Application entry point
  * Loads both legacy (Persian) and new (English) file structures

@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 define('BASE_URL', 'http://site.test/');
 define('DB_HOST', '127.0.0.1');
 define('DB_USER', 'root');

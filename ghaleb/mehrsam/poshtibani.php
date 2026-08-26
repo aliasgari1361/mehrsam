@@ -27,6 +27,9 @@ if ($sup_on('tel')) $sup_items[] = ['تماس تلفنی', 'fa-solid fa-phone', 
 $has_chat = true;
 ?>
 <style>
+    /* ویجت پشتیبانی جایگزین حباب چت قدیمی میشود؛ اگر پشتیبانی غیرفعال شود، چت برمیگردد */
+    .chat-btn, .chat-badge { display:none !important; }
+    .chat-box { left:auto !important; right:24px !important; }
     .sup-wrap { position:fixed; bottom:24px; right:24px; z-index:9000; font-family:inherit; }
     .sup-btn { width:56px; height:56px; border-radius:50%; border:none; cursor:pointer; background:<?= $sup_main ?>; color:#fff; font-size:24px; box-shadow:0 6px 22px rgba(0,0,0,.22); display:flex; align-items:center; justify-content:center; transition:transform .2s, box-shadow .2s; }
     .sup-btn:hover { transform:scale(1.07); box-shadow:0 10px 28px rgba(0,0,0,.3); }

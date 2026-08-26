@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 
 require_once __DIR__ . '/elpayaagh_tanzimat.php';
 require_once __DIR__ . '/channels/kanal_telegram.php';

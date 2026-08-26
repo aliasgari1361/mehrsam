@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 
 class kanal_bale {
     protected $botToken;

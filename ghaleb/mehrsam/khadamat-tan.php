@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // دریافت خدمت از متغیر سراسری
 $service = $GLOBALS['khadamat_service'] ?? null;
 

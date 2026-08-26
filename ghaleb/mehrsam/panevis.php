@@ -1,4 +1,4 @@
-﻿<!-- پاصفحه -->
+<!-- پاصفحه -->
 <?php
 $builder_footer_html = '';
 if (!function_exists('builder_render_part')) {

@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 /**
  * بارگذار خودکار (Autoloader) مهراد سام
  * Supports both Persian (original) and English (alias) file paths

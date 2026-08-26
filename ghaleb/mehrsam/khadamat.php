@@ -1,4 +1,4 @@
-﻿<?php include MASIR_GHALEB . 'sarfaraz.php'; ?>
+<?php include MASIR_GHALEB . 'sarfaraz.php'; ?>
 
 <!-- سرصفحه صفحه -->
 <div class="sarsafhe-safhe">

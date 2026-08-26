@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 /**
  * Payment helper alias - for English naming
  * Original: afzuneh/pardakht/zarinpal.php

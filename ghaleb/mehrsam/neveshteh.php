@@ -1,4 +1,4 @@
-﻿<?php require_once MASIR_RISH . 'haste/tanzimat.php'; include MASIR_GHALEB . 'sarfaraz.php'; ?>
+<?php require_once MASIR_RISH . 'haste/tanzimat.php'; include MASIR_GHALEB . 'sarfaraz.php'; ?>
 
 <div class="sarsafhe-safhe">
     <div class="mohtava-container">
