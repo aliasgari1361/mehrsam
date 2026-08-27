@@ -90,7 +90,7 @@ function push_page() {
             fd.append('p256dh', j.keys.p256dh);
             fd.append('auth', j.keys.auth);
             fd.append('label', navigator.platform || '');
-            var r = await fetch('<?= BASE_URL ?>mod/push/subscribe', { method: 'POST', body: fd });
+            var r = await fetch('<?= BASE_URL ?>push-action.php?action=subscribe', { method: 'POST', body: fd });
             var res = await r.json();
             if (res.success) { setStatus('ok', '✓ فعال شد! حالا «ارسال اعلان تست» را بزن تا مطمئن شوی.'); }
             else setStatus('err', res.message || 'خطا در ذخیره');
@@ -104,7 +104,7 @@ function push_page() {
     async function pushTest() {
         setStatus('ok', 'در حال ارسال تست…');
         var fd = new FormData();
-        var r = await fetch('<?= BASE_URL ?>mod/push/test', { method: 'POST', body: fd });
+        var r = await fetch('<?= BASE_URL ?>push-action.php?action=test', { method: 'POST', body: fd });
         var res = await r.json();
         if (res.sent > 0) setStatus('ok', '✓ ارسال شد به ' + res.sent + ' دستگاه — اعلان را روی گوشی ببین.');
         else setStatus('err', 'ارسال نشد (' + (res.error || 'هیچ دستگاهی ثبت نشده') + ')');

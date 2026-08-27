@@ -110,7 +110,7 @@ class kanal_push {
             return (int)$row['id'];
         }
         $stmt = $conn->prepare("INSERT INTO push_subscriptions (endpoint, p256dh, auth, user_agent, label) VALUES (?, ?, ?, ?, ?)");
-        $stmt->bind_param("ssss", $endpoint, $p256dh, $auth, $user_agent, $label);
+        $stmt->bind_param("sssss", $endpoint, $p256dh, $auth, $user_agent, $label);
         $stmt->execute();
         $new_id = $conn->insert_id;
         $stmt->close();
