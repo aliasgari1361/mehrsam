@@ -54,7 +54,7 @@
     • backups/          → poshtyban/  (پوشه پشتیبان‌گیری)
     • payegah/          → حذف شد (کپی اضافی migrationها؛ اصلی در payegah_dade/migrations/ است)
     • content/          → حذف شد (پوشه خالی)
-    • afzuneh/notification/config.php → afzuneh/notification/elpayaagh_tanzimat.php (تنظیمات اطلاع‌رسانی)
+    • elpayaagh_tanzimat.php (تنظیمات اطلاع‌رسانی — در elpayaagh/)
     • sarsafhe.php (ghmod + mehrsam) → sarfaraz.php  (سرصفحه/هدر قالب)
     • mohtava/seo-settings.php → mohtava/seo_tanzimat.php  (تنظیمات SEO؛ در bargozari.php classMap)
     • کانال‌های اطلاع‌رسانی (afzuneh/notification/channels/):
@@ -160,6 +160,8 @@
 ├── nasb.php                   # نصاب (Installer)
 ├── panel.php                  # مدیریت ادمین از خط فرمان (CLI)
 ├── rahnamay.txt               # قوانین و قراردادهای پروژه (این فایل)
+├── sw.js                      # سرویس‌ورکر Web Push (ثبت اشتراک + نمایش اعلان)
+├── manifest.json              # فایل PWA manifest (اطلاعات اپلیکیشن وب)
 │
 ├── haste/                     # هسته (Core Engine)
 │   ├── tanzimat.php           # تنظیمات پایه (DB، مسیرها، توابع)
@@ -197,6 +199,16 @@
 │
 ├── afzuneh/                   # افزونه‌ها (Plugins)
 │   ├── elpayaagh/             # اعلان‌رسان (تلگرام، واتساپ، بله، پوش، پیامک)
+│   │   ├── Notifier.php       # کلاس اصلی اعلان (اعلان چت/تماس/سفارش → همه کانالها)
+│   │   ├── webpush.php        # موتور رمزنگاری Web Push (VAPID + aes128gcm)
+│   │   ├── push-admin.php     # صفحه mod/push (فعالسازی/تست)
+│   │   ├── openssl.cnf        # کانفیگ مینیمال openssl برای ویندوز
+│   │   └── channels/          # کانالهای ارسال
+│   │       ├── kanal_push.php
+│   │       ├── kanal_bale.php
+│   │       ├── kanal_telegram.php
+│   │       ├── kanal_payamak.php
+│   │       └── kanal_whatsapp.php
 │   └── pardakht/              # درگاه‌های پرداخت (زرین‌پال، آیدی‌پی، زیبال، نکست‌پی)
 │
 └── payegah_dade/              # مایگریشن‌های دیتابیس
@@ -253,6 +265,7 @@ chat_sessions   → جلسات چت
 chat_messages   → پیام‌های چت
 block_pages     → داده‌های صفحه‌ساز (JSON blocks)
 template_sections → بخش‌های محتوایی قالب
+push_subscriptions → اشتراک‌های Web Push (endpoint, p256dh, auth, user_agent, label)
 ```
 
 ### ۹.۵ صفحه‌ساز (Page Builder) — نگارش ۲ (سبک المنتور)
@@ -276,6 +289,52 @@ template_sections → بخش‌های محتوایی قالب
 - هیچ CDN اضافه نشود (قانون ۹.۸)؛ همه اسکریپتها لوکال.
 - تولبار/دکمهها باید متن + آیکون داشته باشند (خوانایی).
 - قبل از هر تغییر ساختاری، بخش «مهم» بالا را ببین: scope ایندکسها.
+
+### ۹.۵.۲ سیستم اعلان Web Push (اعلان گوشی مالک)
+- **موتور رمزنگاری:** `afzuneh/elpayaagh/webpush.php` — رمزنگاری خالص PHP
+  (VAPID ES256 + aes128gcm) بدون وابستگی به Composer/PushLib. روی ویندوز اگر
+  `openssl_pkey_new` خطا داد، fallback به `afzuneh/elpayaagh/openssl.cnf`.
+- **کلید VAPID:** خودکار در `haste/site_settings.json` > `push.vapid_private` ذخیره
+  میشود (تولید اولین بار هنگام فعالسازی از mod/push).
+- **صفحه مدیریت:** `mod/push` → `afzuneh/elpayaagh/push-admin.php`
+  (فعالسازی/غیرفعالسازی + لیست اشتراکها + تست ارسال به یک دستگاه)
+- **سرویس‌ورکر:** `sw.js` در ریشه سایت — ثبت push listener + نمایش اعلان با کلیک
+  باز کردن لینک. `manifest.json` (PWA) هم در ریشه.
+- **جدول:** `push_subscriptions` (مایگریشن `029-push-subscriptions.sql`)
+  — UNIQUE روی endpoint: اشتراک تکراری خودکار رد میشود.
+- **ارسال اعلان:** تابع `Notifier::sendPushAll($title,$body,$url)` در `Notifier.php`
+  → کانال `kanal_push.php` → حلقه روی همه ردیفهای جدول.
+- **نکته:** Web Push فقط با HTTPS کار میکند. روی لوکال (HTTP) ثبت ناموفق است.
+- **پروتکل عیب‌یابی:**
+  1. mod/push → فعالسازی → اگر کلید VAPID ساخته نشد → openssl اکستنشن فعال است؟
+  2. گوشی باز کردن mhsi.ir/mod/push → اگر «اجازه» نداد → مرورگر HTTPS را قبول ندارد
+  3. اگر ثبت شد ولی اعلان نرسید → کنسول مرورگر (F12) → Application → Service Workers
+
+### ۹.۵.۳ دکمه پشتیبانی شناور (چندکاناله)
+- **فایل:** `ghaleb/mehrsam/poshtibani.php`
+- **نحوه نمایش:** `include` در `ghaleb/mehrsam/panevis.php` (فوتر) — فقط در صفحات
+  غیرادمین و وقتی ویجت چت فعال باشد.
+- **رفتار:** ابتدا حباب چت قدیمی (`headst-chat-bubble`) را با JS مخفی میکند
+  (`display:none!important`) و دکمه نارنجی شناور (right:24px) را نشان میدهد.
+  کلیک = باز شدن پنل کانالها (چت/تلگرام/ایتا/روبیکا/واتساپ/ایمیل/پیامک/تماس).
+- **تنظیمات:** از `site_settings.json` > `support`:
+  `enabled`, `channels.{chat,telegram,eitaa,rubika,whatsapp,email,sms,tel}`,
+  `colors.btn/bg/hover`, `badge` (پیام بالای دکمه).
+- **غیرفعال‌سازی:** اگر `support.enabled=false` باشد، دکمه شناور حذف و حباب چت قدیمی
+  برمیگردد (خودکار).
+- **مسیرها در کد:**
+  - فرم تنظیمات در پنل: `haste/mod/mod.php` → `case 'settings'` → `isset($_GET['tab']) && $_GET['tab']==='messages'`
+  - ذخیره POST: whitelist `['support','notif']` → ذخیره در `site_settings.json`.
+
+### ۹.۵.۴ تب «پیام‌ها» در تنظیمات پنل (`mod/settings?tab=messages`)
+- **بخشهای تنظیمات:**
+  1. کانالهای پشتیبانی (فعال/غیرفعال + شماره/آیدی هر کانال)
+  2. رنگ دکمه شناور (رنگ دکمه / رنگ پس‌زمینه / رنگ hover)
+  3. تنظیمات ویجت چت (رنگ هدر/پیامها/متن هدر/فونت سایز/متن خوشآمد)
+  4. توکن اعلان (بله / تلگرام) — اولویت با site_settings.notif.* (اگر خالی باشد
+     از site_settings.bale_token / telegram_token خوانده میشود)
+- **暗暗有色:** `Notifier` کلاس اصلی اعلان است → `Notif::notifyAdmin($type,$data,$extra)`
+  همه اعلانها (چت، تماس، سفارش) را به کانالهای فعال میفرستد.
 
 ### ۹.۶ قالب (Theme)
 - **محل فایل:** ghaleb/{name}/
@@ -301,7 +360,6 @@ template_sections → بخش‌های محتوایی قالب
 - تمام CSS، JavaScript، فونت، آیکون و تصاویر باید از داخل سرور سایت بارگذاری شوند.
 - منابع محلی موجود:
     - `manabe/js/sadastEditor.js` — ویرایشگر متنی ساده و وابسته‌نشده
-    - `manabe/js/safhesaz.js` — ماژول صفحه‌ساز
     - `ghaleb/manabe/Sortable.min.js` — کتابخانه Drag & Drop
     - `ghaleb/manabe/fontawesome/` — فونت آیکون‌ها
     - `ghaleb/manabe/fonts/` — فونت فارسی Vazirmatn
@@ -365,4 +423,4 @@ template_sections → بخش‌های محتوایی قالب
 - `haste/tanzimat.php` عمداً **کامیت/پوش نمی‌شود** (کانفیگ لوکال DB داخلش است).
   روی لوکال: `DB_PASS=root`, `DB_NAME=mehrsam_db`؛ در ریپو/هاست: `DB_PASS=''`, `DB_NAME=mehrsamdb`.
 ===============================================================
-آخرین به‌روزرسانی: بازطراحی کامل صفحه‌ساز (نگارش ۲ — سبک المنتور، ویرایش زنده در پیشنمایش، کش خودکار TTL، autosave سبک) + رفع require خراب mohtava-kontrol + سبد مهمان فقطخواندنی
+آخرین به‌روزرسانی: بازطراحی صفحه‌ساز v2 + سیستم اعلان Web Push (VAPID aes128gcm) + دکمه پشتیبانی شناور چندکاناله + تب پیامها در تنظیمات + فروپاشی موبایل محتوای قدیمی + کش رندر TTL 5دقیقه MySQL-side + حذف BOM + حذف safhesaz.js مرده
