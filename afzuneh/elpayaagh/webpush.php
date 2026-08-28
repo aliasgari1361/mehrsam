@@ -109,7 +109,9 @@ class WebPush_Engine {
         return 'vapid t=' . $jwt . ', k=' . self::b64e($pub_raw);
     }
 
-    /* ---------- رمزنگاری payload (aes128gcm, RFC 8291) ---------- */
+    /* ---------- رمزنگاری payload (aes128gcm, RFC 8291) ----------
+       دقیقاً مطابق پیاده‌سازی اثبات‌شده پروژه حسابداری (webpushSend) که
+       روی همین هاست و گوشی صحیح کار می‌کند: hash_hkdf + بایت طول کلید = 65 */
     public static function encrypt($payload, $p256dh_b64, $auth_b64, &$eph_pub_raw) {
         $ua = self::b64d($p256dh_b64);
         $auth = self::b64d($auth_b64);
@@ -123,14 +125,15 @@ class WebPush_Engine {
         $shared = openssl_pkey_derive(self::raw_pub_to_pem($ua), $eph);
         if ($shared === false) return false;
 
-        // RFC 8291: extract + expand
-        $prk_key = self::hkdf($auth, $shared, "WebPush: info\x00" . $ua . $eph_pub_raw, 32);
+        // استخراج کلیدها (دقیقاً همان فراخوانی‌های hash_hkdf حسابداری)
+        $ikm = hash_hkdf('sha256', $shared, 32, "Content-Encoding: aes128gcm\0", $auth);
         $salt = random_bytes(16);
-        $cek = self::hkdf($salt, $prk_key, "Content-Encoding: aes128gcm\x00", 16);
-        $nonce = self::hkdf($salt, $prk_key, "Content-Encoding: nonce\x00", 12);
+        $keyInfo = "WebPush: info\0" . $ua . $eph_pub_raw;
+        $cek = hash_hkdf('sha256', $ikm, 16, $keyInfo, $salt);
+        $nonce = hash_hkdf('sha256', $ikm, 12, "Content-Encoding: nonce\0", $salt);
 
-        // هدر record aes128gcm (86 بایت): salt + rsid(4096) + کلید دو(87) + کلید عمومی موقت
-        $header = $salt . pack('N', 4096) . chr(86 + 1) . $eph_pub_raw;
+        // هدر record aes128gcm: salt + rsid(4096) + طول کلید(65) + کلید عمومی موقت
+        $header = $salt . pack('N', 4096) . chr(65) . $eph_pub_raw;
 
         $tag = '';
         $ciphertext = openssl_encrypt($payload, 'aes-128-gcm', $cek, OPENSSL_RAW_DATA, $nonce, $tag, $header);
