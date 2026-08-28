@@ -773,10 +773,11 @@ function mod_route($action, $params) {
 
             $active_tab = $_GET['tab'] ?? 'general';
             $tabs = [
-                'general'   => 'عمومی',
-                'social'    => 'شبکه‌ها',
-                'messages'  => 'پیام‌ها',
-                'files'     => 'فایل‌ها',
+                'general'      => 'عمومی',
+                'social'       => 'شبکه‌ها',
+                'notifications'=> 'اعلان‌ها',
+                'messages'     => 'پشتیبانی',
+                'files'        => 'فایل‌ها',
             ];
             $standalone = in_array($active_tab, ['theme', 'git'], true);
 
@@ -927,14 +928,9 @@ function mod_route($action, $params) {
                         </div>
                     </div>
                 </div>
-
-                <?php elseif ($active_tab === 'messages'): ?>
+                <?php elseif ($active_tab === 'notifications'): ?>
                 <?php
-                $sup = $current['support'] ?? [];
                 $notif = $current['notif'] ?? [];
-                $supc = function ($ch, $k, $def = '') use ($sup) { return htmlspecialchars($sup['channels'][$ch][$k] ?? $def); };
-                $supon = function ($ch) use ($sup) { return !empty($sup['channels'][$ch]['on']); };
-                $supcol = function ($ch, $def) use ($sup) { return htmlspecialchars($sup['channels'][$ch]['color'] ?? $def); };
                 $push_count = 0;
                 try {
                     require_once MASIR_RISH . 'afzuneh/elpayaagh/Notifier.php';
@@ -951,6 +947,7 @@ function mod_route($action, $params) {
                     </div>
 
                     <hr style="border:none;border-top:1px dashed var(--rang-border);margin:18px 0;">
+
                     <h4 class="section-title"><i class="fa-brands fa-bale" style="color:#0088cc"></i> ربات بله (اعلان جایگزین)</h4>
                     <div class="form-row">
                         <div class="form-group">
@@ -974,6 +971,13 @@ function mod_route($action, $params) {
                     </div>
                 </div>
 
+                <?php elseif ($active_tab === 'messages'): ?>
+                <?php
+                $sup = $current['support'] ?? [];
+                $supc = function ($ch, $k, $def = '') use ($sup) { return htmlspecialchars($sup['channels'][$ch][$k] ?? $def); };
+                $supon = function ($ch) use ($sup) { return !empty($sup['channels'][$ch]['on']); };
+                $supcol = function ($ch, $def) use ($sup) { return htmlspecialchars($sup['channels'][$ch]['color'] ?? $def); };
+                ?>
                 <div class="settings-panel" style="margin-bottom:20px;">
                     <h4 class="section-title"><i class="fa-solid fa-headset" style="color:var(--rang-asli)"></i> دکمه پشتیبانی سایت (برای مشتریها)</h4>
                     <div class="form-row">

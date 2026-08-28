@@ -106,6 +106,45 @@ $panel_title_font_size = (int)($admin_settings['title_font_size'] ?? 18);
         .page-bar .pb-date { background:rgba(255,255,255,0.16); padding:10px 18px; border-radius:10px; font-size:14px; font-weight:600; backdrop-filter:blur(4px); white-space:nowrap; }
         .page-bar .pb-date i { margin-left:6px; opacity:0.85; }
         @media (max-width:768px) { .page-bar { padding:18px 20px; } }
+
+        /* ===== ریسپانسیو کامل پنل ادمین (مثل سایت) ===== */
+        html, body { overflow-x: hidden; max-width: 100%; }
+        img, video, iframe, table { max-width: 100%; }
+        .admin-content { overflow-x: auto; }
+
+        /* جدول‌ها: اسکرول افقی داخل ظرف */
+        .admin-content table, .dash-panel table {
+            display: block;
+            width: 100%;
+            overflow-x: auto;
+            white-space: nowrap;
+            border-collapse: collapse;
+        }
+        .admin-content table td, .admin-content table th,
+        .dash-panel table td, .dash-panel table th {
+            white-space: nowrap;
+            padding: 8px 10px;
+        }
+
+        /* فرم دوستونه → تک‌ستونه در موبایل */
+        .form-row { grid-template-columns: 1fr !important; }
+        .settings-tabs { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        .settings-tabs a { flex-shrink: 0; }
+
+        @media (max-width: 768px) {
+            body { padding: 10px 8px 0 8px; }
+            .admin-content { padding: 14px; border-radius: 10px; }
+            .admin-brand h2 { font-size: 17px; }
+            .admin-header { padding: 12px; gap: 10px; }
+            .admin-header .ah-right { gap: 10px; }
+            .settings-panel { padding: 16px; }
+            .form-group input[type=text], .form-group input[type=email],
+            .form-group input[type=tel], .form-group input[type=url],
+            .form-group input[type=number], .form-group select, .form-group textarea {
+                font-size: 16px;
+            }
+            .btn { width: 100%; }
+        }
     </style>
 </head>
 <body>
