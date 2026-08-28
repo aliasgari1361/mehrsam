@@ -306,7 +306,7 @@
         },
         {
             "label": "\u0627\u0639\u0644\u0627\u0646\u200c\u0647\u0627",
-            "url": "mod\\/settings?tab=notifications",
+            "url": "mod\\/push",
             "icon": "fa-bell",
             "target": "",
             "parent": "s26",
