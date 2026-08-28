@@ -155,7 +155,8 @@ class WebPush_Engine {
                 'Content-Type: application/octet-stream',
                 'Content-Encoding: aes128gcm',
                 'TTL: 2419200',
-                'Urgency: normal',
+                'Priority: high',
+                'Urgency: high',
                 'Authorization: ' . self::vapid_header($endpoint, $priv_pem, $pub_raw),
             ],
         ]);
